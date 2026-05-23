@@ -1,15 +1,9 @@
 import { loadPartyFromFolder } from '../character/party-loader.js';
 import { importCharacterDocument } from '../character/store.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
+import { escapeHtml } from '../shared/escape-html.js';
 
 const $ = (sel) => document.querySelector(sel);
-
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 function playlistSortKey(character) {
   const init = Number(character.sheet?.initMisc ?? 0);

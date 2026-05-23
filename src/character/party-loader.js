@@ -5,9 +5,7 @@ const DEFAULT_PARTY_BASE = '../party/';
 export async function fetchPartyIndex(baseUrl = DEFAULT_PARTY_BASE) {
   const res = await fetch(`${baseUrl}index.json`, { cache: 'no-store' });
   if (!res.ok) {
-    throw new Error(
-      'Party index not found. Copy character JSON files into src/party/ and run: npm run party:index'
-    );
+    throw new Error('Party index not found (developer repo workflow only).');
   }
   const index = await res.json();
   return Array.isArray(index.files) ? index.files : [];
@@ -52,6 +50,25 @@ export async function loadCharactersFromFiles(fileList) {
       loaded.push({ file: file.name, character: data });
     } catch (err) {
       failed.push({ file: file.name, error: err.message ?? String(err) });
+    }
+  }
+
+  return { loaded, failed };
+}
+
+/** @param {{ name: string, text: string }[]} items */
+export function loadCharactersFromTexts(items) {
+  const loaded = [];
+  const failed = [];
+
+  for (const { name, text } of items) {
+    try {
+      const data = JSON.parse(text);
+      const errors = validateCharacterDocument(data);
+      if (errors.length) throw new Error(errors.join(' '));
+      loaded.push({ file: name, character: data });
+    } catch (err) {
+      failed.push({ file: name, error: err.message ?? String(err) });
     }
   }
 

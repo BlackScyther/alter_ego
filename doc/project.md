@@ -4,111 +4,102 @@
 
 ## Worum es geht
 
-**Alter Eger** ist das Gesamtprojekt für eine offline Spielrunde (3–7 Spieler, SL am Laptop). Dieses Repository enthält Spezifikation ([PROJECT.md](../PROJECT.md)) und die **lauffähige Web-App** — beginnend mit einem **spielbaren, selbst berechnenden Charakterblatt** für *Dungeons & Dragons 4th Edition* (Seite 1 des offiziellen PHB-Layouts). Zahlen auf dem Blatt folgen den üblichen 4e-Formeln (halbes Level, Verteidigungen, Fertigkeiten, Angriffe, passive Wahrnehmung, Trefferpunkte). Das Layout ist für **US Letter** (8,5″ × 11″) gedacht und kann gedruckt oder als PDF exportiert werden.
-
-Es handelt sich um ein **funktionales Fan-Layout** mit den gleichen Rechenfeldern wie das offizielle Blatt — **kein** Scan des Wizards-of-the-Coast-Originals.
+**Alter Eger** ist das Gesamtprojekt für eine private D&D-4e-Runde (3–7 Spieler). Dieses Repository enthält Spezifikation ([PROJECT.md](../PROJECT.md)) und **Charakterwerkzeuge** — Generator, Blatt (Seite 1, US Letter), GM-Party-Ansicht. Zahlen folgen den üblichen 4e-Formeln.
 
 ## Für wen ist das Projekt?
 
 | Zielgruppe | Nutzen |
 |------------|--------|
-| **Spieler** | Blatt ausfüllen, Werte werden live berechnet; optional Charakter im Editor anlegen und aufs Blatt übernehmen |
-| **Spielleiter** | GM-Konsole: mehrere exportierte Charaktere aus `src/party/` einsehen und Blatt/Editor öffnen |
-| **Entwickler / Agenten** | Klare Modulgrenzen, Metadaten für den Editor, später Anbindung an ein Regelwerk-Compendium (SQLite) |
+| **Spieler** | Einladungslink öffnen → Generator → **Save** (kein JSON per Chat/USB) |
+| **Spielleiter** | Kampagne anlegen → Link teilen → Party-Liste live (Polling) |
+| **Entwickler / Host** | App + API auf VPS ([deploy-online.md](deploy-online.md)) oder lokal `npm run dev:all` |
 
-Es gibt **keine Cloud-Accounts**: Speicherung im Browser (`localStorage`) und Austausch über **JSON-Dateien** (`Charaktername_Stufe.json`).
+**Primär:** Online-Kampagne (Browser + kleine Node/SQLite-API).  
+**Optional:** Desktop-App (Tauri), JSON-Export/Import als Backup.
 
-## Oberflächen
+## Anforderungen & Planung (Dokumentation)
+
+| Dokument | Inhalt |
+|----------|--------|
+| [requirements.md](requirements.md) | Anforderungen mit IDs (funktional / nicht-funktional) |
+| [roadmap.md](roadmap.md) | Phasen, erledigter Online-Kampagnen-Plan, Backlog |
+| [todos.md](todos.md) | Checklisten für Host, Entwickler, Agenten |
+| [architecture.md](architecture.md) | Technik-Überblick (bewusst schlank, kein React) |
+
+## Oberflächen (Online — empfohlen)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  Home (/src/)           Nur: Generator · Top of playlist      │
+│  Host: dist/app/ + API /api                                  │
 └─────────────────────────────────────────────────────────────┘
-         │                                    │
-         ▼                                    ▼
-┌──────────────────────────┐    ┌─────────────────────────────┐
-│  Generator (/src/editor/) │    │  Playlist top (/src/playlist/) │
-│  Laden → Level up / Neu   │    │  Party-Reihenfolge, Top hervor │
-│  Neu: Rasse→Hintergrund→  │    └─────────────────────────────┘
-│  Klasse→Attribute→Ausr.   │
-└──────────────────────────┘
-         │ „Blatt öffnen“
-         ▼
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌─────────┐  ┌──────────────────────────────────┐
+│ Join    │  │ GM-Konsole                        │
+│ ?c=&t=  │  │ Kampagne erstellen · Party live   │
+└────┬────┘  └──────────────────────────────────┘
+     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Charakterblatt (/src/sheet/)  Seite 1 + Stufen 1–30        │
-│  Formeln in app.js ← formulas.js (eigenes Print-CSS)          │
-└─────────────────────────────────────────────────────────────┘
-         │ Spieler legt Export in src/party/ ab
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  GM-Konsole (/src/gm/)    Party-Liste aus index.json          │
+│  Spieler-Hub → Generator → Save → API → SQLite               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-UI-Vorgaben (Tailwind, Buttons, Flows): Ordner **`rules/`** (Englisch).
-
-**Starten:** `npm start` → http://localhost:5173/src/ (Root leitet dorthin um)
+**Desktop (optional):** Start ([launcher](../src/launcher/)) → Spieler oder SL; Sync nur mit erreichbarer API.
 
 ## Technischer Ansatz
 
-- **Frontend:** Statisches HTML, CSS und ES-Module; **Tailwind** auf App-Screens (Hub, Generator, Playlist); Blatt bleibt `sheet.css` für Druck.
-- **Server:** Nur für Entwicklung (`serve` auf Port 5173) und PDF-Export (kurzlebiger HTTP-Server in Playwright).
-- **Formeln:** Zentral in `src/formulas.js`, Anbindung ans DOM in `src/app.js`.
-- **Charaktermodell:** `src/character/` (Dokument, Speicher, Export/Import, Brücke zum Blatt, Bonus-Stacking nach 4e-Regeln).
-- **Compendium:** Aktuell **Stub-Daten** (`data/samples/compendium-stub.json`); geplant ist `data/alter_eger.db` nach JSONP-Import (Spezifikation in `metadata/import.json`).
+| Schicht | Technik |
+|---------|---------|
+| UI | HTML, CSS, ES-Module (`src/`) |
+| Build | **Vite** → `dist/app/` |
+| API | **Express** + **SQLite** (`server/`) |
+| Desktop | **Tauri 2** (optional) |
+| Daten | `localStorage` + Kampagnen-API; Compendium-Stub bis `alter_eger.db` |
 
-## Module im Gesamtprojekt
-
-| Modul | Pfad | Status |
-|-------|------|--------|
-| Spezifikation | `PROJECT.md` | Phase 0 erledigt |
-| Charakterblatt + Formeln | `src/sheet/`, `src/app.js` | Nutzbar |
-| Charaktergenerator | `src/editor/` | Wizard + Stub-Compendium |
-| SL Party / GM | `src/gm/`, `src/party/` | Party-Liste, noch kein voller Kampf-Tracker |
-| Compendium-Import | `tools/importer/`, `data/alter_eger.db` | Geplant (Phase 1) |
-
-Metadaten (`metadata/`) und UI-Regeln (`rules/`) leiten sich direkt aus `PROJECT.md` ab.
+Details: [architecture.md](architecture.md).
 
 ## Was bereits funktioniert
 
-- Live-Berechnung aller Hauptfelder auf dem Blatt
-- Druck und PDF (Browser oder `npm run pdf`)
-- Editor-Wizard mit Stub-Compendium
-- JSON-Export/-Import und mehrere Charaktere pro Browser
-- GM-Ansicht mit Party-Index (`npm run party:index`)
+- Online-Kampagne: erstellen, Einladung, Save-Sync, GM-Party (Polling)
+- Game editor: Encounters, Monster/Party spawnen, Editor-Anbindung, Combat-Tab
+- Charaktergenerator, Blatt, Formeln, JSON-Export
+- Vite-Build, Launcher, Player-Hub, GM JSON-Backup-Import
+- Desktop (Tauri), CI-Builds Windows/Mac
+- API-Smoke-Test: `npm run test:api`
+- Security & Input-Tests: `npm test` (51 Tests: SQLi, Auth, Datei-Import, XSS)
 
-## Was noch aussteht (Kurz)
+## Game editor
 
-Details und IDs stehen in [bugs.md](bugs.md).
+Der **Game Editor** (`/src/game/`) bündelt **Spieler-PCs**, **Monster** und Kreaturen zu einer **Encounter-Liste** mit **NPC-Instanzen** (mehrfach pro Vorlage). Der SL öffnet Instanzen im **Charaktereditor**; verknüpfte PCs sind schreibgeschützt, Kopien editierbar. **Combat-Tab:** Initiative und HP.
 
-- Vollständiges Compendium (SQLite + Importer)
-- Automatisierte Tests (siehe [tests.md](tests.md))
-- sql.js-Anbindung im Browser für `alter_eger.db`
+Spezifikation: [game-editor.md](game-editor.md).
 
-## Schnellstart
+## Noch offen (Auszug)
+
+- Vollständiges Compendium (`alter_eger.db`) — Phase 1 in [roadmap.md](roadmap.md)
+- SL-Kampf-Oberfläche — Phase 3 (nutzt Encounter-Roster)
+- Optional: SSE statt Polling, DELETE Charakter per API
+
+## Schnellstart (Entwickler)
 
 ```bash
 npm install
-npx playwright install chromium
-npm start
+npm run dev:all    # Frontend + API
 ```
 
-| URL | Seite |
-|-----|--------|
-| http://localhost:5173/src/ | Home (Generator / Playlist) |
-| http://localhost:5173/src/sheet/ | Charakterblatt |
-| http://localhost:5173/src/editor/ | Charakter-Generator |
-| http://localhost:5173/src/playlist/ | Top of playlist |
-| http://localhost:5173/src/gm/ | GM-Konsole |
-
-PDF erzeugen: `npm run pdf` → `output/alter-eger-sheet-page1.pdf`
+| URL (Dev) | Seite |
+|-----------|--------|
+| http://localhost:5173/src/launcher/ | Rollenwahl |
+| http://localhost:5173/src/gm/ | SL (Kampagne) |
+| http://localhost:5173/src/join/ | Einladung (mit `?c=&t=`) |
 
 ## Weitere Dokumentation
 
 | Datei | Inhalt |
 |-------|--------|
-| [files.md](files.md) | Datei-für-Datei-Referenz |
-| [bugs.md](bugs.md) | Bekannte Probleme und Limitierungen |
-| [tests.md](tests.md) | Manuelle Test-Checkliste |
-| [../README.md](../README.md) | Englische Kurzanleitung (Formeln, Druck) |
-| [../PROMPT.md](../PROMPT.md) | Vorgaben für Cursor-Agenten |
+| [files.md](files.md) | Dateireferenz |
+| [bugs.md](bugs.md) | Bekannte Limits |
+| [tests.md](tests.md) | Test-Checkliste |
+| [deploy-online.md](deploy-online.md) | VPS-Deploy |
+| [../README.md](../README.md) | Kurzanleitung (EN) |

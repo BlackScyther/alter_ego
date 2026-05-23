@@ -2,22 +2,41 @@
 
 This folder is the **living documentation** for agents and humans. Keep it in sync with the codebase.
 
+## Core documents
+
 | File | Purpose |
 |------|---------|
-| [project.md](project.md) | **Readable project description** (goals, users, architecture, status) |
+| [project.md](project.md) | **Readable project description** (goals, users, architecture, status) — DE |
+| [requirements.md](requirements.md) | Functional & non-functional requirements (IDs, status) |
+| [roadmap.md](roadmap.md) | Phases, completed plans, near-term backlog |
+| [todos.md](todos.md) | Host / developer / agent checklists |
+| [architecture.md](architecture.md) | Stack overview, API, data flows (why it stays simple) |
+| [game-editor.md](game-editor.md) | GM encounter roster, NPC instances, editor bridge (planned) |
 | [files.md](files.md) | What each project file does and how it connects |
 | [bugs.md](bugs.md) | Known bugs, limitations, and fix backlog |
 | [tests.md](tests.md) | Test strategy, manual checks, and automation status |
+
+## Deployment & desktop
+
+| File | Purpose |
+|------|---------|
+| [deploy-online.md](deploy-online.md) | VPS: static app + Node API + SQLite |
+| [mac-build-ohne-mac.md](mac-build-ohne-mac.md) | macOS `.dmg` via GitHub Actions (no Mac required) |
 
 ## Maintenance rule
 
 After **every completed agent task** (feature, fix, or refactor), update:
 
 1. **project.md** — if scope, features, architecture, or user-facing goals changed  
-2. **files.md** — if files were added, removed, renamed, or their role changed  
-3. **bugs.md** — if bugs were fixed, found, or deferred  
-4. **tests.md** — if test steps or coverage changed  
+2. **requirements.md** — if requirement IDs or status changed  
+3. **roadmap.md** / **todos.md** — if phases or backlog changed  
+4. **files.md** — if files were added, removed, renamed, or their role changed  
+5. **bugs.md** — if bugs were fixed, found, or deferred  
+6. **tests.md** — if test steps or coverage changed  
+7. **architecture.md** — if stack or API shape changed  
 
 Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows, or agent conventions change.
 
-Last agent sync: **2026-05-22** — `/verify`: sheet calc path fix (B-005); Playwright PDF export OK.
+Set **Last agent sync** below when you finish a doc pass.
+
+**Last agent sync:** 2026-05-23 — Game editor implemented (`src/game/`, encounter API); [game-editor.md](game-editor.md).
