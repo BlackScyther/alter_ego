@@ -1,0 +1,53 @@
+{
+  "$schema": "./dimensions.schema.json",
+  "description": "Official D&D 4e PHB character sheet page 1 — US Letter layout. All positions in inches from top-left of the printable area. Change scale to resize output; proportions stay fixed.",
+  "page": {
+    "widthIn": 8.5,
+    "heightIn": 11,
+    "marginTopIn": 0.25,
+    "marginRightIn": 0.25,
+    "marginBottomIn": 0.25,
+    "marginLeftIn": 0.25,
+    "contentWidthIn": 8,
+    "contentHeightIn": 10.5
+  },
+  "scale": 1,
+  "columns": {
+    "left": { "leftIn": 0.25, "widthIn": 2.55 },
+    "center": { "leftIn": 2.9, "widthIn": 2.55 },
+    "right": { "leftIn": 5.55, "widthIn": 2.2 }
+  },
+  "regions": {
+    "header": { "topIn": 0.15, "heightIn": 1.05 },
+    "initiative": { "topIn": 1.25, "heightIn": 0.55 },
+    "abilities": { "topIn": 1.85, "heightIn": 1.35 },
+    "hitPoints": { "topIn": 3.25, "heightIn": 1.85 },
+    "skills": { "topIn": 5.15, "heightIn": 4.35 },
+    "defenses": { "topIn": 1.25, "heightIn": 2.15 },
+    "actionPoints": { "topIn": 3.45, "heightIn": 0.65 },
+    "raceFeatures": { "topIn": 4.15, "heightIn": 1.45 },
+    "classFeatures": { "topIn": 5.65, "heightIn": 2.35 },
+    "languages": { "topIn": 8.05, "heightIn": 0.45 },
+    "movement": { "topIn": 1.25, "heightIn": 0.55 },
+    "senses": { "topIn": 1.85, "heightIn": 0.55 },
+    "attackWorkspace": { "topIn": 2.45, "heightIn": 1.35 },
+    "damageWorkspace": { "topIn": 3.85, "heightIn": 1.15 },
+    "basicAttacks": { "topIn": 5.05, "heightIn": 1.15 },
+    "feats": { "topIn": 6.25, "heightIn": 3.25 },
+    "footer": { "topIn": 9.75, "heightIn": 0.35 }
+  },
+  "fieldHeights": {
+    "identityRow": 0.22,
+    "scoreBox": 0.28,
+    "breakdownRow": 0.16,
+    "skillRow": 0.24,
+    "defenseScore": 0.42,
+    "textLine": 0.18
+  },
+  "typography": {
+    "fontFamily": "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+    "labelPt": 6,
+    "valuePt": 9,
+    "headerPt": 7
+  }
+}

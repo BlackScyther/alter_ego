@@ -1,0 +1,25 @@
+{
+  "catalogTimestamp": "20130616",
+  "categories": {
+    "power": { "displayName": "Power", "entryCount": 9415 },
+    "monster": { "displayName": "Monster", "entryCount": 5326 },
+    "feat": { "displayName": "Feat", "entryCount": 3261 },
+    "item": { "displayName": "Item", "entryCount": 1964 },
+    "background": { "displayName": "Background", "entryCount": 808 },
+    "trap": { "displayName": "Trap / Terrain", "entryCount": 776 },
+    "implement": { "displayName": "Implement", "entryCount": 647 },
+    "weapon": { "displayName": "Weapon", "entryCount": 631 },
+    "paragonpath": { "displayName": "Paragon Path", "entryCount": 577 },
+    "armor": { "displayName": "Armor", "entryCount": 493 },
+    "glossary": { "displayName": "Glossary", "entryCount": 458 },
+    "ritual": { "displayName": "Ritual", "entryCount": 360 },
+    "companion": { "displayName": "Companion", "entryCount": 193 },
+    "deity": { "displayName": "Deity", "entryCount": 134 },
+    "theme": { "displayName": "Theme", "entryCount": 116 },
+    "epicdestiny": { "displayName": "Epic Destiny", "entryCount": 115 },
+    "class": { "displayName": "Class", "entryCount": 77 },
+    "disease": { "displayName": "Disease", "entryCount": 69 },
+    "race": { "displayName": "Race", "entryCount": 55 },
+    "poison": { "displayName": "Poison", "entryCount": 38 }
+  }
+}

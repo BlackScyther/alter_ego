@@ -1,0 +1,15 @@
+{
+  "name": "alter-eger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alter Eger — offline D&D 4e compendium, character tools, and DM party surface",
+  "scripts": {
+    "start": "npx --yes serve . -p 5173",
+    "pdf": "node scripts/export-pdf.mjs",
+    "pdf:levels": "node scripts/export-pdf.mjs --levels-only",
+    "party:index": "node scripts/build-party-index.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}

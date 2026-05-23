@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Character generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="editor-shell min-h-screen">
+    <nav class="editor-nav" aria-label="Builder steps">
+      <p class="text-xs uppercase tracking-widest text-amber-500 font-semibold m-0">Character generator</p>
+      <a href="../index.html" class="text-sm text-slate-400 hover:text-slate-200 no-underline">← Home</a>
+      <a href="../sheet/index.html" class="text-sm text-slate-400 hover:text-slate-200 no-underline">Character sheet</a>
+      <label class="editor-char-picker mt-2">
+        <span class="text-sm text-slate-400">Saved characters</span>
+        <select id="char-picker" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-2 py-2 text-base text-slate-100"></select>
+      </label>
+      <ul class="step-list mt-4" id="step-list" hidden></ul>
+      <p class="mt-auto text-xs text-slate-500">
+        Flow per <code class="text-amber-500/90">rules/character-generator.md</code>
+      </p>
+    </nav>
+
+    <main class="editor-main flex flex-col">
+      <div class="status-bar flex flex-wrap items-center gap-2 border-b border-slate-700 px-4 py-2 text-sm">
+        <span id="compendium-status">Compendium: …</span>
+        <button type="button" class="btn-secondary text-sm px-3 py-1.5" id="btn-export">Export JSON</button>
+        <label class="btn-secondary text-sm px-3 py-1.5 cursor-pointer m-0">
+          Import JSON
+          <input type="file" id="btn-import" accept=".json,application/json" hidden />
+        </label>
+      </div>
+
+      <!-- Gate: load existing -->
+      <section id="generator-gate" class="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
+        <h2 class="text-2xl font-semibold text-slate-100 m-0">Load a character</h2>
+        <p class="mt-2 text-base text-slate-400">Choose a saved character or import a JSON file. After loading, you can level up or start a new build.</p>
+        <div class="mt-8 flex flex-col gap-3 w-full">
+          <label class="text-left text-sm text-slate-400">Saved in this browser</label>
+          <select id="gate-char-picker" class="w-full min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-base text-slate-100"></select>
+          <label class="btn-secondary min-h-11 flex items-center justify-center rounded-lg border border-slate-600 px-4 py-3 text-base font-medium cursor-pointer mt-2">
+            Import JSON file…
+            <input type="file" id="gate-import" accept=".json,application/json" hidden />
+          </label>
+        </div>
+      </section>
+
+      <!-- Post-load: level up or new -->
+      <section id="generator-post-load" class="hidden flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
+        <h2 class="text-2xl font-semibold m-0" id="post-load-title">Character loaded</h2>
+        <p class="mt-2 text-base text-slate-400" id="post-load-subtitle"></p>
+        <div class="mt-8 flex flex-col gap-4 w-full">
+          <button type="button" id="btn-level-up" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+            Level up
+          </button>
+          <button type="button" id="btn-new-build" class="min-h-14 w-full rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+            Generate new character
+          </button>
+        </div>
+      </section>
+
+      <!-- Wizard -->
+      <div id="generator-wizard" class="hidden flex flex-col flex-1 min-h-0">
+        <header class="editor-header px-4 pt-4">
+          <h2 id="step-title" class="text-xl font-semibold m-0">…</h2>
+          <p id="step-subtitle" class="text-sm text-slate-400 mt-1"></p>
+        </header>
+
+        <ul class="validation-errors mx-4" id="validation-errors" hidden></ul>
+
+        <div id="step-panel" class="flex-1 overflow-auto px-4 pb-4"></div>
+
+        <div class="editor-actions flex flex-wrap gap-2 border-t border-slate-700 px-4 py-3">
+          <button type="button" class="btn-secondary min-h-11 px-4 text-base" id="btn-back-to-load">Change character</button>
+          <button type="button" class="btn-secondary min-h-11 px-4 text-base" id="btn-prev">Back</button>
+          <button type="button" class="btn-primary min-h-11 px-4 text-base font-semibold" id="btn-next">Next</button>
+          <button type="button" class="btn-secondary min-h-11 px-4 text-base" id="btn-save">Save</button>
+          <button type="button" class="btn-primary min-h-11 px-4 text-base font-semibold ml-auto" id="btn-sheet">Open character sheet</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="editor.js"></script>
+</body>
+</html>

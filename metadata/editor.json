@@ -1,0 +1,123 @@
+{
+  "$schema": "./editor.schema.json",
+  "specRef": "Alter_Eger PROJECT.md §8–9, UX §24–26; UI flows in rules/character-generator.md",
+  "version": 1,
+  "creationFlow": [
+    "race",
+    "background",
+    "class",
+    "abilities",
+    "equipment"
+  ],
+  "builderFlow": [
+    "basics",
+    "race",
+    "background",
+    "class",
+    "abilities",
+    "theme",
+    "feats",
+    "powers",
+    "equipment",
+    "paragon",
+    "epic",
+    "review"
+  ],
+  "steps": {
+    "basics": {
+      "title": "Basics",
+      "subtitle": "Player and character identity",
+      "requiredFields": ["playerName", "characterName", "level"],
+      "levelRange": [1, 30]
+    },
+    "race": {
+      "title": "Race",
+      "subtitle": "Compendium race entry",
+      "compendiumCategory": "race",
+      "selectionCardinality": 1,
+      "writesTo": ["identity.race", "identity.size", "selections.raceId", "notes.raceFeatures"]
+    },
+    "class": {
+      "title": "Class",
+      "subtitle": "Base class (hybrid later)",
+      "compendiumCategory": "class",
+      "selectionCardinality": 1,
+      "writesTo": ["identity.class", "identity.role", "selections.classId", "notes.classFeatures"]
+    },
+    "abilities": {
+      "title": "Ability Scores",
+      "subtitle": "Point-buy base scores plus race/class/background bonuses (tutor)",
+      "methods": ["manual", "point-buy-22"],
+      "pointBuyBudget": 22,
+      "baseScore": 10,
+      "writesTo": ["abilities.baseScores", "abilities.scores", "abilities.bonuses"],
+      "tutorRef": "src/character/tutor.js"
+    },
+    "background": {
+      "title": "Background",
+      "compendiumCategory": "background",
+      "selectionCardinality": 1,
+      "optional": true,
+      "writesTo": ["selections.backgroundId", "identity.background"]
+    },
+    "theme": {
+      "title": "Theme",
+      "compendiumCategory": "theme",
+      "selectionCardinality": 1,
+      "optional": true,
+      "writesTo": ["selections.themeId"]
+    },
+    "feats": {
+      "title": "Feats",
+      "compendiumCategory": "feat",
+      "selectionCardinality": "level-based",
+      "writesTo": ["selections.featIds", "notes.feats"]
+    },
+    "powers": {
+      "title": "Powers",
+      "compendiumCategory": "power",
+      "filterByClass": true,
+      "writesTo": ["selections.powerIds"]
+    },
+    "equipment": {
+      "title": "Equipment",
+      "compendiumCategories": ["weapon", "armor", "implement", "item"],
+      "writesTo": ["selections.equipmentIds", "sheet.defenses", "sheet.speed"]
+    },
+    "paragon": {
+      "title": "Paragon Path",
+      "compendiumCategory": "paragonpath",
+      "minLevel": 11,
+      "optionalBelowMin": true,
+      "writesTo": ["identity.paragonPath", "selections.paragonPathId"]
+    },
+    "epic": {
+      "title": "Epic Destiny",
+      "compendiumCategory": "epicdestiny",
+      "minLevel": 21,
+      "optionalBelowMin": true,
+      "writesTo": ["identity.epicDestiny", "selections.epicDestinyId"]
+    },
+    "review": {
+      "title": "Review",
+      "subtitle": "Validate and open character sheet",
+      "actions": ["applyToSheet", "exportJson", "save"]
+    }
+  },
+  "tutor": {
+    "abilityBonuses": "Same bonus type on one ability does not stack (use highest). Different types add (e.g. Racial + Feat). Point-buy is base only; end result is held firm on the sheet.",
+    "skillBonuses": "Two Skill bonuses to the same skill do not add. Skill + Feat to the same skill do add. Totals apply to sheet skill Misc.",
+    "itemBonuses": "Enhancement and item bonuses on the sheet do not stack with each other; use the highest. Some features exclude item bonuses — note those in Misc on the sheet.",
+    "sources": ["race", "class", "background", "theme"]
+  },
+  "partyLimits": {
+    "minActiveCharacters": 3,
+    "maxActiveCharacters": 7
+  },
+  "import": {
+    "source": "iws.mx",
+    "baseUrl": "https://iws.mx/dnd/4e_database_files/",
+    "dbPath": "data/alter_eger.db",
+    "catalogCountsRef": "metadata/catalog-counts.json"
+  }
+}

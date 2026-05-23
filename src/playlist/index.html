@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Top of playlist</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <header class="border-b border-slate-800 px-4 py-3 flex items-center gap-4">
+    <a href="../index.html" class="text-sm text-slate-400 hover:text-slate-200 no-underline">← Home</a>
+    <h1 class="text-lg font-semibold m-0">Top of playlist</h1>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-8">
+    <p id="playlist-status" class="text-base text-slate-400">Loading party…</p>
+    <ul id="playlist-list" class="mt-6 flex flex-col gap-3 list-none p-0 m-0" hidden></ul>
+    <p id="playlist-empty" class="mt-6 text-base text-slate-400 hidden">
+      No party characters yet. Export JSON from the generator, copy files into
+      <code class="text-amber-500/90">src/party/</code>, run
+      <code class="text-amber-500/90">npm run party:index</code>, then reload.
+    </p>
+  </main>
+
+  <script type="module" src="playlist.js"></script>
+</body>
+</html>

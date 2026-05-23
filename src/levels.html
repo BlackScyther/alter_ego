@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>D&amp;D 4e — Level 1–30 Reference</title>
+  <link rel="stylesheet" href="sheet.css" />
+</head>
+<body class="sheet-body">
+  <div class="toolbar no-print">
+    <a href="index.html">← Home</a>
+    <a href="sheet/index.html">Character sheet</a>
+    <button type="button" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+  <section class="levels-page">
+    <h1>D&amp;D 4e — Values by Level (1–30)</h1>
+    <p class="note">Reference for half-level bonus, defense base (10 + ½ level), XP thresholds, and modifier + ½ level when ability score is 10.</p>
+    <table class="levels-table">
+      <thead>
+        <tr>
+          <th>Level</th><th>Tier</th><th>½ Level</th><th>Defense 10+½</th><th>XP to Level</th><th>Mod+½Lvl @ score 10</th>
+        </tr>
+      </thead>
+      <tbody id="level-table-body"></tbody>
+    </table>
+    <dl class="formula-key">
+      <dt>½ Level</dt><dd>floor(Level ÷ 2)</dd>
+      <dt>Ability modifier</dt><dd>floor((Score − 10) ÷ 2)</dd>
+      <dt>Mod + ½ Level</dt><dd>Ability modifier + ½ level</dd>
+    </dl>
+  </section>
+  <script type="module">
+    import { buildLevelTable } from './formulas.js';
+    document.getElementById('level-table-body').innerHTML = buildLevelTable(30)
+      .map((r) => `<tr>
+        <td>${r.level}</td><td class="tier">${r.tier}</td><td>${r.halfLevel}</td>
+        <td>${r.defenseBase}</td><td>${r.xp.toLocaleString()}</td><td>+${r.modPlusHalfAt10}</td>
+      </tr>`).join('');
+  </script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e Character Sheet — Page 1</title>
+  <link rel="stylesheet" href="/src/sheet.css" />
+</head>
+<body class="sheet-body">
+  <div class="toolbar no-print">
+    <label>Scale: <input type="range" id="scale-slider" min="75" max="125" value="100" /> <span id="scale-label">100%</span></label>
+    <span id="dim-meta"></span>
+    <button type="button" id="btn-print">Print / Save as PDF</button>
+    <a href="../index.html">Home</a>
+    <a href="../editor/index.html">Character generator</a>
+    <a href="../gm/index.html">GM console</a>
+    <a href="../levels.html">Level 1–30 reference</a>
+  </div>
+
+  <main class="sheet-page" id="character-sheet">
+    <header class="sheet-header">
+      <div class="logo-block">DUNGEONS &amp;<br />DRAGONS</div>
+      <div class="sheet-title">Character Sheet</div>
+      <div class="identity-grid">
+        <div class="field"><label>Player Name</label><input type="text" id="player-name" /></div>
+        <div class="field"><label>Character Name</label><input type="text" id="character-name" /></div>
+        <div class="field"><label>Level</label><input type="number" id="level" min="1" max="30" value="1" /></div>
+        <div class="field"><label>Class</label><input type="text" id="class" /></div>
+        <div class="field"><label>Paragon Path</label><input type="text" id="paragon-path" /></div>
+        <div class="field"><label>Epic Destiny</label><input type="text" id="epic-destiny" /></div>
+      </div>
+      <div class="identity-grid row2">
+        <div class="field"><label>Race</label><input type="text" id="race" /></div>
+        <div class="field"><label>Size</label><input type="text" id="size" /></div>
+        <div class="field"><label>Age</label><input type="text" id="age" /></div>
+        <div class="field"><label>Gender</label><input type="text" id="gender" /></div>
+        <div class="field"><label>Height</label><input type="text" id="height" /></div>
+        <div class="field"><label>Weight</label><input type="text" id="weight" /></div>
+        <div class="field"><label>Alignment</label><input type="text" id="alignment" /></div>
+        <div class="field"><label>Deity</label><input type="text" id="deity" /></div>
+        <div class="field"><label>Adventuring Company</label><input type="text" id="company" /></div>
+        <div class="field"><label>Total XP</label><input type="number" id="total-xp" min="0" value="0" /></div>
+        <div class="field no-print"><label class="note" id="xp-for-level"></label></div>
+      </div>
+    </header>
+
+    <div class="sheet-columns">
+      <!-- LEFT COLUMN -->
+      <section class="col" aria-label="Abilities and skills">
+        <div class="panel">
+          <div class="panel-title">Initiative</div>
+          <div class="big-score">
+            <div class="total"><input class="calc" id="init-total" readonly tabindex="-1" /></div>
+            <div>
+              <div class="breakdown">
+                <span class="hdr">DEX</span><span class="hdr">1/2 LVL</span><span class="hdr">MISC</span>
+              </div>
+              <div class="breakdown">
+                <span class="cell"><input id="init-dex" class="calc" readonly /></span>
+                <span class="cell"><input id="init-half" class="calc" readonly /></span>
+                <span class="cell"><input type="number" id="init-misc" value="0" /></span>
+              </div>
+            </div>
+          </div>
+          <div class="conditional"><label>Conditional Modifiers</label><textarea id="init-conditional"></textarea></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Ability Scores</div>
+          <table class="abilities-table">
+            <thead>
+              <tr><th>Ability</th><th>Score</th><th>Abil Mod</th><th>Mod + 1/2 Lvl</th></tr>
+            </thead>
+            <tbody>
+              <tr><th>STR</th><td><input type="number" id="str-score" value="10" /></td><td class="calc-cell"><input class="calc" id="str-mod" readonly /></td><td class="calc-cell"><input class="calc" id="str-mod-half" readonly /></td></tr>
+              <tr><th>CON</th><td><input type="number" id="con-score" value="10" /></td><td class="calc-cell"><input class="calc" id="con-mod" readonly /></td><td class="calc-cell"><input class="calc" id="con-mod-half" readonly /></td></tr>
+              <tr><th>DEX</th><td><input type="number" id="dex-score" value="10" /></td><td class="calc-cell"><input class="calc" id="dex-mod" readonly /></td><td class="calc-cell"><input class="calc" id="dex-mod-half" readonly /></td></tr>
+              <tr><th>INT</th><td><input type="number" id="int-score" value="10" /></td><td class="calc-cell"><input class="calc" id="int-mod" readonly /></td><td class="calc-cell"><input class="calc" id="int-mod-half" readonly /></td></tr>
+              <tr><th>WIS</th><td><input type="number" id="wis-score" value="10" /></td><td class="calc-cell"><input class="calc" id="wis-mod" readonly /></td><td class="calc-cell"><input class="calc" id="wis-mod-half" readonly /></td></tr>
+              <tr><th>CHA</th><td><input type="number" id="cha-score" value="10" /></td><td class="calc-cell"><input class="calc" id="cha-mod" readonly /></td><td class="calc-cell"><input class="calc" id="cha-mod-half" readonly /></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Hit Points</div>
+          <div class="hp-grid">
+            <div class="field"><label>Max HP</label><input type="number" id="max-hp" min="0" value="0" /></div>
+            <div class="field"><label>Bloodied (1/2 HP)</label><input class="calc" id="bloodied" readonly /></div>
+            <div class="field"><label>Surge Value (1/4 HP)</label><input class="calc" id="surge-value" readonly /></div>
+          </div>
+          <div class="hp-subgrid">
+            <div class="field"><label>Surges/Day</label><input type="number" id="surges-day" min="0" value="0" /></div>
+            <div class="field"><label>Current Surge Uses</label><input type="number" id="surge-uses" min="0" value="0" /></div>
+            <div class="field"><label>Current Hit Points</label><input type="number" id="current-hp" /></div>
+            <div class="field"><label>Temporary Hit Points</label><input type="number" id="temp-hp" min="0" value="0" /></div>
+          </div>
+          <div class="checkbox-row">
+            <label><input type="checkbox" id="second-wind" /> Second Wind — Used</label>
+          </div>
+          <div class="death-saves">
+            <span>Death Saving Throw Failures:</span>
+            <label><input type="checkbox" id="death-fail-1" /></label>
+            <label><input type="checkbox" id="death-fail-2" /></label>
+            <label><input type="checkbox" id="death-fail-3" /></label>
+          </div>
+          <div class="field"><label>Saving Throw Mods</label><input type="text" id="save-mods" /></div>
+          <div class="field"><label>Resistances</label><textarea id="resistances" rows="2"></textarea></div>
+          <div class="field"><label>Current Conditions and Effects</label><textarea id="conditions" rows="3"></textarea></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Skills</div>
+          <p class="no-print" style="font-size:6pt;margin:0 0 4px">Global armor penalty (applied to Acrobatics, Endurance, Stealth, Thievery): <input type="number" id="armor-penalty-global" value="0" style="width:3em" /></p>
+          <table class="skills-table" id="skills-table">
+            <thead>
+              <tr>
+                <th>Bonus</th><th>Skill Name</th><th>Abil</th><th>Abil Mod + 1/2 Lvl</th>
+                <th>Trnd (+5)</th><th>Armor Penalty</th><th>Misc</th>
+              </tr>
+            </thead>
+            <tbody id="skills-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CENTER COLUMN -->
+      <section class="col" aria-label="Defenses and features">
+        <div class="panel" id="defenses-panel">
+          <div class="panel-title">Defenses</div>
+          <!-- AC -->
+          <div class="big-score" style="margin-bottom:6px">
+            <div><strong>AC</strong><div class="total"><input class="calc" id="ac-total" readonly /></div></div>
+            <div style="flex:1">
+              <div class="breakdown">
+                <span class="hdr">10+</span><span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span><span class="hdr">ARMOR</span>
+              </div>
+              <div class="breakdown">
+                <span class="cell"><input id="ac-ten" class="calc" readonly /></span>
+                <span class="cell"><input id="ac-half" class="calc" readonly /></span>
+                <span class="cell"><input type="number" id="ac-abil" value="0" /></span>
+                <span class="cell"><input type="number" id="ac-class" value="0" /></span>
+                <span class="cell"><input type="number" id="ac-feat" value="0" /></span>
+                <span class="cell"><input type="number" id="ac-enh" value="0" /></span>
+                <span class="cell"><input type="number" id="ac-misc" value="0" /></span>
+                <span class="cell"><input type="number" id="ac-armor" value="0" /></span>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="ac-misc2" value="0" />
+          <div class="conditional"><label>Conditional Bonuses (AC)</label><textarea id="ac-conditional"></textarea></div>
+          <!-- FORT REF WILL - compact -->
+          <div id="other-defenses"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Action Points</div>
+          <div class="hp-subgrid">
+            <div class="field"><label>Action Points</label><input class="calc" id="action-points-total" readonly /></div>
+            <div class="field"><label>Milestones (0–2)</label><input type="number" id="milestones" min="0" max="2" value="0" /></div>
+          </div>
+          <p style="font-size:5.5pt;margin:4px 0">Milestones: 0→1 AP, 1→2 AP, 2→3 AP</p>
+          <div class="field"><label>Additional Effects for Spending Action Points</label><textarea id="ap-effects" rows="2"></textarea></div>
+        </div>
+
+        <div class="panel lined-area">
+          <div class="panel-title">Race Features</div>
+          <textarea id="race-features"></textarea>
+        </div>
+
+        <div class="panel lined-area">
+          <div class="panel-title">Class / Path / Destiny Features</div>
+          <textarea id="class-features"></textarea>
+        </div>
+
+        <div class="panel lined-area sm">
+          <div class="panel-title">Languages Known</div>
+          <textarea id="languages"></textarea>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <section class="col" aria-label="Movement and attacks">
+        <div class="panel">
+          <div class="panel-title">Movement</div>
+          <div class="big-score">
+            <div class="total"><input class="calc" id="speed-total" readonly /></div>
+            <div>
+              <div class="breakdown">
+                <span class="hdr">BASE</span><span class="hdr">ARMOR</span><span class="hdr">ITEM</span><span class="hdr">MISC</span>
+              </div>
+              <div class="breakdown">
+                <span class="cell"><input type="number" id="speed-base" value="0" /></span>
+                <span class="cell"><input type="number" id="speed-armor" value="0" /></span>
+                <span class="cell"><input type="number" id="speed-item" value="0" /></span>
+                <span class="cell"><input type="number" id="speed-misc" value="0" /></span>
+              </div>
+            </div>
+          </div>
+          <div class="conditional"><label>Special Movement</label><textarea id="special-movement"></textarea></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Senses</div>
+          <div class="hp-subgrid">
+            <div class="field"><label>Passive Insight (10 + skill)</label><input class="calc" id="passive-insight" readonly /></div>
+            <div class="field"><label>Passive Perception (10 + skill)</label><input class="calc" id="passive-perception" readonly /></div>
+          </div>
+          <div class="conditional"><label>Special Senses</label><textarea id="special-senses"></textarea></div>
+        </div>
+
+        <div class="panel" id="attack-panels"></div>
+
+        <div class="panel">
+          <div class="panel-title">Basic Attacks</div>
+          <table class="basic-attacks-table">
+            <thead><tr><th>Attack</th><th>vs</th><th>Weapon or Power</th><th>Damage</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><input type="number" id="basic1-atk" /></td>
+                <td><input type="text" id="basic1-vs" value="AC" /></td>
+                <td><input type="text" id="basic1-weapon" value="Melee Basic Attack — Unarmed" /></td>
+                <td><input type="text" id="basic1-dmg" value="1d4" /></td>
+              </tr>
+              <tr>
+                <td><input type="number" id="basic2-atk" /></td>
+                <td><input type="text" id="basic2-vs" value="AC" /></td>
+                <td><input type="text" id="basic2-weapon" value="Ranged Basic Attack — Unarmed" /></td>
+                <td><input type="text" id="basic2-dmg" value="1d4" /></td>
+              </tr>
+              <tr>
+                <td><input type="number" id="basic3-atk" /></td>
+                <td><input type="text" id="basic3-vs" /></td>
+                <td><input type="text" id="basic3-weapon" /></td>
+                <td><input type="text" id="basic3-dmg" /></td>
+              </tr>
+              <tr>
+                <td><input type="number" id="basic4-atk" /></td>
+                <td><input type="text" id="basic4-vs" /></td>
+                <td><input type="text" id="basic4-weapon" /></td>
+                <td><input type="text" id="basic4-dmg" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel lined-area">
+          <div class="panel-title">Feats</div>
+          <textarea id="feats"></textarea>
+        </div>
+      </section>
+    </div>
+
+    <footer class="sheet-footer">Page 1</footer>
+  </main>
+
+  <!-- Level table included for single PDF export -->
+  <section class="levels-page" id="level-reference">
+    <h1>D&amp;D 4e — Values by Level (1–30)</h1>
+    <p class="note">Half-level = floor(Level ÷ 2). Defense base = 10 + half-level. Mod+½Lvl example uses ability score 10 (modifier 0). Print this page with the character sheet for a full reference.</p>
+    <table class="levels-table">
+      <thead>
+        <tr>
+          <th>Level</th><th>Tier</th><th>½ Level</th><th>Defense 10+½</th><th>XP to Level</th><th>Mod+½Lvl @ score 10</th>
+        </tr>
+      </thead>
+      <tbody id="level-table-body"></tbody>
+    </table>
+    <dl class="formula-key">
+      <dt>Initiative</dt><dd>DEX mod + ½ level + misc</dd>
+      <dt>Defense</dt><dd>10 + ½ level + ability + class + feat + enhance + misc + armor</dd>
+      <dt>Skill bonus</dt><dd>Ability mod + ½ level + 5 if trained + armor penalty + misc</dd>
+      <dt>Attack bonus</dt><dd>½ level + ability + class + prof + feat + enhance + misc</dd>
+      <dt>Passive Insight / Perception</dt><dd>10 + listed skill bonus</dd>
+      <dt>Bloodied / Surge</dt><dd>½ max HP / ¼ max HP (round down)</dd>
+    </dl>
+  </section>
+
+  <script type="module" src="/src/app.js"></script>
+  <script type="module">
+    import { SKILLS } from '/src/formulas.js';
+
+    const tbody = document.getElementById('skills-body');
+    tbody.innerHTML = SKILLS.map((s) => `
+      <tr>
+        <td class="bonus"><input class="calc" id="skill-${s.id}-bonus" readonly tabindex="-1" /></td>
+        <td class="skill-name">${s.name}</td>
+        <td>${s.ability.toUpperCase()}</td>
+        <td><input class="calc" id="skill-${s.id}-mod-half" readonly tabindex="-1" /></td>
+        <td><input type="checkbox" id="skill-${s.id}-trained" /></td>
+        <td>${s.armorPenalty ? `<input type="number" id="skill-${s.id}-pen" value="0" />` : 'n/a'}</td>
+        <td><input type="number" id="skill-${s.id}-misc" value="0" /></td>
+      </tr>
+    `).join('');
+
+    const defs = ['fort', 'ref', 'will'];
+    const labels = { fort: 'FORT', ref: 'REF', will: 'WILL' };
+    document.getElementById('other-defenses').innerHTML = defs.map((d) => `
+      <div class="big-score" style="margin-bottom:6px">
+        <div><strong>${labels[d]}</strong><div class="total"><input class="calc" id="${d}-total" readonly /></div></div>
+        <div style="flex:1">
+          <div class="breakdown">
+            <span class="hdr">10+</span><span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span>
+          </div>
+          <div class="breakdown">
+            <span class="cell"><input id="${d}-ten" class="calc" readonly /></span>
+            <span class="cell"><input id="${d}-half" class="calc" readonly /></span>
+            <span class="cell"><input type="number" id="${d}-abil" value="0" /></span>
+            <span class="cell"><input type="number" id="${d}-class" value="0" /></span>
+            <span class="cell"><input type="number" id="${d}-feat" value="0" /></span>
+            <span class="cell"><input type="number" id="${d}-enh" value="0" /></span>
+            <span class="cell"><input type="number" id="${d}-misc" value="0" /></span>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="${d}-armor" value="0" />
+      <input type="hidden" id="${d}-misc2" value="0" />
+      <div class="conditional"><label>Conditional Bonuses (${labels[d]})</label><textarea id="${d}-conditional"></textarea></div>
+    `).join('');
+
+    const attacks = [
+      { id: 'melee', label: 'Melee Basic Attack — Unarmed' },
+      { id: 'ranged', label: 'Ranged Basic Attack — Unarmed' }
+    ];
+    document.getElementById('attack-panels').innerHTML = attacks.map((a) => `
+      <div class="attack-block">
+        <div class="attack-name"><input type="text" id="${a.id}-name" value="${a.label}" /></div>
+        <div class="panel-title">Attack Workspace</div>
+        <div class="big-score">
+          <div class="total">+ <input class="calc" id="${a.id}-atk-total" readonly style="width:2.5em;border:none;background:transparent;font-size:14pt" /></div>
+          <div>
+            <div class="breakdown">
+              <span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">PROF</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span>
+            </div>
+            <div class="breakdown">
+              <span class="cell"><input id="${a.id}-atk-half" class="calc" readonly /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-abil" value="0" /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-class" value="0" /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-prof" value="0" /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-feat" value="0" /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-enh" value="0" /></span>
+              <span class="cell"><input type="number" id="${a.id}-atk-misc" value="0" /></span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-title">Damage Workspace</div>
+        <div class="field"><label>Damage dice (manual)</label><input type="text" id="${a.id}-dice" value="1d4" /></div>
+        <div class="breakdown" style="grid-template-columns:repeat(5,1fr)">
+          <span class="hdr">ABIL</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span><span class="hdr">MISC</span>
+        </div>
+        <div class="breakdown" style="grid-template-columns:repeat(5,1fr)">
+          <span class="cell"><input type="number" id="${a.id}-dmg-abil" value="0" /></span>
+          <span class="cell"><input type="number" id="${a.id}-dmg-feat" value="0" /></span>
+          <span class="cell"><input type="number" id="${a.id}-dmg-enh" value="0" /></span>
+          <span class="cell"><input type="number" id="${a.id}-dmg-misc" value="0" /></span>
+          <span class="cell"><input type="number" id="${a.id}-dmg-misc2" value="0" /></span>
+        </div>
+        <p style="font-size:6pt">Flat damage bonus (calc): +<input class="calc" id="${a.id}-dmg-total" readonly style="width:2em;border:none" /></p>
+      </div>
+    `).join('');
+
+    const { initSheet } = await import('/src/app.js');
+    initSheet();
+  </script>
+</body>
+</html>

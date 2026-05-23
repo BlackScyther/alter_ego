@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { accent: { DEFAULT: '#c9a227' } }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <main
+    class="min-h-screen flex flex-col items-center justify-center gap-8 px-6"
+    aria-label="Choose application"
+  >
+    <header class="text-center">
+      <p class="text-sm uppercase tracking-widest text-amber-500/90 font-semibold">Dungeons &amp; Dragons 4e</p>
+      <h1 class="mt-2 text-2xl font-semibold text-slate-100">Character tools</h1>
+    </header>
+
+    <nav class="flex flex-col gap-4 w-full max-w-md" aria-label="Main menu">
+      <a
+        href="editor/index.html"
+        class="min-h-14 flex items-center justify-center rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+      >
+        Character generator
+      </a>
+      <a
+        href="playlist/index.html"
+        class="min-h-14 flex items-center justify-center rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+      >
+        Top of playlist
+      </a>
+    </nav>
+  </main>
+</body>
+</html>

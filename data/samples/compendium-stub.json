@@ -1,0 +1,141 @@
+{
+  "categories": {
+    "race": {
+      "displayName": "Race",
+      "entries": [
+        {
+          "id": "race1",
+          "listing_fields": { "Name": "Human", "Origin": "Natural", "Size": "Medium", "SourceBook": "PHB" },
+          "body_html": "<p><b>Ability Bonus:</b> +2 to one ability score of your choice.</p>",
+          "ability_bonuses": [
+            { "ability": "any", "amount": 2, "choiceGroup": "human-ability", "note": "One ability of your choice" }
+          ],
+          "index_text": "Human natural medium"
+        },
+        {
+          "id": "race2",
+          "listing_fields": { "Name": "Dwarf", "Origin": "Natural", "Size": "Medium", "SourceBook": "PHB" },
+          "body_html": "<p><b>Ability Bonus:</b> +2 Constitution, +2 Wisdom or Strength.</p>",
+          "ability_bonuses": [
+            { "ability": "con", "amount": 2 },
+            { "ability": "wis", "amount": 2, "choiceGroup": "dwarf-second", "alternatives": ["str"], "note": "Or +2 Strength instead" },
+            { "ability": "str", "amount": 2, "choiceGroup": "dwarf-second", "alternatives": ["wis"], "note": "Or +2 Wisdom instead" }
+          ],
+          "index_text": "Dwarf natural medium"
+        },
+        {
+          "id": "race3",
+          "listing_fields": { "Name": "Elf", "Origin": "Fey", "Size": "Medium", "SourceBook": "PHB" },
+          "body_html": "<p><b>Ability Bonus:</b> +2 Dexterity, +2 Intelligence or Wisdom.</p>",
+          "ability_bonuses": [
+            { "ability": "dex", "amount": 2 },
+            { "ability": "int", "amount": 2, "choiceGroup": "elf-second", "alternatives": ["wis"] },
+            { "ability": "wis", "amount": 2, "choiceGroup": "elf-second", "alternatives": ["int"] }
+          ],
+          "index_text": "Elf fey medium"
+        }
+      ]
+    },
+    "class": {
+      "displayName": "Class",
+      "entries": [
+        {
+          "id": "class1",
+          "listing_fields": { "Name": "Fighter", "RoleName": "Defender", "PowerSourceText": "Martial", "SourceBook": "PHB" },
+          "body_html": "<p>Martial defender.</p>",
+          "index_text": "Fighter defender martial"
+        },
+        {
+          "id": "class2",
+          "listing_fields": { "Name": "Cleric", "RoleName": "Leader", "PowerSourceText": "Divine", "SourceBook": "PHB" },
+          "body_html": "<p>Divine leader.</p>",
+          "index_text": "Cleric leader divine"
+        },
+        {
+          "id": "class3",
+          "listing_fields": { "Name": "Wizard", "RoleName": "Controller", "PowerSourceText": "Arcane", "SourceBook": "PHB" },
+          "body_html": "<p>Arcane controller.</p>",
+          "index_text": "Wizard controller arcane"
+        }
+      ]
+    },
+    "background": {
+      "displayName": "Background",
+      "entries": [
+        {
+          "id": "background1",
+          "listing_fields": { "Name": "Acolyte", "Type": "Occupation", "SourceBook": "PHB2" },
+          "body_html": "<p>Religious upbringing. <b>Skill Bonus:</b> +2 Religion and +2 Insight (not an ability score).</p>",
+          "ability_bonuses": [],
+          "skill_bonuses": [
+            { "skill": "religion", "amount": 2, "bonusType": "skill" },
+            { "skill": "insight", "amount": 2, "bonusType": "skill" }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "displayName": "Theme",
+      "entries": [
+        {
+          "id": "theme1",
+          "listing_fields": { "Name": "Guardian", "Prerequisite": "—", "SourceBook": "HotFK" },
+          "body_html": "<p>Defensive theme.</p>"
+        }
+      ]
+    },
+    "feat": {
+      "displayName": "Feat",
+      "entries": [
+        {
+          "id": "feat1",
+          "listing_fields": { "Name": "Toughness", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p>+5 hit points per tier.</p>"
+        },
+        {
+          "id": "feat2",
+          "listing_fields": { "Name": "Weapon Focus (Heavy Blade)", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p>+1 damage with heavy blades.</p>"
+        },
+        {
+          "id": "feat3",
+          "listing_fields": { "Name": "Novice Historian", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p><b>Skill Bonus:</b> +2 History (Skill type).</p>",
+          "skill_bonuses": [{ "skill": "history", "amount": 2, "bonusType": "skill" }]
+        },
+        {
+          "id": "feat4",
+          "listing_fields": { "Name": "Scholar", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p><b>Skill Bonus:</b> +1 History (Skill type — does not add with another Skill bonus to History).</p>",
+          "skill_bonuses": [{ "skill": "history", "amount": 1, "bonusType": "skill" }]
+        },
+        {
+          "id": "feat5",
+          "listing_fields": { "Name": "Religion Expertise", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p><b>Skill Bonus:</b> +1 Religion (Feat type — stacks with Skill-type background bonus).</p>",
+          "skill_bonuses": [{ "skill": "religion", "amount": 1, "bonusType": "feat" }]
+        }
+      ]
+    },
+    "paragonpath": {
+      "displayName": "Paragon Path",
+      "entries": [
+        {
+          "id": "paragonpath1",
+          "listing_fields": { "Name": "Knight Protector", "Prerequisite": "Fighter", "SourceBook": "PHB" },
+          "body_html": "<p>Defender paragon path.</p>"
+        }
+      ]
+    },
+    "epicdestiny": {
+      "displayName": "Epic Destiny",
+      "entries": [
+        {
+          "id": "epicdestiny1",
+          "listing_fields": { "Name": "Demigod", "Prerequisite": "21st level", "SourceBook": "PHB" },
+          "body_html": "<p>Epic destiny.</p>"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,495 @@
+/* D&D 4e Character Sheet — Page 1. Dimensions from ../dimensions.json */
+
+:root {
+  --page-w: 8.5in;
+  --page-h: 11in;
+  --scale: 1;
+  --ink: #000;
+  --line: #000;
+  --bg-field: #fff;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+body.sheet-body {
+  margin: 0;
+  background: #e8e8e8;
+}
+
+.sheet-page {
+  width: calc(var(--page-w) * var(--scale));
+  min-height: calc(var(--page-h) * var(--scale));
+  margin: 12px auto;
+  padding: calc(0.25in * var(--scale));
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font-size: calc(7pt * var(--scale));
+  position: relative;
+}
+
+@media print {
+  body.sheet-body {
+    background: #fff;
+  }
+  .sheet-page,
+  .levels-page {
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+@page {
+  size: letter;
+  margin: 0;
+}
+
+/* Header */
+.sheet-header {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: calc(0.08in * var(--scale));
+  border-bottom: 1px solid var(--line);
+  padding-bottom: calc(0.06in * var(--scale));
+  margin-bottom: calc(0.08in * var(--scale));
+}
+
+.sheet-title {
+  text-align: right;
+  font-size: calc(11pt * var(--scale));
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  align-self: end;
+}
+
+.logo-block {
+  font-weight: 800;
+  font-size: calc(9pt * var(--scale));
+  line-height: 1.1;
+}
+
+.identity-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: calc(0.04in * var(--scale));
+}
+
+.identity-grid.row2 {
+  grid-template-columns: repeat(5, 1fr) 1.2fr;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.field label {
+  font-size: calc(5.5pt * var(--scale));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+}
+
+.field input,
+.field textarea,
+.field select {
+  border: 1px solid var(--line);
+  background: var(--bg-field);
+  font: inherit;
+  font-size: calc(8pt * var(--scale));
+  padding: 1px 3px;
+  width: 100%;
+}
+
+.field input.calc,
+.field .calc-out {
+  background: #f4f4f4;
+  font-weight: 600;
+  text-align: center;
+}
+
+.field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.field input[type="checkbox"] {
+  width: auto;
+  align-self: start;
+}
+
+/* Three columns */
+.sheet-columns {
+  display: grid;
+  grid-template-columns: 2.55fr 2.55fr 2.2fr;
+  gap: calc(0.12in * var(--scale));
+  align-items: start;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.1in * var(--scale));
+}
+
+.panel {
+  border: 1px solid var(--line);
+  padding: calc(0.06in * var(--scale));
+}
+
+.panel-title {
+  font-size: calc(6pt * var(--scale));
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: calc(0.04in * var(--scale));
+}
+
+/* Initiative & defenses score boxes */
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+
+.big-score {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: calc(0.06in * var(--scale));
+  align-items: start;
+}
+
+.big-score .total {
+  border: 2px solid var(--line);
+  min-width: calc(0.55in * var(--scale));
+  min-height: calc(0.45in * var(--scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(14pt * var(--scale));
+  font-weight: 700;
+}
+
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  font-size: calc(5pt * var(--scale));
+  text-align: center;
+}
+
+.breakdown .cell {
+  border: 1px solid var(--line);
+  padding: 1px;
+}
+
+.breakdown .cell input {
+  width: 100%;
+  border: none;
+  text-align: center;
+  font-size: calc(7pt * var(--scale));
+  padding: 0;
+  background: transparent;
+}
+
+.breakdown .hdr {
+  font-weight: 600;
+  background: #f0f0f0;
+  border: 1px solid var(--line);
+}
+
+.conditional {
+  margin-top: 2px;
+  font-size: calc(5.5pt * var(--scale));
+}
+
+.conditional textarea {
+  width: 100%;
+  min-height: calc(0.35in * var(--scale));
+  border: 1px solid var(--line);
+  resize: vertical;
+  font-size: calc(6.5pt * var(--scale));
+}
+
+/* Abilities table */
+.abilities-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(6pt * var(--scale));
+}
+
+.abilities-table th,
+.abilities-table td {
+  border: 1px solid var(--line);
+  padding: 2px 3px;
+  text-align: center;
+}
+
+.abilities-table th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+.abilities-table input {
+  width: 2.2em;
+  border: none;
+  text-align: center;
+  font: inherit;
+  background: transparent;
+}
+
+.abilities-table .calc-cell {
+  background: #f4f4f4;
+  font-weight: 600;
+}
+
+/* HP block */
+.hp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.hp-grid .field input {
+  text-align: center;
+}
+
+.hp-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(6pt * var(--scale));
+  margin: 4px 0;
+}
+
+.death-saves {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Skills */
+.skills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(5.5pt * var(--scale));
+}
+
+.skills-table th,
+.skills-table td {
+  border: 1px solid var(--line);
+  padding: 1px 2px;
+}
+
+.skills-table th {
+  background: #f0f0f0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.skills-table .bonus {
+  width: 2em;
+  text-align: center;
+  font-weight: 700;
+  background: #f4f4f4;
+}
+
+.skills-table input[type="number"] {
+  width: 2em;
+  border: none;
+  text-align: center;
+  font: inherit;
+}
+
+.skills-table input[type="checkbox"] {
+  margin: 0 auto;
+  display: block;
+}
+
+.skills-table .skill-name {
+  text-align: left;
+  padding-left: 4px;
+}
+
+/* Text areas for features */
+.lined-area textarea {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--line);
+  font: inherit;
+  font-size: calc(7pt * var(--scale));
+  line-height: calc(0.18in * var(--scale));
+  min-height: calc(1.2in * var(--scale));
+  resize: vertical;
+  background: repeating-linear-gradient(
+    transparent,
+    transparent calc(0.18in * var(--scale) - 1px),
+    var(--line) calc(0.18in * var(--scale) - 1px),
+    var(--line) calc(0.18in * var(--scale))
+  );
+}
+
+.lined-area.sm textarea {
+  min-height: calc(0.45in * var(--scale));
+}
+
+/* Attack workspace */
+.attack-block {
+  margin-bottom: calc(0.08in * var(--scale));
+}
+
+.attack-block .attack-name {
+  font-weight: 600;
+  font-size: calc(6.5pt * var(--scale));
+  margin-bottom: 2px;
+}
+
+.attack-block .attack-name input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font: inherit;
+}
+
+/* Basic attacks mini table */
+.basic-attacks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(6pt * var(--scale));
+}
+
+.basic-attacks-table th,
+.basic-attacks-table td {
+  border: 1px solid var(--line);
+  padding: 2px;
+}
+
+.basic-attacks-table input {
+  width: 100%;
+  border: none;
+  font: inherit;
+}
+
+.sheet-footer {
+  text-align: center;
+  font-weight: 700;
+  font-size: calc(8pt * var(--scale));
+  margin-top: calc(0.15in * var(--scale));
+}
+
+/* Toolbar */
+.toolbar {
+  max-width: 8.5in;
+  margin: 8px auto;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar button,
+.toolbar a {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+#level-reference {
+  page-break-before: always;
+}
+
+/* Level reference page */
+.levels-page {
+  width: calc(var(--page-w) * var(--scale));
+  min-height: calc(var(--page-h) * var(--scale));
+  margin: 12px auto;
+  padding: calc(0.35in * var(--scale));
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font-size: calc(8pt * var(--scale));
+}
+
+.levels-page h1 {
+  font-size: calc(12pt * var(--scale));
+  margin: 0 0 0.15in;
+}
+
+.levels-page p.note {
+  font-size: calc(7pt * var(--scale));
+  margin-bottom: 0.2in;
+}
+
+.levels-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.levels-table th,
+.levels-table td {
+  border: 1px solid var(--line);
+  padding: 3px 6px;
+  text-align: center;
+}
+
+.levels-table th {
+  background: #eee;
+  font-weight: 700;
+}
+
+.levels-table td.tier {
+  text-align: left;
+}
+
+.levels-table tbody tr:nth-child(10),
+.levels-table tbody tr:nth-child(20) {
+  border-bottom: 2px solid var(--ink);
+}
+
+.formula-key {
+  margin-top: 0.25in;
+  font-size: calc(7pt * var(--scale));
+  line-height: 1.4;
+}
+
+.formula-key dt {
+  font-weight: 700;
+  display: inline;
+}
+
+.formula-key dd {
+  display: inline;
+  margin: 0 0 0 0.35em;
+}
+
+.formula-key dd::after {
+  content: "";
+  display: block;
+  margin-bottom: 0.08em;
+}

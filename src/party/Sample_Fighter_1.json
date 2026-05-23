@@ -1,0 +1,71 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "version": 1,
+  "meta": {
+    "createdAt": "2026-05-22T00:00:00.000Z",
+    "updatedAt": "2026-05-22T00:00:00.000Z",
+    "campaignId": null,
+    "source": "sample"
+  },
+  "identity": {
+    "playerName": "Sample Player",
+    "characterName": "Sample Fighter",
+    "level": 1,
+    "class": "Fighter",
+    "paragonPath": "",
+    "epicDestiny": "",
+    "race": "Human",
+    "size": "Medium",
+    "age": "",
+    "gender": "",
+    "height": "",
+    "weight": "",
+    "alignment": "Unaligned",
+    "deity": "",
+    "company": "",
+    "background": "",
+    "role": "Defender",
+    "totalXp": 0
+  },
+  "abilities": {
+    "method": "point-buy-22",
+    "baseScores": { "str": 16, "con": 14, "dex": 12, "int": 10, "wis": 10, "cha": 10 },
+    "scores": { "str": 16, "con": 14, "dex": 12, "int": 10, "wis": 10, "cha": 10 },
+    "bonuses": [],
+    "anyChoice": {}
+  },
+  "selections": {
+    "raceId": null,
+    "classId": null,
+    "backgroundId": null,
+    "themeId": null,
+    "paragonPathId": null,
+    "epicDestinyId": null,
+    "featIds": [],
+    "powerIds": [],
+    "equipmentIds": []
+  },
+  "skillBonuses": [],
+  "sheet": {
+    "skillBonusTotals": {},
+    "defenses": {
+      "ac": { "abil": 0, "class": 0, "feat": 0, "enh": 0, "misc": 0, "armor": 0 },
+      "fort": { "abil": 0, "class": 0, "feat": 0, "enh": 0, "misc": 0 },
+      "ref": { "abil": 0, "class": 0, "feat": 0, "enh": 0, "misc": 0 },
+      "will": { "abil": 0, "class": 0, "feat": 0, "enh": 0, "misc": 0 }
+    },
+    "hp": { "max": 30, "current": 30, "temp": 0, "surgesPerDay": 7, "surgeUses": 0 },
+    "speed": { "base": 6, "armor": 0, "item": 0, "misc": 0 },
+    "skills": {},
+    "initMisc": 0,
+    "milestones": 0,
+    "armorPenaltyGlobal": 0
+  },
+  "notes": {
+    "raceFeatures": "",
+    "classFeatures": "",
+    "feats": "",
+    "languages": "",
+    "apEffects": ""
+  }
+}

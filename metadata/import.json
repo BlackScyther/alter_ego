@@ -1,0 +1,17 @@
+{
+  "specRef": "Alter_Eger PROJECT.md §4–5",
+  "baseUrl": "https://iws.mx/dnd/4e_database_files/",
+  "files": {
+    "catalog": "catalog.js",
+    "listing": "{slug}/_listing.js",
+    "index": "{slug}/_index.js",
+    "dataShard": "{slug}/data{n}.js"
+  },
+  "dataShardCount": 20,
+  "jsonpCallbackPrefix": "od.reader.jsonp_",
+  "sqlite": {
+    "path": "data/alter_eger.db",
+    "tables": ["categories", "category_columns", "entries", "entry_links"]
+  },
+  "reimportRule": "DELETE FROM entries WHERE source = 'compendium'"
+}

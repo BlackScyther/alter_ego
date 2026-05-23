@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — GM Console</title>
+  <link rel="stylesheet" href="../editor/editor.css" />
+  <link rel="stylesheet" href="gm.css" />
+</head>
+<body>
+  <div class="gm-shell">
+    <nav class="editor-nav gm-nav" aria-label="GM navigation">
+      <h1>GM Console</h1>
+      <a href="../index.html">← Home</a>
+      <a href="../sheet/index.html">Character sheet</a>
+      <a href="../editor/index.html">Character generator</a>
+      <a href="../playlist/index.html">Top of playlist</a>
+      <p class="gm-nav-hint">
+        Copy player exports into <code>src/party/</code>, run
+        <code>npm run party:index</code>, then reload this page.
+      </p>
+    </nav>
+
+    <main class="editor-main gm-main">
+      <header class="editor-header">
+        <h2>Party</h2>
+        <p id="party-status">Loading party folder…</p>
+      </header>
+
+      <ul class="validation-errors" id="gm-errors" hidden></ul>
+
+      <div class="gm-toolbar">
+        <button type="button" class="btn-primary" id="btn-reload">Reload party folder</button>
+        <label class="btn-secondary gm-file-label">
+          Add JSON files…
+          <input type="file" id="file-picker" accept=".json,application/json" multiple hidden />
+        </label>
+      </div>
+
+      <div class="gm-party-grid" id="party-grid"></div>
+    </main>
+  </div>
+
+  <script type="module" src="gm.js"></script>
+</body>
+</html>

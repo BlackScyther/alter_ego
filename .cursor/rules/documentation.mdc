@@ -1,0 +1,17 @@
+---
+description: Keep doc/ and PROMPT.md updated after every completed task
+alwaysApply: true
+---
+
+# Documentation maintenance
+
+When you complete any implementation, fix, or refactor in this repo:
+
+1. Update `doc/project.md` if scope, features, architecture, or user-facing goals changed.
+2. Update `doc/files.md` if files were added, removed, renamed, or their purpose changed.
+3. Update `doc/bugs.md` if bugs were found, fixed, or deferred.
+4. Update `doc/tests.md` if test steps, scripts, or automation changed.
+5. Set **Last agent sync** in `doc/README.md` to the current date (YYYY-MM-DD).
+6. Update `PROMPT.md` only when project goals, workflows, or agent conventions change.
+
+Treat missing doc updates as incomplete work. Prefer concise tables and bullet lists consistent with existing `doc/` files.
