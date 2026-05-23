@@ -163,7 +163,7 @@ function showErrors(errors) {
     return;
   }
   box.hidden = false;
-  box.innerHTML = errors.map((e) => `<li>${e}</li>`).join('');
+  box.innerHTML = errors.map((e) => `<li>${esc(e)}</li>`).join('');
 }
 
 function goToStep(index) {
