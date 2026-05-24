@@ -6,7 +6,7 @@ This folder is the **living documentation** for agents and humans. Keep it in sy
 
 | File | Purpose |
 |------|---------|
-| [project.md](project.md) | **Readable project description** (goals, users, architecture, status) — DE |
+| [project.md](project.md) | **Readable project description** (goals, users, architecture, status) |
 | [requirements.md](requirements.md) | Functional & non-functional requirements (IDs, status) |
 | [roadmap.md](roadmap.md) | Phases, completed plans, near-term backlog |
 | [todos.md](todos.md) | Host / developer / agent checklists |
@@ -21,7 +21,8 @@ This folder is the **living documentation** for agents and humans. Keep it in sy
 | File | Purpose |
 |------|---------|
 | [deploy-online.md](deploy-online.md) | VPS: static app + Node API + SQLite |
-| [mac-build-ohne-mac.md](mac-build-ohne-mac.md) | macOS `.dmg` via GitHub Actions (no Mac required) |
+| [deploy-hosting.md](deploy-hosting.md) | Webhosting: SSH/SFTP/Git checklists, fill-in profile, timeline |
+| [mac-build-without-mac.md](mac-build-without-mac.md) | macOS `.dmg` via GitHub Actions (no Mac required) |
 
 ## Maintenance rule
 
@@ -39,4 +40,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-05-23 — Game editor implemented (`src/game/`, encounter API); [game-editor.md](game-editor.md).
+**Last agent sync:** 2026-05-24 — Deployment reminder: all compendium entries must be live on production (not stub); checklists in [todos.md](todos.md#deployment--compendium-must-be-live).
