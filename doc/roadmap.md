@@ -1,4 +1,4 @@
-# Roadmap and plans — Alter Eger
+# Roadmap and plans — Alter Ego
 
 **Last updated:** 2026-05-24
 

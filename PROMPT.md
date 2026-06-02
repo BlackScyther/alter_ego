@@ -1,4 +1,4 @@
-# Agent prompt — Alter Eger
+# Agent prompt — Alter Ego
 
 Use this file as the primary context when working in this repository.
 
@@ -6,7 +6,7 @@ Use this file as the primary context when working in this repository.
 
 ## Project goal
 
-Build and maintain **Alter Eger**: offline D&D 4e tools for a private table. Current code focuses on a **formula-driven character sheet (page 1)** with:
+Build and maintain **Alter Ego**: offline D&D 4e tools for a private table. Current code focuses on a **formula-driven character sheet (page 1)** with:
 
 - Live calculations (`src/formulas.js`, `src/app.js`)
 - US Letter print/PDF (`dimensions.json`, `scripts/export-pdf.mjs`)

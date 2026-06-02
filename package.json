@@ -2,7 +2,7 @@
   "name": "alter-eger",
   "version": "1.0.0",
   "private": true,
-  "description": "Alter Eger — offline D&D 4e compendium, character tools, and DM party surface",
+  "description": "Alter Ego — offline D&D 4e compendium, character tools, and DM party surface",
   "type": "module",
   "scripts": {
     "dev": "vite",

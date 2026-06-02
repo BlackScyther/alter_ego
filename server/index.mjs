@@ -32,7 +32,7 @@ app.use(
 );
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'alter-eger-campaign-api' });
+  res.json({ ok: true, service: 'alter-ego-campaign-api' });
 });
 
 app.use('/api/campaigns', campaignsRouter);
@@ -43,5 +43,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Alter Eger campaign API listening on http://localhost:${PORT}`);
+  console.log(`Alter Ego campaign API listening on http://localhost:${PORT}`);
 });

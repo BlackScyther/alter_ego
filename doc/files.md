@@ -4,7 +4,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 **Last updated:** 2026-05-23 (online campaign + doc set)
 
-**Project root:** `D:\Projects\web\4e\Alter_Eger` (Alter Eger). Master spec: [PROJECT.md](../PROJECT.md).
+**Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
 ## `doc/`
 
@@ -53,7 +53,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `editor.json` | Character editor wizard: steps, compendium categories, `writesTo` paths |
 | `import.json` | iws.mx JSONP import URLs and SQLite target spec |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
-| `README.md` | Index of metadata files; points to Alter Eger `PROJECT.md` |
+| `README.md` | Index of metadata files; points to Alter Ego `PROJECT.md` |
 
 ## `data/`
 

@@ -1,10 +1,10 @@
-# Projektbeschreibung — Alter Eger
+# Projektbeschreibung — Alter Ego
 
 **Letzte Aktualisierung:** 2026-05-23
 
 ## Worum es geht
 
-**Alter Eger** ist das Gesamtprojekt für eine private D&D-4e-Runde (3–7 Spieler). Dieses Repository enthält Spezifikation ([PROJECT.md](../PROJECT.md)) und **Charakterwerkzeuge** — Generator, Blatt (Seite 1, US Letter), GM-Party-Ansicht. Zahlen folgen den üblichen 4e-Formeln.
+**Alter Ego** ist das Gesamtprojekt für eine private D&D-4e-Runde (3–7 Spieler). Dieses Repository enthält Spezifikation ([PROJECT.md](../PROJECT.md)) und **Charakterwerkzeuge** — Generator, Blatt (Seite 1, US Letter), GM-Party-Ansicht. Zahlen folgen den üblichen 4e-Formeln.
 
 ## Für wen ist das Projekt?
 

@@ -1,4 +1,4 @@
-# Alter Eger
+# Alter Ego
 
 Offline-fähiges **D&D 4th Edition**-Werkzeug für eine private Spielrunde: lokales Compendium (geplant), Charakterblatt, Charaktergenerator, Party- und SL-Ansichten.
 
@@ -8,7 +8,7 @@ Offline-fähiges **D&D 4th Edition**-Werkzeug für eine private Spielrunde: loka
 ## Schnellstart
 
 ```bash
-cd D:\Projects\web\4e\Alter_Eger
+cd D:\Projects\web\4e\Alter_Ego
 npm install
 npx playwright install chromium
 npm start
@@ -24,13 +24,13 @@ npm start
 | SL / GM | http://localhost:5173/src/gm/ |
 | Playlist | http://localhost:5173/src/playlist/ |
 
-Der Generator nutzt Stub-Compendium-Daten, bis `data/alter_eger.db` importiert ist (Phase 1, siehe `metadata/import.json`).
+Der Generator nutzt Stub-Compendium-Daten, bis `data/alter_ego.db` importiert ist (Phase 1, siehe `metadata/import.json`).
 
 ## Repo-Struktur (Kurz)
 
 | Ordner | Inhalt |
 |--------|--------|
-| `PROJECT.md` | Master-Spezifikation Alter Eger |
+| `PROJECT.md` | Master-Spezifikation Alter Ego |
 | `src/` | Web-App (Blatt, Editor, GM, Party) |
 | `metadata/` | Editor-Schritte, Import-URLs, Katalog-Counts |
 | `doc/` | Dateien, Bugs, Tests, Projektbeschreibung |
@@ -39,8 +39,8 @@ Der Generator nutzt Stub-Compendium-Daten, bis `data/alter_eger.db` importiert i
 
 ## Migration
 
-Früherer Entwicklungsstand lag unter `C:\Users\masch\Projects\dnd4e-character-sheet`. Dieses Verzeichnis ist die **einzige** Projektroot für Alter Eger; der alte Ordner kann archiviert oder gelöscht werden, sobald du nichts mehr davon brauchst.
+Früherer Entwicklungsstand lag unter `C:\Users\masch\Projects\dnd4e-character-sheet`. Dieses Verzeichnis ist die **einzige** Projektroot für Alter Ego; der alte Ordner kann archiviert oder gelöscht werden, sobald du nichts mehr davon brauchst.
 
 ## Druck / PDF
 
-Siehe [doc/project.md](doc/project.md) — `npm run pdf` erzeugt `output/alter-eger-sheet-page1.pdf`.
+Siehe [doc/project.md](doc/project.md) — `npm run pdf` erzeugt `output/alter-ego-sheet-page1.pdf`.

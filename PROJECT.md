@@ -1,6 +1,6 @@
-# Alter Eger — Projekt-Metadatei
+# Alter Ego — Projekt-Metadatei
 
-Diese Datei beschreibt Zweck, Datenquelle, Architektur und Umsetzungsphasen für **Alter Eger**: ein offline-fähiges Werkzeug für D&D 4th Edition mit lokalem Compendium, Gruppen-Charakterverwaltung (3–7 Spieler) und SL-Oberfläche für Kampf und Initiative.
+Diese Datei beschreibt Zweck, Datenquelle, Architektur und Umsetzungsphasen für **Alter Ego**: ein offline-fähiges Werkzeug für D&D 4th Edition mit lokalem Compendium, Gruppen-Charakterverwaltung (3–7 Spieler) und SL-Oberfläche für Kampf und Initiative.
 
 **Status:** Aktives Projekt — Spezifikation (`PROJECT.md`) plus lauffähige Web-App unter `src/` (Charakterblatt, Generator, GM, Party). Compendium-Import (`data/alter_eger.db`) steht noch aus (Phase 1).
 
@@ -10,7 +10,7 @@ Diese Datei beschreibt Zweck, Datenquelle, Architektur und Umsetzungsphasen für
 
 | Feld | Wert |
 |------|------|
-| **Name** | Alter Eger |
+| **Name** | Alter Ego |
 | **Edition** | Dungeons & Dragons 4th Edition (4e) |
 | **Zielgruppe** | Private Spielrunde, 3–7 Spieler |
 | **Nutzer am Tisch** | Nur der Spielleiter (SL) am Laptop; Spieler nutzen externe digitale Tools oder Papier/Würfel/Stift |
