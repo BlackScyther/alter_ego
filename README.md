@@ -14,15 +14,15 @@ npx playwright install chromium
 npm start
 ```
 
-Open `http://localhost:5173/src/` — **Character generator** or **Top of playlist**.
+Open `http://localhost:5173/` — **Character generator** or **Top of playlist**.
 
 | Page | URL |
 |------|-----|
-| Home | http://localhost:5173/src/ |
-| Character sheet | http://localhost:5173/src/sheet/ |
-| Generator | http://localhost:5173/src/editor/ |
-| GM | http://localhost:5173/src/gm/ |
-| Playlist | http://localhost:5173/src/playlist/ |
+| Home | http://localhost:5173/ |
+| Character sheet | http://localhost:5173/sheet/ |
+| Generator | http://localhost:5173/editor/ |
+| GM | http://localhost:5173/gm/ |
+| Playlist | http://localhost:5173/playlist/ |
 
 The generator uses stub compendium data until `data/alter_ego.db` is imported (phase 1, see `metadata/import.json`).
 

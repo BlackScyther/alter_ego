@@ -1,0 +1,11 @@
+---
+description: Default to English (accessibility: screen reader)
+alwaysApply: true
+---
+
+# Language
+
+Use **English** as the default language for all assistant messages in this repository.
+
+- If the user writes in another language, still reply in English unless they explicitly ask for that other language.
+- Keep English concise and screen-reader friendly (short paragraphs, clear headings, avoid decorative characters).
