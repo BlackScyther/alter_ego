@@ -34,6 +34,7 @@ import {
   formatBreakdownLine,
   formatSkillBreakdownLine
 } from '../character/tutor.js';
+import { renderBackgroundStep } from './steps/background-step.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -189,9 +190,21 @@ async function renderStepPanel() {
     case 'basics':
       renderBasics(panel);
       break;
+    case 'background':
+      await renderBackgroundStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        getNotes: () => getNotesForStep('background'),
+        setNotes: (text) => setNotesForStep('background', text),
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'background')
+      });
+      break;
     case 'race':
     case 'class':
-    case 'background':
     case 'theme':
     case 'paragon':
     case 'epic':
@@ -597,12 +610,14 @@ function getSelectionIdForStep(stepId) {
 function getNotesForStep(stepId) {
   if (stepId === 'race') return character.notes.raceFeatures;
   if (stepId === 'class') return character.notes.classFeatures;
+  if (stepId === 'background') return character.notes.backgroundFeatures ?? '';
   return '';
 }
 
 function setNotesForStep(stepId, text) {
   if (stepId === 'race') character.notes.raceFeatures = text;
   if (stepId === 'class') character.notes.classFeatures = text;
+  if (stepId === 'background') character.notes.backgroundFeatures = text;
 }
 
 function applyCompendiumSelection(stepId, entry) {
@@ -615,6 +630,10 @@ function applyCompendiumSelection(stepId, entry) {
       character.identity.size = entry.listing_fields?.Size ?? character.identity.size;
       if (!character.notes.raceFeatures) {
         character.notes.raceFeatures = stripHtml(entry.body_html);
+      }
+      if (document.querySelector('.compendium-picker[data-category="background"]')) {
+        const search = document.querySelector('#picker-search');
+        search?.dispatchEvent(new Event('input', { bubbles: true }));
       }
       break;
     case 'class':
@@ -806,10 +825,35 @@ function openSheet() {
   }
   persist();
   stashCharacterForSheet(character);
-  window.location.href = '../sheet/index.html?from=editor';
+  const sheetHref = '../sheet/index.html?from=editor';
+  // #region agent log
+  debugClientLog('openSheet navigate', { from: location.pathname, to: sheetHref }, 'B');
+  // #endregion
+  window.location.href = sheetHref;
+}
+
+function debugClientLog(message, data, hypothesisId) {
+  // #region agent log
+  fetch('http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5d39f7' },
+    body: JSON.stringify({
+      sessionId: '5d39f7',
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/editor/editor.js:init',
+      message,
+      data,
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion
 }
 
 async function init() {
+  // #region agent log
+  debugClientLog('editor init', { pathname: location.pathname, search: location.search }, 'A');
+  // #endregion
   await loadEditorMeta();
   await compendium.ready();
 

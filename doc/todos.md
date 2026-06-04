@@ -1,4 +1,4 @@
-# Todo lists — Alter Eger
+# Todo lists — Alter Ego
 
 **Last updated:** 2026-05-24
 

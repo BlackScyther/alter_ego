@@ -1,46 +1,48 @@
-# Alter Eger
+# Alter Ego
 
-Offline-fähiges **D&D 4th Edition**-Werkzeug für eine private Spielrunde: lokales Compendium (geplant), Charakterblatt, Charaktergenerator, Party- und SL-Ansichten.
+Offline-capable **D&D 4th Edition** toolkit for a private group: character sheet, character generator, party/GM views, and (planned) a local compendium.
 
-**Gesamtspezifikation:** [PROJECT.md](PROJECT.md)  
-**Projektbeschreibung (Deutsch):** [doc/project.md](doc/project.md)
+- **Master spec**: [PROJECT.md](PROJECT.md)
+- **Project description**: [doc/project.md](doc/project.md)
 
-## Schnellstart
+## Quick start
 
 ```bash
-cd D:\Projects\web\4e\Alter_Eger
+cd D:\Projects\web\4e\Alter_Ego
 npm install
 npx playwright install chromium
+npm run pull:live
 npm start
 ```
 
-Öffnen: http://localhost:5173/src/ — **Character generator** oder **Top of playlist**.
+`npm start` serves the **same files as** https://www.braincell.online/ (folder `sync-from-live/`).
 
-| Oberfläche | URL |
-|------------|-----|
-| Home | http://localhost:5173/src/ |
-| Charakterblatt | http://localhost:5173/src/sheet/ |
+Open **http://localhost:5173/src/launcher/** — Player / GM, version stamp, full compendium.
+
+| Page (live mirror) | URL |
+|------|-----|
+| Launcher | http://localhost:5173/src/launcher/ |
+| Player | http://localhost:5173/src/player/ |
+| GM | http://localhost:5173/src/gm/ |
 | Generator | http://localhost:5173/src/editor/ |
-| SL / GM | http://localhost:5173/src/gm/ |
-| Playlist | http://localhost:5173/src/playlist/ |
 
-Der Generator nutzt Stub-Compendium-Daten, bis `data/alter_eger.db` importiert ist (Phase 1, siehe `metadata/import.json`).
+To edit Git source (not production parity): `npm run dev:src`.
 
-## Repo-Struktur (Kurz)
+## Repo structure (short)
 
-| Ordner | Inhalt |
-|--------|--------|
-| `PROJECT.md` | Master-Spezifikation Alter Eger |
-| `src/` | Web-App (Blatt, Editor, GM, Party) |
-| `metadata/` | Editor-Schritte, Import-URLs, Katalog-Counts |
-| `doc/` | Dateien, Bugs, Tests, Projektbeschreibung |
-| `rules/` | UI- und Flow-Regeln |
-| `tools/importer/` | Compendium-Importer (Phase 1) |
+| Path | What |
+|------|------|
+| `PROJECT.md` | Master specification |
+| `src/` | Web app (sheet, editor, GM, party) |
+| `metadata/` | Editor steps, import URLs, catalog counts |
+| `doc/` | Docs: files, bugs, tests, project write-up |
+| `rules/` | UI/flow rules |
+| `tools/importer/` | Compendium importer (phase 1) |
 
-## Migration
+## Migration note
 
-Früherer Entwicklungsstand lag unter `C:\Users\masch\Projects\dnd4e-character-sheet`. Dieses Verzeichnis ist die **einzige** Projektroot für Alter Eger; der alte Ordner kann archiviert oder gelöscht werden, sobald du nichts mehr davon brauchst.
+Older work lived in `C:\Users\masch\Projects\dnd4e-character-sheet`. This repo is the **single** project root now; you can archive/delete the old folder once you no longer need it.
 
-## Druck / PDF
+## Print / PDF
 
-Siehe [doc/project.md](doc/project.md) — `npm run pdf` erzeugt `output/alter-eger-sheet-page1.pdf`.
+See [doc/project.md](doc/project.md). `npm run pdf` generates `output/alter-ego-sheet-page1.pdf`.

@@ -1,109 +1,109 @@
-# Alter Eger — Projekt-Metadatei
+# Alter Ego — project metadata
 
-Diese Datei beschreibt Zweck, Datenquelle, Architektur und Umsetzungsphasen für **Alter Eger**: ein offline-fähiges Werkzeug für D&D 4th Edition mit lokalem Compendium, Gruppen-Charakterverwaltung (3–7 Spieler) und SL-Oberfläche für Kampf und Initiative.
+This file describes purpose, data source, architecture, and implementation phases for **Alter Ego**: an offline-capable toolkit for D&D 4th Edition with a local compendium, party character management (3–7 players), and a DM surface for combat and initiative.
 
-**Status:** Aktives Projekt — Spezifikation (`PROJECT.md`) plus lauffähige Web-App unter `src/` (Charakterblatt, Generator, GM, Party). Compendium-Import (`data/alter_eger.db`) steht noch aus (Phase 1).
+**Status:** Active project — specification (`PROJECT.md`) plus a working web app under `src/` (character sheet, generator, GM, party). Compendium import (`data/alter_eger.db`) is still pending (phase 1).
 
 ---
 
-## 1. Projektüberblick
+## 1. Project overview
 
-| Feld | Wert |
-|------|------|
-| **Name** | Alter Eger |
+| Field | Value |
+|-------|-------|
+| **Name** | Alter Ego |
 | **Edition** | Dungeons & Dragons 4th Edition (4e) |
-| **Zielgruppe** | Private Spielrunde, 3–7 Spieler |
-| **Nutzer am Tisch** | Nur der Spielleiter (SL) am Laptop; Spieler nutzen externe digitale Tools oder Papier/Würfel/Stift |
+| **Audience** | Private table group, 3–7 players |
+| **Users at the table** | DM only on the laptop; players use external digital tools or paper/dice/pen |
 
-### Drei Säulen
+### Three pillars
 
-1. **Datenbank** — Lokales 1:1-Abbild des [iws.mx/dnd](https://iws.mx/dnd)-Compendiums (20 Kategorien, exakte Slugs und Spalten).
-2. **Charaktere** — Party-Roster mit allen PCs; Erfassung per Import oder manuell; optional später eingebauter Builder (Vorbild: [D&D Beyond](https://www.dndbeyond.com/)).
-3. **SL-Tischtool** — Party-Dashboard und Kampf-Oberfläche (Initiative, HP, Healing Surges, Saves, Verteidigungen, Action Points, Conditions).
+1. **Database** — Local 1:1 mirror of the [iws.mx/dnd](https://iws.mx/dnd) compendium (20 categories, exact slugs and columns).
+2. **Characters** — Party roster with all PCs; capture via import or manual entry; optional built-in builder later (model: [D&D Beyond](https://www.dndbeyond.com/)).
+3. **DM table tool** — Party dashboard and combat surface (initiative, HP, healing surges, saves, defenses, action points, conditions).
 
-### UX-Vorbild Charaktereditor
+### UX model for character editor
 
-[D&D Beyond](https://www.dndbeyond.com/): geführter Wizard, gefilterte Wahlmöglichkeiten, Live-Validierung, Charakterblatt — angewendet auf **4e-Regeln** aus der lokalen Datenbank (nicht als 1:1-Klon der D&D-Beyond-5e-Oberfläche).
+[D&D Beyond](https://www.dndbeyond.com/): guided wizard, filtered choices, live validation, character sheet — applied to **4e rules** from the local database (not a 1:1 clone of the D&D Beyond 5e UI).
 
 ---
 
-## 2. Notfall-Randbedingungen (alter SL-Laptop)
+## 2. Emergency constraints (old DM laptop)
 
-| Randbedingung | Konsequenz |
-|---------------|------------|
-| Alter/defekter SL-Laptop, veraltete Systeme | Offline-first, keine Cloud-Pflicht; schlanke Laufzeit |
-| Gruppe 3–7 | `campaign` → bis zu 7 aktive PCs |
-| Spieler: externe Tools oder Papier | App = **SL-Werkzeug**; Import oder manuelle Kernwerte |
-| Nur SL am Laptop | Kein LAN-Multiplayer; optional Lesemodus am selben Gerät |
-| SL sieht alle Charaktere | Party-Roster + Sheet-light pro PC |
-| SL-Kampf-Oberfläche | Initiative + pro Teilnehmer: HP, Surges, Saves, AC/Fort/Ref/Will, AP, Conditions |
+| Constraint | Consequence |
+|------------|-------------|
+| Old/failing DM laptop, outdated OS | Offline-first, no cloud requirement; lean runtime |
+| Group of 3–7 | `campaign` → up to 7 active PCs |
+| Players: external tools or paper | App = **DM tool**; import or manual core values |
+| DM only on laptop | No LAN multiplayer; optional read-only mode on same device |
+| DM sees all characters | Party roster + sheet-light per PC |
+| DM combat surface | Initiative + per participant: HP, surges, saves, AC/Fort/Ref/Will, AP, conditions |
 
 ```mermaid
 flowchart TB
-  subgraph players [Spieler 3 bis 7]
-    extTools[Externe Charakter-Tools]
-    paper[Papier Wuerfel Stift]
+  subgraph players [Players 3 to 7]
+    extTools[External character tools]
+    paper[Paper dice pen]
   end
-  subgraph dmLaptop [SL Laptop offline]
+  subgraph dmLaptop [DM laptop offline]
     party[Party Roster]
     combat[Combat Surface]
-    compendium[Compendium lokal]
+    compendium[Local compendium]
   end
-  extTools -->|Import oder manuell| party
-  paper -->|SL traegt ein| party
+  extTools -->|Import or manual| party
+  paper -->|DM enters| party
   party --> combat
   compendium --> party
 ```
 
 ---
 
-## 3. Quelle und Compliance
+## 3. Source and compliance
 
-| Feld | Wert |
-|------|------|
-| **Öffentliche Quelle** | [https://iws.mx/dnd](https://iws.mx/dnd) |
-| **Upstream** | [Sheep-y/trpg-dnd-4e-db](https://github.com/Sheep-y/trpg-dnd-4e-db) (Fan-Remake des D&D Insider Compendiums) |
-| **Viewer-Stand** | 3.6.x (HTML/JS unter `4e_database_files/res/`) |
-| **Lizenz Programm** | GNU **AGPL v3** |
-| **Inhalt** | Wizards of the Coast Fan-Content / Compendium-Daten |
+| Field | Value |
+|-------|-------|
+| **Public source** | [https://iws.mx/dnd](https://iws.mx/dnd) |
+| **Upstream** | [Sheep-y/trpg-dnd-4e-db](https://github.com/Sheep-y/trpg-dnd-4e-db) (fan remake of the D&D Insider compendium) |
+| **Viewer version** | 3.6.x (HTML/JS under `4e_database_files/res/`) |
+| **Program license** | GNU **AGPL v3** |
+| **Content** | Wizards of the Coast fan content / compendium data |
 
-### Nutzungsrahmen (vom Projekt vorgesehen)
+### Intended use (project scope)
 
-- **Nur lokaler, privater Gebrauch** an der Spieltisch-Runde.
-- **Keine Weiterverbreitung** importierter Compendium-Rohdaten ohne eigene Lizenzprüfung.
-- Bei späterer Veröffentlichung der App: AGPL-Pflichten und Fan-Content-Richtlinien beachten.
+- **Local, private use only** at the game table.
+- **No redistribution** of imported compendium raw data without your own license review.
+- If the app is published later: comply with AGPL obligations and fan content guidelines.
 
 ---
 
-## 4. Datenbeschaffung (iws.mx)
+## 4. Data acquisition (iws.mx)
 
-Die Quelle ist **kein** live SQL-API, sondern ein **statischer JSONP-Export**:
+The source is **not** a live SQL API but a **static JSONP export**:
 
-**Basis-URL:** `https://iws.mx/dnd/4e_database_files/`
+**Base URL:** `https://iws.mx/dnd/4e_database_files/`
 
-| Datei | Rolle |
-|-------|--------|
-| `catalog.js` | Kategorie-Slug → Eintragsanzahl |
-| `{slug}/_listing.js` | Spaltennamen + Tabellenzeilen (Listenansicht) |
-| `{slug}/_index.js` | Volltext-Index: `id → Plaintext` (Full Search) |
-| `{slug}/data0.js` … `data19.js` | Eintragsinhalt: `id → HTML` (20 Shards: `parseInt(id.match(/\d+/)) % 20`) |
+| File | Role |
+|------|------|
+| `catalog.js` | Category slug → entry count |
+| `{slug}/_listing.js` | Column names + table rows (list view) |
+| `{slug}/_index.js` | Full-text index: `id → plaintext` (full search) |
+| `{slug}/data0.js` … `data19.js` | Entry body: `id → HTML` (20 shards: `parseInt(id.match(/\d+/)) % 20`) |
 
-### URL-Konventionen (Quelle)
+### URL conventions (source)
 
-| Zweck | Muster | Beispiel |
-|-------|--------|----------|
-| Namenssuche, Kategorie | `?list.name.{slug}` | `?list.name.class` |
-| Volltextsuche | `?list.full.{slug}` | `?list.full.power=fighter%20heal` |
-| Eintrag | `?view.{slug}.{entrySlug}` | `?view.class.ardent` |
+| Purpose | Pattern | Example |
+|---------|---------|---------|
+| Name search, category | `?list.name.{slug}` | `?list.name.class` |
+| Full-text search | `?list.full.{slug}` | `?list.full.power=fighter%20heal` |
+| Entry | `?view.{slug}.{entrySlug}` | `?view.class.ardent` |
 
-### Import-Empfehlung
+### Import recommendation
 
-**Kein fragiler DOM-Scraper.** Stattdessen strukturierter **JSONP-Importer**:
+**No fragile DOM scraper.** Use a structured **JSONP importer** instead:
 
-1. `catalog.js` laden und Kategorien validieren.
-2. Pro Slug: `_listing.js`, `_index.js`, alle `data*.js` (0–19).
-3. JSONP-Callback parsen (`od.reader.jsonp_*`).
-4. In SQLite persistieren.
+1. Load `catalog.js` and validate categories.
+2. Per slug: `_listing.js`, `_index.js`, all `data*.js` (0–19).
+3. Parse JSONP callback (`od.reader.jsonp_*`).
+4. Persist to SQLite.
 
 ```mermaid
 flowchart LR
@@ -113,15 +113,15 @@ flowchart LR
     index["_index.js"]
     data["data0..19.js"]
   end
-  subgraph import [Import-Pipeline]
+  subgraph import [Import pipeline]
     fetch[Fetcher]
     parse[JSONP Parser]
-    normalize[Normalisierung]
+    normalize[Normalization]
   end
   subgraph local [alter_eger.db]
     categories[categories]
     entries[entries]
-    fts[Volltext]
+    fts[Full text]
   end
   catalog --> fetch
   listing --> fetch
@@ -132,18 +132,18 @@ flowchart LR
   normalize --> fts
 ```
 
-**Importer-Laufzeit:** einmalig auf einer moderneren Maschine; Ergebnis `data/alter_eger.db` per USB auf den SL-Laptop.
+**Importer runtime:** one-off on a modern machine; copy resulting `data/alter_eger.db` to the DM laptop via USB.
 
 ---
 
-## 5. Katalog-Referenz und Validierung
+## 5. Catalog reference and validation
 
-Stand der Quelle (Abfrage iws.mx, für Import-Abnahme). **Catalog-Callback-Timestamp:** `20130616`.
+Source snapshot (iws.mx query, for import acceptance). **Catalog callback timestamp:** `20130616`.
 
-### 5.1 `catalog.js` — erwartete Counts
+### 5.1 `catalog.js` — expected counts
 
-| Slug | UI-Name | Erwartete Anzahl |
-|------|---------|-----------------:|
+| Slug | UI name | Expected count |
+|------|---------|---------------:|
 | `power` | Power | 9415 |
 | `monster` | Monster | 5326 |
 | `feat` | Feat | 3261 |
@@ -164,15 +164,15 @@ Stand der Quelle (Abfrage iws.mx, für Import-Abnahme). **Catalog-Callback-Times
 | `disease` | Disease | 69 |
 | `race` | Race | 55 |
 | `poison` | Poison | 38 |
-| **Summe** | *(UI „Everything“ ≈ 25.513)* | **25.508** |
+| **Total** | *(UI “Everything” ≈ 25,513)* | **25,508** |
 
-**Abnahme Phase 1:** Importierte Zeilen pro `category_slug` müssen exakt diese Counts treffen (±0).
+**Phase 1 acceptance:** Imported rows per `category_slug` must match these counts exactly (±0).
 
-### 5.2 `_listing.js` — Spalten pro Kategorie (1:1 übernehmen)
+### 5.2 `_listing.js` — columns per category (copy 1:1)
 
-Diese Spaltennamen sind **verbindlich** für Tabellenköpfe, `listing_fields`-JSON und Homebrew-Formulare.
+These column names are **binding** for table headers, `listing_fields` JSON, and homebrew forms.
 
-| Slug | Listing-Spalten |
+| Slug | Listing columns |
 |------|-----------------|
 | `power` | ID, Name, ClassName, Level, Type, Action, Keywords, SourceBook |
 | `monster` | ID, Name, Level, CombatRole, GroupRole, Size, CreatureType, SourceBook |
@@ -195,46 +195,46 @@ Diese Spaltennamen sind **verbindlich** für Tabellenköpfe, `listing_fields`-JS
 | `race` | ID, Name, Origin, DescriptionAttribute, Size, SourceBook |
 | `poison` | ID, Name, Level, Cost, SourceBook |
 
-### 5.3 Stichproben — Listing-Timestamps und Dateigrößen
+### 5.3 Samples — listing timestamps and file sizes
 
-Referenz-URLs zum erneuten Prüfen:
+Reference URLs for re-checking:
 
-| Kategorie | URL `_listing.js` | JSONP-Datum (Prefix) | Größe ca. |
-|-----------|-------------------|----------------------|-----------|
+| Category | URL `_listing.js` | JSONP date (prefix) | Size approx. |
+|----------|-------------------|----------------------|--------------|
 | `power` | [power/_listing.js](https://iws.mx/dnd/4e_database_files/power/_listing.js) | 20130703 | 1.6 MB |
 | `class` | [class/_listing.js](https://iws.mx/dnd/4e_database_files/class/_listing.js) | 20130703 | 5.9 KB |
 | `monster` | [monster/_listing.js](https://iws.mx/dnd/4e_database_files/monster/_listing.js) | 20130703 | 656 KB |
-| `feat` | [feat/_listing.js](https://iws.mx/dnd/4e_database_files/feat/_listing.js) | *(im Callback)* | 448 KB |
+| `feat` | [feat/_listing.js](https://iws.mx/dnd/4e_database_files/feat/_listing.js) | *(in callback)* | 448 KB |
 | `item` | [item/_listing.js](https://iws.mx/dnd/4e_database_files/item/_listing.js) | 20130703 | 218 KB |
 
-**Stichprobe Eintrags-HTML:** [class/data0.js](https://iws.mx/dnd/4e_database_files/class/data0.js) — Keys wie `class529`, Werte als HTML-Fragmente.
+**Sample entry HTML:** [class/data0.js](https://iws.mx/dnd/4e_database_files/class/data0.js) — keys like `class529`, values as HTML fragments.
 
-### 5.4 Beziehungslogik (für Rules Engine / Builder)
+### 5.4 Relationship logic (for rules engine / builder)
 
-- **Prerequisites:** `feat`, `theme`, `paragonpath`, `epicdestiny` → Feld `Prerequisite` (komplexe Abhängigkeiten).
-- **Klassen / Powers:** `ClassName`, `Level`, `Type`, `Keywords` auf `power`.
-- **Glossary:** Quick-Lookup von Regelbegriffen (Burst, Regeneration, …) wie im iws.mx-Viewer.
-- **Items:** Überkategorie `item` plus Unterkategorien `weapon`, `armor`, `implement` (v3.6-Regrouping im Upstream).
+- **Prerequisites:** `feat`, `theme`, `paragonpath`, `epicdestiny` → field `Prerequisite` (complex dependencies).
+- **Classes / powers:** `ClassName`, `Level`, `Type`, `Keywords` on `power`.
+- **Glossary:** quick lookup of rule terms (burst, regeneration, …) as in the iws.mx viewer.
+- **Items:** parent category `item` plus subcategories `weapon`, `armor`, `implement` (v3.6 regrouping in upstream).
 
 ---
 
-## 6. Teil 1 — Lokale Datenbank (Schema)
+## 6. Part 1 — Local database (schema)
 
-### Ziel
+### Goal
 
-1:1-Spiegel der 20 Kategorien inkl. Original-IDs (`class529`, `power1234`, …) und Listing-Spalten.
+1:1 mirror of the 20 categories including original IDs (`class529`, `power1234`, …) and listing columns.
 
-### Tabellen (Vorschlag SQLite)
+### Tables (proposed SQLite)
 
 ```sql
--- Metadaten der 20 Kategorien (aus catalog.js + UI-Namen)
+-- Metadata for the 20 categories (from catalog.js + UI names)
 categories (
   slug TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
   entry_count INTEGER NOT NULL
 );
 
--- Spalten pro Kategorie (aus _listing.js, Reihenfolge = ordinal)
+-- Columns per category (from _listing.js, order = ordinal)
 category_columns (
   category_slug TEXT NOT NULL,
   column_name TEXT NOT NULL,
@@ -242,7 +242,7 @@ category_columns (
   PRIMARY KEY (category_slug, column_name)
 );
 
--- Alle Compendium- und Homebrew-Einträge
+-- All compendium and homebrew entries
 entries (
   id TEXT PRIMARY KEY,
   category_slug TEXT NOT NULL,
@@ -255,7 +255,7 @@ entries (
   updated_at TEXT
 );
 
--- Optional: extrahierte Querverweise (Glossary, Power-Keywords)
+-- Optional: extracted cross-references (glossary, power keywords)
 entry_links (
   from_entry_id TEXT NOT NULL,
   to_entry_id TEXT,
@@ -264,108 +264,108 @@ entry_links (
 );
 ```
 
-### Feld `source` (Homebrew-Vorbereitung)
+### Field `source` (homebrew preparation)
 
-| Wert | Bedeutung |
-|------|-----------|
-| `compendium` | Import von iws.mx; ID unverändert |
-| `homebrew` | SL-eigene Inhalte; ID-Präfix `hb_{category}_` + UUID |
+| Value | Meaning |
+|-------|---------|
+| `compendium` | Import from iws.mx; ID unchanged |
+| `homebrew` | DM-owned content; ID prefix `hb_{category}_` + UUID |
 
-**Re-Import-Regel:** Beim Voll-Import nur `DELETE FROM entries WHERE source = 'compendium'` — Homebrew bleibt erhalten.
+**Re-import rule:** On full import, only `DELETE FROM entries WHERE source = 'compendium'` — homebrew is preserved.
 
-### Abnahmekriterien Phase 1
+### Phase 1 acceptance criteria
 
-- [ ] Counts pro Kategorie = Abschnitt 5.1
-- [ ] Spalten je Kategorie = Abschnitt 5.2
-- [ ] Stichproben: `body_html` nicht leer für bekannte IDs
-- [ ] Volltext (`index_text`) für Full Search durchsuchbar
+- [ ] Counts per category = section 5.1
+- [ ] Columns per category = section 5.2
+- [ ] Samples: `body_html` non-empty for known IDs
+- [ ] Full text (`index_text`) searchable for full search
 
 ---
 
-## 7. SL-eigene Monster und Items (Homebrew)
+## 7. DM-owned monsters and items (homebrew)
 
-Die 1:1-iws.mx-Struktur **blockiert** Homebrew nicht; sie ist nur auf Compendium-Import ausgelegt. Erweiterung **additiv**:
+The 1:1 iws.mx structure does **not** block homebrew; it is only shaped for compendium import. Extension is **additive**:
 
-| Aspekt | Umsetzung |
-|--------|-----------|
-| Speicher | Gleiche Tabelle `entries`, `source = 'homebrew'` |
-| Kategorien | Gleiche Slugs (`monster`, `item`, `weapon`, …) |
-| IDs | `hb_monster_{uuid}` usw. — keine Kollision mit Compendium |
-| Suche / Initiative | Filter: Offiziell / Eigen / Alle |
-| Editor (später) | Minimal: Name, Level, HP, AC, Initiative; erweitert: HTML-Beschreibung |
-| Vorlage | Compendium-Eintrag duplizieren → Homebrew-Kopie |
-| Schnellanlage | Optional `combatants` nur für Initiative ohne vollen Eintrag |
+| Aspect | Implementation |
+|--------|----------------|
+| Storage | Same table `entries`, `source = 'homebrew'` |
+| Categories | Same slugs (`monster`, `item`, `weapon`, …) |
+| IDs | `hb_monster_{uuid}` etc. — no collision with compendium |
+| Search / initiative | Filter: official / custom / all |
+| Editor (later) | Minimal: name, level, HP, AC, initiative; extended: HTML description |
+| Template | Duplicate compendium entry → homebrew copy |
+| Quick add | Optional `combatants` for initiative only without full entry |
 
 ```mermaid
 flowchart LR
   iws[iws.mx Import] --> comp[source compendium]
-  editor[SL Homebrew Editor] --> hb[source homebrew]
-  comp --> search[Suche und Initiative]
+  editor[DM Homebrew Editor] --> hb[source homebrew]
+  comp --> search[Search and initiative]
   hb --> search
 ```
 
 ---
 
-## 8. Teil 2 — Charaktere und Gruppe
+## 8. Part 2 — Characters and party
 
-### Party-Modell
+### Party model
 
-| Tabelle / Entität | Inhalt |
-|-------------------|--------|
-| `campaign` | Name, Notizen |
-| `character` | Spielername, Race/Class/Level, Verknüpfung zu Compendium-IDs wo möglich |
+| Table / entity | Contents |
+|----------------|----------|
+| `campaign` | Name, notes |
+| `character` | Player name, race/class/level, links to compendium IDs where possible |
 | `character_combat` | HP current/max, bloodied, dying, surge_used/max, action_points, initiative |
-| `character_saves` | STR/DEX/CON/INT/WIS/CHA; aktive End-of-turn-Saves |
-| `character_conditions` | Conditions + Notizen |
+| `character_saves` | STR/DEX/CON/INT/WIS/CHA; active end-of-turn saves |
+| `character_conditions` | Conditions + notes |
 
-### Import-Priorität (Spieler-Charaktere)
+### Import priority (player characters)
 
-1. **Manuell** durch SL (Papier-Spieler) — **MVP**
-2. **Datei-Import** (z. B. `.dnd4e` / Character Builder XML), falls verfügbar
-3. **Eingebauter Builder** (später)
+1. **Manual** by DM (paper players) — **MVP**
+2. **File import** (e.g. `.dnd4e` / Character Builder XML), if available
+3. **Built-in builder** (later)
 
-### 4e-Builder-Ablauf (wenn intern)
+### 4e builder flow (when internal)
 
-Race → Class (inkl. Hybrid) → Ability Scores → Background → Theme → Feats → Powers → Equipment → Paragon Path (11+) → Epic Destiny (21+) → Review
+Race → Class (incl. hybrid) → Ability Scores → Background → Theme → Feats → Powers → Equipment → Paragon Path (11+) → Epic Destiny (21+) → Review
 
-### Rules Engine (später)
+### Rules engine (later)
 
-Parst `Prerequisite`, `Tier`, `Level`, `Keywords`; Glossary-Lookup; liest **nur** aus lokaler DB.
+Parses `Prerequisite`, `Tier`, `Level`, `Keywords`; glossary lookup; reads **only** from local DB.
 
 ---
 
-## 9. Teil 3 — SL-Oberfläche „Combat & Party“
+## 9. Part 3 — DM surface “Combat & Party”
 
-**Priorität für den Notfall-Einsatz** (vor vollständigem Builder).
+**Priority for emergency use** (before a full builder).
 
-### Party-Dashboard
+### Party dashboard
 
-- Alle 3–7 PCs: Name, Level, HP-Balken, Surges, optional AC/Defenses.
+- All 3–7 PCs: name, level, HP bar, surges, optional AC/defenses.
 
-### Initiative-Oberfläche
+### Initiative surface
 
-- Sortierte Liste: PCs + NPCs/Monster (Compendium, Homebrew oder Schnellanlage).
-- Runde/Zug: nächster Zug, Verzögerung, Runde beenden.
+- Sorted list: PCs + NPCs/monsters (compendium, homebrew, or quick add).
+- Round/turn: next turn, delay, end round.
 
-### Pro Teilnehmer (kampfrelevant)
+### Per participant (combat-relevant)
 
-| Feld | UI |
-|------|-----|
-| HP | aktuell/max, Buttons −1/−5/heal |
-| Healing Surges | verbraucht / verfügbar |
-| Saving Throws | 6 Attribute + laufende Save-Ends |
-| Verteidigungen | AC, Fortitude, Reflex, Will |
-| Action Points | Zähler |
-| Conditions | aus Glossary verlinkbar + Freitext |
+| Field | UI |
+|-------|-----|
+| HP | current/max, buttons −1/−5/heal |
+| Healing surges | spent / available |
+| Saving throws | 6 abilities + ongoing save ends |
+| Defenses | AC, Fortitude, Reflex, Will |
+| Action points | counter |
+| Conditions | linkable from glossary + free text |
 
-### Monster-Schnellzugriff
+### Monster quick access
 
-Aus `monster` (und Homebrew) Name, HP, Initiative in die Initiative-Liste übernehmen.
+From `monster` (and homebrew): pull name, HP, initiative into the initiative list.
 
-### Performance-Ziele
+### Performance goals
 
-- Große Touch-/Klick-Flächen, wenig Animation.
-- Zielbrowser: Firefox ESR oder älteres Chromium; IE11 nur falls zwingend (im Projekt vermeiden).
+- Large touch/click targets, minimal animation.
+- Target browsers: Firefox ESR or older Chromium; avoid IE11 unless unavoidable.
 
 ```mermaid
 flowchart TB
@@ -383,85 +383,86 @@ flowchart TB
 
 ---
 
-## 10. Architektur (alter Laptop)
+## 10. Architecture (old laptop)
 
-| Schicht | Empfehlung |
-|---------|------------|
-| **Daten** | SQLite — eine Datei `data/alter_eger.db`, Backup = Datei kopieren |
-| **UI** | Statisches HTML + CSS + Vanilla JS (evtl. minimales jQuery wie iws.mx) |
-| **Start** | `file://` oder lokaler Mini-Server; **kein** Cloud-Account |
-| **Importer** | Python-Skript unter `tools/importer/` (einmalig, nicht am Tisch) |
+| Layer | Recommendation |
+|-------|----------------|
+| **Data** | SQLite — single file `data/alter_eger.db`, backup = copy file |
+| **UI** | Static HTML + CSS + vanilla JS (optional minimal jQuery like iws.mx) |
+| **Launch** | `file://` or local mini-server; **no** cloud account |
+| **Importer** | Python script under `tools/importer/` (one-off, not at the table) |
 
-### Nicht empfohlen am Tisch
+### Not recommended at the table
 
-Electron, Node-Server, WebSockets, schwere SPA-Frameworks, Cloud-Sync.
+Electron, Node server, WebSockets, heavy SPA frameworks, cloud sync.
 
-### Ordnerstruktur (Ist-Stand)
+### Folder structure (current)
 
 ```
-Alter_Eger/
-├── PROJECT.md          ← diese Datei (Gesamtspezifikation)
-├── README.md           ← Schnellstart
-├── doc/                ← lebende Dokumentation (Deutsch/Englisch)
-├── metadata/           ← Editor-, Import-, Katalog-Metadaten
-├── rules/              ← UI- und Flow-Regeln (Englisch)
-├── src/                ← Web-App (Hub, Blatt, Generator, GM, Party)
-│   ├── index.html      ← Home
-│   ├── sheet/          ← Charakterblatt Seite 1
-│   ├── editor/         ← Charaktergenerator (Wizard)
-│   ├── gm/             ← SL Party-Ansicht
-│   ├── party/          ← Party-JSON + index.json
-│   └── character/      ← Modell, Speicher, Import/Export
-├── scripts/            ← PDF-Export, Party-Index
+Alter_Ego/
+├── PROJECT.md          ← this file (master specification)
+├── README.md           ← quick start
+├── doc/                ← living documentation (English)
+├── metadata/           ← editor, import, catalog metadata
+├── rules/              ← UI and flow rules (English)
+├── src/                ← web app (hub, sheet, generator, GM, party)
+│   ├── index.html      ← home
+│   ├── sheet/          ← character sheet page 1
+│   ├── editor/         ← character generator (wizard)
+│   ├── gm/             ← DM party view
+│   ├── party/          ← party JSON + index.json
+│   └── character/      ← model, storage, import/export
+├── scripts/            ← PDF export, party index
 ├── data/
-│   ├── samples/        ← Compendium-Stub bis Phase 1
-│   └── alter_eger.db   ← nach Import (Phase 1)
+│   ├── samples/        ← compendium stub until phase 1
+│   └── alter_eger.db   ← after import (phase 1)
 └── tools/
-    └── importer/       ← JSONP → SQLite (Phase 1)
+    └── importer/       ← JSONP → SQLite (phase 1)
 ```
 
-Früherer Arbeitsstand lag unter `C:\Users\masch\Projects\dnd4e-character-sheet` — Inhalt ist in dieses Repo konsolidiert.
+Earlier work lived at `C:\Users\masch\Projects\dnd4e-character-sheet` — content is consolidated into this repo.
 
 ---
 
-## 11. Phasen-Roadmap
+## 11. Phase roadmap
 
-| Phase | Liefergebnis | Code? |
-|-------|----------------|-------|
-| **0** | `PROJECT.md` (diese Metadatei) | — | Erledigt |
-| **1** | Importer + SQLite-Compendium (20 Kategorien, validiert) | Ja | Offen |
-| **2** | SL Party-Roster + manuelle PC-Erfassung (3–7) | Ja | **Teilweise** (`src/gm/`, `src/party/`) |
-| **3** | SL Combat Surface (Initiative, alle Kampf-Werte) | Ja | Offen (GM noch ohne vollen Kampf-Tracker) |
-| **4** | Compendium-Browser für SL (Suche wie iws.mx) | Ja | Offen |
-| **5** | Charakter-Builder (D&D-Beyond-Flow) + optional `.dnd4e` | Ja | **Teilweise** (`src/editor/`, Stub-Compendium) |
-| **6** | SL Homebrew: eigene Monster & Items | Ja | Offen |
+| Phase | Deliverable | Code? |
+|-------|-------------|-------|
+| **0** | `PROJECT.md` (this metadata file) | — | Done |
+| **1** | Importer + SQLite compendium (20 categories, validated) | Yes | Open |
+| **2** | DM party roster + manual PC capture (3–7) | Yes | **Partial** (`src/gm/`, `src/party/`) |
+| **3** | DM combat surface (initiative, all combat values) | Yes | Open (GM lacks full combat tracker) |
+| **4** | Compendium browser for DM (search like iws.mx) | Yes | Open |
+| **5** | Character builder (D&D Beyond flow) + optional `.dnd4e` | Yes | **Partial** (`src/editor/`, stub compendium) |
+| **6** | DM homebrew: custom monsters and items | Yes | Open |
 
-**Aktuell:** Phasen 0, 2 und 5 sind im Code begonnen; Phase 1 (Compendium-Import) ist der nächste große Block. Details: [doc/project.md](doc/project.md), [doc/files.md](doc/files.md).
-
----
-
-## 12. Risiken und Mitigation
-
-| Risiko | Mitigation |
-|--------|------------|
-| Schema-Drift iws.mx | Spalten aus `_listing.js` parsen, nicht hardcoden (Referenz: Abschnitt 5.2) |
-| HTML in Einträgen | `body_html` roh speichern; strukturiertes Parsing später |
-| AGPL + Wizards-IP | Privatnutzung dokumentieren; keine Rohdaten-Weitergabe |
-| Homebrew vs. Re-Import | Nur `source=compendium` ersetzen |
-| Alter Browser | Vanilla JS, progressive Enhancement, Tests auf SL-OS |
+**Current:** Phases 0, 2, and 5 are started in code; phase 1 (compendium import) is the next large block. Details: [doc/project.md](doc/project.md), [doc/files.md](doc/files.md).
 
 ---
 
-## 13. Offene Punkte (optional)
+## 12. Risks and mitigation
 
-- Betriebssystem des SL-Laptops (Windows-Version) → Mindest-Browser festlegen.
-- Welche **externen Charakter-Tools** die Spieler nutzen → Import-Format Phase 5 (`.dnd4e`, PDF, nur Papier).
+| Risk | Mitigation |
+|------|------------|
+| iws.mx schema drift | Parse columns from `_listing.js`, do not hardcode (reference: section 5.2) |
+| HTML in entries | Store `body_html` raw; structured parsing later |
+| AGPL + Wizards IP | Document private use; no raw data redistribution |
+| Homebrew vs. re-import | Replace only `source=compendium` |
+| Old browser | Vanilla JS, progressive enhancement, test on DM OS |
 
 ---
 
-## 14. Änderungshistorie dieser Metadatei
+## 13. Open items (optional)
 
-| Datum | Änderung |
-|-------|----------|
-| 2026-05-21 | Erstversion Phase 0: Spezifikation aus Projektplan, Katalog-Validierung iws.mx |
-| 2026-05-23 | Konsolidierung: Web-App aus `dnd4e-character-sheet` nach `Alter_Eger` übernommen; Ist-Struktur und Phasenstand aktualisiert |
+- DM laptop OS (Windows version) → set minimum browser.
+- Which **external character tools** players use → import format for phase 5 (`.dnd4e`, PDF, paper only).
+
+---
+
+## 14. Change history for this metadata file
+
+| Date | Change |
+|------|--------|
+| 2026-05-21 | Phase 0 initial version: specification from project plan, iws.mx catalog validation |
+| 2026-05-23 | Consolidation: web app from `dnd4e-character-sheet` into `Alter_Eger`; updated structure and phase status |
+| 2026-06-04 | Full translation of this file to English |

@@ -1,32 +1,32 @@
-# Projektbeschreibung — Alter Eger
+# Project description — Alter Ego
 
-**Letzte Aktualisierung:** 2026-05-23
+**Last updated:** 2026-06-04
 
-## Worum es geht
+## What this is
 
-**Alter Eger** ist das Gesamtprojekt für eine private D&D-4e-Runde (3–7 Spieler). Dieses Repository enthält Spezifikation ([PROJECT.md](../PROJECT.md)) und **Charakterwerkzeuge** — Generator, Blatt (Seite 1, US Letter), GM-Party-Ansicht. Zahlen folgen den üblichen 4e-Formeln.
+**Alter Ego** is the umbrella project for a private D&D 4e campaign (3–7 players). This repository holds the specification ([PROJECT.md](../PROJECT.md)) and **character tools** — generator, sheet (page 1, US Letter), and GM party view. Numbers follow standard 4e formulas.
 
-## Für wen ist das Projekt?
+## Who it is for
 
-| Zielgruppe | Nutzen |
-|------------|--------|
-| **Spieler** | Einladungslink öffnen → Generator → **Save** (kein JSON per Chat/USB) |
-| **Spielleiter** | Kampagne anlegen → Link teilen → Party-Liste live (Polling) |
-| **Entwickler / Host** | App + API auf VPS ([deploy-online.md](deploy-online.md)) oder lokal `npm run dev:all` |
-
-**Primär:** Online-Kampagne (Browser + kleine Node/SQLite-API).  
-**Optional:** Desktop-App (Tauri), JSON-Export/Import als Backup.
-
-## Anforderungen & Planung (Dokumentation)
-
-| Dokument | Inhalt |
+| Audience | Value |
 |----------|--------|
-| [requirements.md](requirements.md) | Anforderungen mit IDs (funktional / nicht-funktional) |
-| [roadmap.md](roadmap.md) | Phasen, erledigter Online-Kampagnen-Plan, Backlog |
-| [todos.md](todos.md) | Checklisten für Host, Entwickler, Agenten |
-| [architecture.md](architecture.md) | Technik-Überblick (bewusst schlank, kein React) |
+| **Players** | Open invite link → generator → **Save** (no JSON via chat/USB) |
+| **DM** | Create campaign → share link → live party list (polling) |
+| **Developer / host** | App + API on VPS ([deploy-online.md](deploy-online.md)) or locally `npm run dev:all` |
 
-## Oberflächen (Online — empfohlen)
+**Primary:** Online campaign (browser + small Node/SQLite API).  
+**Optional:** Desktop app (Tauri), JSON export/import as backup.
+
+## Requirements and planning (documentation)
+
+| Document | Contents |
+|----------|----------|
+| [requirements.md](requirements.md) | Requirements with IDs (functional / non-functional) |
+| [roadmap.md](roadmap.md) | Phases, completed online-campaign plan, backlog |
+| [todos.md](todos.md) | Checklists for host, developer, agents |
+| [architecture.md](architecture.md) | Technical overview (deliberately lean, no React) |
+
+## Surfaces (online — recommended)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -36,70 +36,70 @@
     ┌────┴────┐
     ▼         ▼
 ┌─────────┐  ┌──────────────────────────────────┐
-│ Join    │  │ GM-Konsole                        │
-│ ?c=&t=  │  │ Kampagne erstellen · Party live   │
+│ Join    │  │ GM console                        │
+│ ?c=&t=  │  │ Create campaign · live party      │
 └────┬────┘  └──────────────────────────────────┘
      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Spieler-Hub → Generator → Save → API → SQLite               │
+│  Player hub → generator → Save → API → SQLite               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Desktop (optional):** Start ([launcher](../src/launcher/)) → Spieler oder SL; Sync nur mit erreichbarer API.
+**Desktop (optional):** Launcher ([launcher](../src/launcher/)) → player or DM; sync only when the API is reachable.
 
-## Technischer Ansatz
+## Technical approach
 
-| Schicht | Technik |
-|---------|---------|
-| UI | HTML, CSS, ES-Module (`src/`) |
+| Layer | Stack |
+|-------|--------|
+| UI | HTML, CSS, ES modules (`src/`) |
 | Build | **Vite** → `dist/app/` |
 | API | **Express** + **SQLite** (`server/`) |
 | Desktop | **Tauri 2** (optional) |
-| Daten | `localStorage` + Kampagnen-API; Compendium-Stub bis `alter_eger.db` |
+| Data | `localStorage` + campaign API; compendium stub until `alter_eger.db` |
 
 Details: [architecture.md](architecture.md).
 
-## Was bereits funktioniert
+## What already works
 
-- Online-Kampagne: erstellen, Einladung, Save-Sync, GM-Party (Polling)
-- Game editor: Encounters, Monster/Party spawnen, Editor-Anbindung, Combat-Tab
-- Charaktergenerator, Blatt, Formeln, JSON-Export
-- Vite-Build, Launcher, Player-Hub, GM JSON-Backup-Import
-- Desktop (Tauri), CI-Builds Windows/Mac
-- API-Smoke-Test: `npm run test:api`
-- Security & Input-Tests: `npm test` (51 Tests: SQLi, Auth, Datei-Import, XSS)
+- Online campaign: create, invite, save sync, GM party (polling)
+- Game editor: encounters, spawn monsters/party, editor bridge, combat tab
+- Character generator, sheet, formulas, JSON export
+- Vite build, launcher, player hub, GM JSON backup import
+- Desktop (Tauri), CI builds Windows/Mac
+- API smoke test: `npm run test:api`
+- Security and input tests: `npm test` (51 tests: SQLi, auth, file import, XSS)
 
 ## Game editor
 
-Der **Game Editor** (`/src/game/`) bündelt **Spieler-PCs**, **Monster** und Kreaturen zu einer **Encounter-Liste** mit **NPC-Instanzen** (mehrfach pro Vorlage). Der SL öffnet Instanzen im **Charaktereditor**; verknüpfte PCs sind schreibgeschützt, Kopien editierbar. **Combat-Tab:** Initiative und HP.
+The **game editor** (`/src/game/`) combines **player PCs**, **monsters**, and creatures into an **encounter list** with **NPC instances** (multiple per template). The DM opens instances in the **character editor**; linked PCs are read-only, copies are editable. **Combat tab:** initiative and HP.
 
-Spezifikation: [game-editor.md](game-editor.md).
+Specification: [game-editor.md](game-editor.md).
 
-## Noch offen (Auszug)
+## Still open (summary)
 
-- Vollständiges Compendium (`alter_eger.db`) — Phase 1 in [roadmap.md](roadmap.md)
-- SL-Kampf-Oberfläche — Phase 3 (nutzt Encounter-Roster)
-- Optional: SSE statt Polling, DELETE Charakter per API
+- Full compendium (`alter_eger.db`) — phase 1 in [roadmap.md](roadmap.md)
+- DM combat surface — phase 3 (uses encounter roster)
+- Optional: SSE instead of polling, DELETE character via API
 
-## Schnellstart (Entwickler)
+## Quick start (developer)
 
 ```bash
 npm install
 npm run dev:all    # Frontend + API
 ```
 
-| URL (Dev) | Seite |
+| URL (dev) | Page |
 |-----------|--------|
-| http://localhost:5173/src/launcher/ | Rollenwahl |
-| http://localhost:5173/src/gm/ | SL (Kampagne) |
-| http://localhost:5173/src/join/ | Einladung (mit `?c=&t=`) |
+| http://localhost:5173/src/launcher/ | Role picker |
+| http://localhost:5173/src/gm/ | DM (campaign) |
+| http://localhost:5173/src/join/ | Invite (with `?c=&t=`) |
 
-## Weitere Dokumentation
+## More documentation
 
-| Datei | Inhalt |
-|-------|--------|
-| [files.md](files.md) | Dateireferenz |
-| [bugs.md](bugs.md) | Bekannte Limits |
-| [tests.md](tests.md) | Test-Checkliste |
-| [deploy-online.md](deploy-online.md) | VPS-Deploy |
-| [../README.md](../README.md) | Kurzanleitung (EN) |
+| File | Contents |
+|------|----------|
+| [files.md](files.md) | File reference |
+| [bugs.md](bugs.md) | Known limits |
+| [tests.md](tests.md) | Test checklist |
+| [deploy-online.md](deploy-online.md) | VPS deploy |
+| [../README.md](../README.md) | Short guide (EN) |

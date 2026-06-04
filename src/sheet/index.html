@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>D&amp;D 4e Character Sheet — Page 1</title>
-  <link rel="stylesheet" href="/src/sheet.css" />
+  <link rel="stylesheet" href="../sheet.css" />
 </head>
 <body class="sheet-body">
   <div class="toolbar no-print">
@@ -276,9 +276,9 @@
     </dl>
   </section>
 
-  <script type="module" src="/src/app.js"></script>
+  <script type="module" src="../app.js"></script>
   <script type="module">
-    import { SKILLS } from '/src/formulas.js';
+    import { SKILLS } from '../formulas.js';
 
     const tbody = document.getElementById('skills-body');
     tbody.innerHTML = SKILLS.map((s) => `
@@ -359,8 +359,7 @@
       </div>
     `).join('');
 
-    const { initSheet } = await import('/src/app.js');
-    initSheet();
+    import('../app.js').then((m) => m.initSheet());
   </script>
 </body>
 </html>
