@@ -19,9 +19,46 @@ function safeGit(cmd) {
 const srcRoot = resolve(projectRoot, 'src');
 
 const DEBUG_ENDPOINT = 'http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c';
-const DEBUG_SESSION_ID = 'f629ed';
+const DEBUG_SESSION_ID = '5d39f7';
 
-/** Log dev-server requests for 404 / path mismatch debugging (session f629ed). */
+/** Redirect /src/* → /* when Vite root is src/ (sync-from-live URLs vs dev URLs). */
+function legacySrcPrefixRedirectPlugin() {
+  return {
+    name: 'alter-ego-legacy-src-redirect',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const raw = req.url ?? '';
+        const pathname = raw.split('?')[0];
+        if (!pathname.startsWith('/src/')) return next();
+        const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
+        const target = `${pathname.slice(4) || '/'}${query}`;
+        // #region agent log
+        fetch(DEBUG_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': DEBUG_SESSION_ID
+          },
+          body: JSON.stringify({
+            sessionId: DEBUG_SESSION_ID,
+            runId: 'pre-fix',
+            hypothesisId: 'A',
+            location: 'vite.config.js:legacySrcPrefixRedirect',
+            message: 'vite redirect /src/*',
+            data: { from: pathname, to: target },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion
+        res.statusCode = 302;
+        res.setHeader('Location', target);
+        res.end();
+      });
+    }
+  };
+}
+
+/** Log dev-server requests for 404 / path mismatch debugging. */
 function debugRequestPlugin() {
   return {
     name: 'alter-ego-debug-request',
@@ -121,7 +158,7 @@ export default defineConfig({
     'import.meta.env.VITE_GIT_SHA': JSON.stringify(safeGit('git rev-parse --short HEAD'))
   },
   root: srcRoot,
-  plugins: [debugRequestPlugin(), parentStaticPlugin()],
+  plugins: [legacySrcPrefixRedirectPlugin(), debugRequestPlugin(), parentStaticPlugin()],
   server: {
     port: 5173,
     fs: { allow: [projectRoot] },

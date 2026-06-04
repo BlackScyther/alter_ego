@@ -806,10 +806,35 @@ function openSheet() {
   }
   persist();
   stashCharacterForSheet(character);
-  window.location.href = '../sheet/index.html?from=editor';
+  const sheetHref = '../sheet/index.html?from=editor';
+  // #region agent log
+  debugClientLog('openSheet navigate', { from: location.pathname, to: sheetHref }, 'B');
+  // #endregion
+  window.location.href = sheetHref;
+}
+
+function debugClientLog(message, data, hypothesisId) {
+  // #region agent log
+  fetch('http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5d39f7' },
+    body: JSON.stringify({
+      sessionId: '5d39f7',
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/editor/editor.js:init',
+      message,
+      data,
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion
 }
 
 async function init() {
+  // #region agent log
+  debugClientLog('editor init', { pathname: location.pathname, search: location.search }, 'A');
+  // #endregion
   await loadEditorMeta();
   await compendium.ready();
 
