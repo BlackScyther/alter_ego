@@ -11,20 +11,22 @@ Offline-capable **D&D 4th Edition** toolkit for a private group: character sheet
 cd D:\Projects\web\4e\Alter_Ego
 npm install
 npx playwright install chromium
+npm run pull:live
 npm start
 ```
 
-Open `http://localhost:5173/` — **Character generator** or **Top of playlist**.
+`npm start` serves the **same files as** https://www.braincell.online/ (folder `sync-from-live/`).
 
-| Page | URL |
+Open **http://localhost:5173/src/launcher/** — Player / GM, version stamp, full compendium.
+
+| Page (live mirror) | URL |
 |------|-----|
-| Home | http://localhost:5173/ |
-| Character sheet | http://localhost:5173/sheet/ |
-| Generator | http://localhost:5173/editor/ |
-| GM | http://localhost:5173/gm/ |
-| Playlist | http://localhost:5173/playlist/ |
+| Launcher | http://localhost:5173/src/launcher/ |
+| Player | http://localhost:5173/src/player/ |
+| GM | http://localhost:5173/src/gm/ |
+| Generator | http://localhost:5173/src/editor/ |
 
-The generator uses stub compendium data until `data/alter_ego.db` is imported (phase 1, see `metadata/import.json`).
+To edit Git source (not production parity): `npm run dev:src`.
 
 ## Repo structure (short)
 
