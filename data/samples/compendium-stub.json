@@ -155,6 +155,29 @@
         }
       ]
     },
+    "monster": {
+      "displayName": "Monster",
+      "entries": [
+        {
+          "id": "monster_goblin_cutthroat",
+          "listing_fields": {
+            "Name": "Goblin Cutthroat",
+            "Level": "1",
+            "HP": "29",
+            "AC": "16",
+            "Fort": "13",
+            "Ref": "14",
+            "Will": "11",
+            "Initiative": "7",
+            "Size": "Small",
+            "CreatureType": "Humanoid",
+            "CombatRole": "Skirmisher"
+          },
+          "body_html": "<p>Quick goblin skirmisher for API smoke tests.</p>",
+          "index_text": "Goblin Cutthroat skirmisher"
+        }
+      ]
+    },
     "power": {
       "displayName": "Power",
       "entries": [
