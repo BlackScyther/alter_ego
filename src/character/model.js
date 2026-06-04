@@ -2,6 +2,8 @@
  * Character document — aligned with PROJECT.md party model + sheet page 1.
  */
 
+import { validateFeatsStep } from './feat-selections.js';
+
 export const CHARACTER_VERSION = 1;
 
 export function createCharacter(partial = {}) {
@@ -52,6 +54,7 @@ export function createCharacter(partial = {}) {
       paragonPathId: null,
       epicDestinyId: null,
       featIds: [],
+      featSelections: {},
       powerIds: [],
       equipmentIds: [],
       ...partial.selections
@@ -160,6 +163,9 @@ export function validateStep(stepId, character, editorMeta) {
       if (lvl >= 21 && !character.selections.epicDestinyId) {
         errors.push('Epic destiny required at level 21+.');
       }
+      break;
+    case 'feats':
+      errors.push(...validateFeatsStep(character));
       break;
     default:
       break;

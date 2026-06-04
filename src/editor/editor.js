@@ -35,6 +35,12 @@ import {
   formatSkillBreakdownLine
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
+import { renderFeatStep } from './steps/feat-step.js';
+import {
+  ensureFeatSelectionsShape,
+  migrateFeatIdsToSelections,
+  pruneFeatSelections
+} from '../character/feat-selections.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -111,6 +117,8 @@ function startLevelUpFlow() {
   }
   character.identity.level += 1;
   character.identity.totalXp = xpForLevel(character.identity.level);
+  ensureFeatSelectionsShape(character);
+  pruneFeatSelections(character);
   touchCharacter(character);
   completedSteps = new Set(['basics', 'race', 'background', 'class', 'abilities']);
   builderMode = 'full';
@@ -214,7 +222,17 @@ async function renderStepPanel() {
       renderAbilities(panel);
       break;
     case 'feats':
-      await renderFeatStep(panel);
+      ensureFeatSelectionsShape(character);
+      migrateFeatIdsToSelections(character);
+      pruneFeatSelections(character);
+      await renderFeatStep(panel, {
+        character,
+        compendium,
+        def,
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'feats')
+      });
       break;
     case 'powers':
     case 'equipment':
@@ -246,6 +264,8 @@ function renderBasics(panel) {
   bind(panel, 'f-level', (v) => {
     character.identity.level = Math.min(30, Math.max(1, Number(v) || 1));
     character.identity.totalXp = xpForLevel(character.identity.level);
+    ensureFeatSelectionsShape(character);
+    pruneFeatSelections(character);
     renderNav();
   });
   bind(panel, 'f-alignment', (v) => (character.identity.alignment = v));
@@ -274,7 +294,8 @@ async function refreshBonusesFromSelections() {
     if (id) entries[source] = await compendium.getEntry(id);
   }
   const featEntries = [];
-  for (const id of character.selections.featIds ?? []) {
+  const featIds = character.selections.featIds ?? [];
+  for (const id of featIds) {
     const entry = await compendium.getEntry(id);
     if (entry) featEntries.push(entry);
   }
@@ -524,36 +545,6 @@ async function renderCompendiumStep(panel, stepId, def) {
   await refresh();
 }
 
-async function renderFeatStep(panel) {
-  const entries = await compendium.listEntries('feat', { limit: 50 });
-  panel.innerHTML = `
-    <p style="color:var(--editor-muted);font-size:13px">Select heroic feats (rules validation in a later phase).</p>
-    <div class="feat-chips" id="feat-chips"></div>`;
-  renderSelectionTutorHint(panel, 'feats');
-  const chips = panel.querySelector('#feat-chips');
-  const selected = new Set(character.selections.featIds);
-
-  entries.forEach((e) => {
-    const name = e.listing_fields?.Name ?? e.id;
-    const chip = document.createElement('span');
-    chip.className = 'feat-chip' + (selected.has(e.id) ? ' selected' : '');
-    chip.textContent = name;
-    chip.title = e.id;
-    chip.addEventListener('click', async () => {
-      if (selected.has(e.id)) selected.delete(e.id);
-      else selected.add(e.id);
-      character.selections.featIds = [...selected];
-      character.notes.feats = [...selected]
-        .map((id) => entries.find((x) => x.id === id)?.listing_fields?.Name ?? id)
-        .join('\n');
-      await refreshBonusesFromSelections();
-      renderFeatStep(panel);
-      persist();
-    });
-    chips.appendChild(chip);
-  });
-}
-
 function renderPlaceholder(panel, stepId) {
   const def = editorMeta.steps[stepId];
   panel.innerHTML = `
@@ -733,6 +724,8 @@ async function switchToCharacter(id) {
   if (!loaded) return;
   character = loaded;
   setActiveCharacterId(character.id);
+  ensureFeatSelectionsShape(character);
+  migrateFeatIdsToSelections(character);
   ensureAbilityShape(character);
   recomputeAbilityScores(character);
   await refreshBonusesFromSelections();
@@ -760,6 +753,8 @@ async function importCharacterFile(file) {
     const doc = await readCharacterJsonFile(file);
     character = importCharacterDocument(doc, { forceNewId: false });
     setActiveCharacterId(character.id);
+    ensureFeatSelectionsShape(character);
+    migrateFeatIdsToSelections(character);
     ensureAbilityShape(character);
     recomputeAbilityScores(character);
     await refreshBonusesFromSelections();

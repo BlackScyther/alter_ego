@@ -69,9 +69,16 @@
     },
     "feats": {
       "title": "Feats",
+      "subtitle": "Pick one feat per slot for your level. Eligible feats are filtered by race, class, and prerequisites.",
       "compendiumCategory": "feat",
       "selectionCardinality": "level-based",
-      "writesTo": ["selections.featIds", "notes.feats"]
+      "writesTo": ["selections.featIds", "selections.featSelections", "notes.feats"],
+      "filters": [
+        { "id": "all", "label": "All", "default": true },
+        { "id": "phb", "label": "PHB", "sourceBooks": ["PHB"] },
+        { "id": "phb2", "label": "PHB2", "sourceBooks": ["PHB2"] },
+        { "id": "darksun", "label": "Dark Sun", "sourceBooks": ["DSCS", "DSDG", "DSH", "DSE", "DSAT", "DSCH", "DSE2", "DSH2"] }
+      ]
     },
     "powers": {
       "title": "Powers",
