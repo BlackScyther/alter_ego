@@ -1,9 +1,21 @@
 import { defineConfig } from 'vite';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf-8'));
+
+function safeGit(cmd) {
+  try {
+    return execSync(cmd, { cwd: projectRoot, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch {
+    return '';
+  }
+}
 const srcRoot = resolve(projectRoot, 'src');
 
 /** Collect every HTML page under src/ (except legacy snippets). */
@@ -66,6 +78,13 @@ function parentStaticPlugin() {
 }
 
 export default defineConfig({
+  // Without this, Vite serves index.html for /editor/ and links appear dead.
+  appType: 'mpa',
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg?.version ?? '0.0.0'),
+    'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(safeGit('git rev-parse --abbrev-ref HEAD')),
+    'import.meta.env.VITE_GIT_SHA': JSON.stringify(safeGit('git rev-parse --short HEAD'))
+  },
   root: srcRoot,
   plugins: [parentStaticPlugin()],
   server: {
