@@ -49,3 +49,5 @@ Use `builderFlow` from metadata. Skip steps disabled for the current level (`isS
 | Gate + mode buttons | `src/editor/index.html`, `src/editor/editor.js` |
 | Step definitions | `metadata/editor.json` |
 | Compendium pickers | `src/editor/editor.js` (`renderCompendiumStep`) |
+| Feats (level slots, eligibility filter) | `src/editor/steps/feat-step.js`, `src/editor/feat-prerequisite.js` |
+| Powers (type/level slots, class filter) | `src/editor/steps/power-step.js`, `src/editor/power-filter.js`, `src/character/power-selections.js` |

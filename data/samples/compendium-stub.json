@@ -71,6 +71,24 @@
             { "skill": "religion", "amount": 2, "bonusType": "skill" },
             { "skill": "insight", "amount": 2, "bonusType": "skill" }
           ]
+        },
+        {
+          "id": "background-dwarf-outcast",
+          "listing_fields": { "Name": "Dwarf - Outcast", "Type": "Racial", "Campaign": "General", "SourceBook": "PHB2" },
+          "body_html": "<p class=flavortext><b>Type: </b>Racial<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Dwarf<br></p><p>Your clan cast you out.</p>",
+          "index_text": "Dwarf Outcast racial"
+        },
+        {
+          "id": "background-dragonborn-iconoclast",
+          "listing_fields": { "Name": "Dragonborn Iconoclast", "Type": "Racial", "Campaign": "General", "SourceBook": "PH Races" },
+          "body_html": "<p class=flavortext><b>Type: </b>Racial<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Dragonborn<br></p><p>Unconventional worship.</p>",
+          "index_text": "Dragonborn Iconoclast racial"
+        },
+        {
+          "id": "background-astronomer",
+          "listing_fields": { "Name": "Astronomer", "Type": "Occupation", "Campaign": "General", "SourceBook": "Psionic Power" },
+          "body_html": "<p class=flavortext><b>Type: </b>Occupation<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Psionic<br></p><p>Stars and psionic energy.</p>",
+          "index_text": "Astronomer psionic"
         }
       ]
     },
@@ -134,6 +152,82 @@
           "id": "epicdestiny1",
           "listing_fields": { "Name": "Demigod", "Prerequisite": "21st level", "SourceBook": "PHB" },
           "body_html": "<p>Epic destiny.</p>"
+        }
+      ]
+    },
+    "monster": {
+      "displayName": "Monster",
+      "entries": [
+        {
+          "id": "monster_goblin_cutthroat",
+          "listing_fields": {
+            "Name": "Goblin Cutthroat",
+            "Level": "1",
+            "HP": "29",
+            "AC": "16",
+            "Fort": "13",
+            "Ref": "14",
+            "Will": "11",
+            "Initiative": "7",
+            "Size": "Small",
+            "CreatureType": "Humanoid",
+            "CombatRole": "Skirmisher"
+          },
+          "body_html": "<p>Quick goblin skirmisher for API smoke tests.</p>",
+          "index_text": "Goblin Cutthroat skirmisher"
+        }
+      ]
+    },
+    "power": {
+      "displayName": "Power",
+      "entries": [
+        {
+          "id": "power1",
+          "listing_fields": { "Name": "Cleave", "ClassName": "Fighter", "Level": "1", "Type": "At-Will", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Basic at-will attack.</p>",
+          "index_text": "Cleave fighter at-will"
+        },
+        {
+          "id": "power2",
+          "listing_fields": { "Name": "Tide of Iron", "ClassName": "Fighter", "Level": "1", "Type": "At-Will", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Defender at-will.</p>",
+          "index_text": "Tide of Iron fighter at-will"
+        },
+        {
+          "id": "power3",
+          "listing_fields": { "Name": "Crushing Surge", "ClassName": "Fighter", "Level": "1", "Type": "Encounter", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Level 1 encounter.</p>",
+          "index_text": "Crushing Surge fighter encounter"
+        },
+        {
+          "id": "power4",
+          "listing_fields": { "Name": "Brute Strike", "ClassName": "Fighter", "Level": "1", "Type": "Daily", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Level 1 daily.</p>",
+          "index_text": "Brute Strike fighter daily"
+        },
+        {
+          "id": "power5",
+          "listing_fields": { "Name": "Covering Attack", "ClassName": "Fighter", "Level": "3", "Type": "Encounter", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Level 3 encounter.</p>",
+          "index_text": "Covering Attack fighter encounter"
+        },
+        {
+          "id": "power6",
+          "listing_fields": { "Name": "Shielded Assault", "ClassName": "Fighter", "Level": "2", "Type": "Utility", "Action": "Minor", "SourceBook": "PHB" },
+          "body_html": "<p>Level 2 utility.</p>",
+          "index_text": "Shielded Assault fighter utility"
+        },
+        {
+          "id": "power7",
+          "listing_fields": { "Name": "Magic Missile", "ClassName": "Wizard", "Level": "1", "Type": "At-Will", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Wizard at-will.</p>",
+          "index_text": "Magic Missile wizard at-will"
+        },
+        {
+          "id": "power8",
+          "listing_fields": { "Name": "Burning Hands", "ClassName": "Wizard", "Level": "1", "Type": "Encounter", "Action": "Standard", "SourceBook": "PHB" },
+          "body_html": "<p>Wizard encounter.</p>",
+          "index_text": "Burning Hands wizard encounter"
         }
       ]
     }

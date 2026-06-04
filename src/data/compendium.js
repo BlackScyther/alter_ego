@@ -1,9 +1,21 @@
 /**
- * Compendium access layer — consumes data/alter_eger.db when present (post-import).
- * Falls back to bundled samples for editor development.
+ * Compendium access layer — SQLite (alter_eger.db) with stub fallback.
  */
 
-let _listingCache = null;
+import initSqlJs from 'sql.js/dist/sql-wasm.js';
+import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+import { classNameMatches, normalizePowerType, powerTypeLikePatterns } from '../editor/power-filter.js';
+
+const SEARCH_MIN = 3;
+
+let _sqlInit = null;
+
+async function getSQL() {
+  if (!_sqlInit) {
+    _sqlInit = await initSqlJs({ locateFile: () => wasmUrl });
+  }
+  return _sqlInit;
+}
 
 async function fetchJson(path) {
   const res = await fetch(path);
@@ -11,13 +23,83 @@ async function fetchJson(path) {
   return res.json();
 }
 
-/** @typedef {{ id: string, category_slug: string, listing_fields: Record<string,string>, body_html?: string, index_text?: string }} CompendiumEntry */
+/** @typedef {{ id: string, category_slug: string, listing_fields: Record<string,string>, body_html?: string, index_text?: string, ability_bonuses?: unknown[], skill_bonuses?: unknown[] }} CompendiumEntry */
+
+function splitSourceBooks(raw) {
+  return String(raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function rowToEntry(row) {
+  const listing =
+    typeof row.listing_fields === 'string'
+      ? JSON.parse(row.listing_fields)
+      : row.listing_fields;
+  return {
+    id: row.id,
+    category_slug: row.category_slug,
+    listing_fields: listing,
+    body_html: row.body_html ?? '',
+    index_text: row.index_text ?? ''
+  };
+}
+
+/**
+ * @param {CompendiumEntry[]} entries
+ * @param {string} query
+ * @param {number} limit
+ */
+export function rankSearchResults(entries, query, limit = 100) {
+  const q = query.trim().toLowerCase();
+  if (q.length < SEARCH_MIN) return { kind: 'idle', entries: [] };
+
+  const terms = q.split(/\s+/).filter(Boolean);
+  const scored = [];
+
+  for (const row of entries) {
+    const name = (row.listing_fields?.Name ?? row.id).toLowerCase();
+    const index = (row.index_text ?? '').toLowerCase();
+    const id = row.id.toLowerCase();
+    const hay = `${name} ${index} ${id}`;
+    if (!terms.every((t) => hay.includes(t))) continue;
+
+    let score = 0;
+    const first = terms[0];
+    if (name.startsWith(first)) score += 200;
+    else if (name.split(/\s+/).some((w) => w.startsWith(first))) score += 130;
+    else if (name.includes(first)) score += 80;
+    else if (index.includes(first)) score += 40;
+
+    const matched = terms.filter((t) => name.includes(t)).length;
+    score += matched * 25;
+    if (terms.length > 1 && matched === terms.length) score += 50;
+    score -= Math.min(name.length, 40);
+
+    scored.push({ row, score });
+  }
+
+  scored.sort((a, b) => {
+    const diff = b.score - a.score;
+    if (diff !== 0) return diff;
+    const an = a.row.listing_fields?.Name ?? '';
+    const bn = b.row.listing_fields?.Name ?? '';
+    return an.localeCompare(bn, undefined, { sensitivity: 'base' });
+  });
+
+  return { kind: 'results', entries: scored.slice(0, limit).map((s) => s.row) };
+}
 
 export class CompendiumProvider {
   constructor(options = {}) {
-    this.dbPath = options.dbPath ?? '../../data/alter_eger.db';
+    this.dbPath = options.dbPath ?? '/data/alter_eger.db';
+    this.stubPath = options.stubPath ?? '/data/samples/compendium-stub.json';
     this.useStub = options.useStub ?? true;
     this._ready = null;
+    this._db = null;
+    this._stub = null;
+    this._catalogCounts = null;
   }
 
   async ready() {
@@ -28,34 +110,94 @@ export class CompendiumProvider {
   }
 
   async _init() {
-    try {
-      const head = await fetch(this.dbPath, { method: 'HEAD' });
-      if (head.ok) {
-        this.mode = 'sqlite-pending';
-        console.info('[compendium] DB found; wire sql.js in a later phase.');
-        return;
-      }
-    } catch {
-      /* file:// or missing */
-    }
     if (this.useStub) {
+      try {
+        this._stub = await fetchJson(this.stubPath);
+      } catch {
+        this._stub = null;
+      }
+    }
+
+    if (await this._detectSqliteDb()) {
+      try {
+        const SQL = await getSQL();
+        const res = await fetch(this.dbPath);
+        if (!res.ok) throw new Error(`fetch ${this.dbPath}: ${res.status}`);
+        const buf = await res.arrayBuffer();
+        this._db = new SQL.Database(new Uint8Array(buf));
+        this.mode = 'sqlite';
+        return;
+      } catch (err) {
+        console.warn('[compendium] Failed to load SQLite DB, using stub:', err);
+      }
+    }
+
+    if (this._stub) {
       this.mode = 'stub';
-      this._stub = await fetchJson('../../data/samples/compendium-stub.json');
     } else {
       this.mode = 'unavailable';
     }
   }
 
+  _usesStubData() {
+    return !!this._stub && this.mode === 'stub';
+  }
+
+  _usesSqlite() {
+    return this.mode === 'sqlite' && this._db != null;
+  }
+
+  async _detectSqliteDb() {
+    try {
+      const res = await fetch(this.dbPath, { headers: { Range: 'bytes=0-15' } });
+      if (!res.ok) return false;
+      if ((res.headers.get('content-type') ?? '').includes('text/html')) return false;
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength < 15) return false;
+      return new TextDecoder().decode(new Uint8Array(buf).slice(0, 15)) === 'SQLite format 3';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * @param {string} sql
+   * @param {unknown[]} params
+   */
+  _queryAll(sql, params = []) {
+    const stmt = this._db.prepare(sql);
+    stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return rows;
+  }
+
+  async _getCatalogCounts() {
+    if (!this._catalogCounts) {
+      this._catalogCounts = await fetchJson('/metadata/catalog-counts.json');
+    }
+    return this._catalogCounts;
+  }
+
   async getCategories() {
     await this.ready();
-    if (this.mode === 'stub') {
+    if (this._usesStubData()) {
       return Object.entries(this._stub.categories).map(([slug, meta]) => ({
         slug,
         display_name: meta.displayName,
         entry_count: meta.entries?.length ?? 0
       }));
     }
-    const counts = await fetchJson('../../metadata/catalog-counts.json');
+    if (this._usesSqlite()) {
+      const rows = this._queryAll(
+        'SELECT slug, display_name, entry_count FROM categories ORDER BY display_name'
+      );
+      if (rows.length) return rows;
+    }
+    const counts = await this._getCatalogCounts();
     return Object.entries(counts.categories).map(([slug, meta]) => ({
       slug,
       display_name: meta.displayName,
@@ -64,30 +206,176 @@ export class CompendiumProvider {
   }
 
   /**
+   * @param {import('../editor/power-filter.js').PowerType} [powerType]
+   */
+  _passesPowerListingFilters(listing_fields, { className, level, powerType }) {
+    if (className != null && className !== '') {
+      if (!classNameMatches(listing_fields?.ClassName, className)) return false;
+    }
+    if (level != null && level !== '') {
+      const pl = parseInt(String(listing_fields?.Level ?? ''), 10);
+      const want = parseInt(String(level), 10);
+      if (Number.isNaN(pl) || Number.isNaN(want) || pl !== want) return false;
+    }
+    if (powerType) {
+      if (normalizePowerType(listing_fields?.Type) !== powerType) return false;
+    }
+    return true;
+  }
+
+  /**
    * @param {string} categorySlug
-   * @param {{ search?: string, limit?: number }} opts
+   * @param {{ search?: string, limit?: number, sourceBooks?: string[], className?: string, level?: number, powerType?: import('../editor/power-filter.js').PowerType }} opts
    * @returns {Promise<CompendiumEntry[]>}
    */
   async listEntries(categorySlug, opts = {}) {
     await this.ready();
     const limit = opts.limit ?? 200;
     const q = (opts.search ?? '').trim().toLowerCase();
+    const sourceBooks = Array.isArray(opts.sourceBooks) && opts.sourceBooks.length ? opts.sourceBooks : null;
+    const bookSet = sourceBooks ? new Set(sourceBooks) : null;
+    const className = opts.className ?? null;
+    const level = opts.level ?? null;
+    const powerType = opts.powerType ?? null;
+    const powerFilters = className != null || level != null || powerType != null;
 
-    if (this.mode === 'stub') {
+    const passesSource = (entry) => {
+      if (!bookSet) return true;
+      return splitSourceBooks(entry.listing_fields?.SourceBook).some((b) => bookSet.has(b));
+    };
+
+    const passesPowerFilters = (listing_fields) =>
+      !powerFilters ||
+      this._passesPowerListingFilters(listing_fields, { className, level, powerType });
+
+    if (this._usesStubData()) {
       let rows = this._stub.categories[categorySlug]?.entries ?? [];
-      if (q) {
-        rows = rows.filter((e) => {
-          const name = (e.listing_fields?.Name ?? e.id).toLowerCase();
-          return name.includes(q) || e.id.toLowerCase().includes(q);
-        });
+      if (bookSet) rows = rows.filter((e) => passesSource({ listing_fields: e.listing_fields }));
+      if (powerFilters) rows = rows.filter((e) => passesPowerFilters(e.listing_fields));
+      if (q.length >= SEARCH_MIN) {
+        const mapped = rows.map((e) => ({
+          id: e.id,
+          category_slug: categorySlug,
+          listing_fields: e.listing_fields,
+          body_html: e.body_html ?? '',
+          index_text: e.index_text ?? ''
+        }));
+        const { entries } = rankSearchResults(mapped, q, limit);
+        return entries;
       }
       return rows.slice(0, limit).map((e) => ({
         id: e.id,
         category_slug: categorySlug,
         listing_fields: e.listing_fields,
         body_html: e.body_html ?? '',
-        index_text: e.index_text ?? ''
+        index_text: e.index_text ?? '',
+        ability_bonuses: e.ability_bonuses,
+        skill_bonuses: e.skill_bonuses
       }));
+    }
+
+    if (this._usesSqlite()) {
+      const bookClause = bookSet
+        ? ` AND (${[...bookSet]
+            .map(
+              () =>
+                "(',' || replace(json_extract(listing_fields, '$.SourceBook'), ' ', '') || ',') LIKE ?"
+            )
+            .join(' OR ')})`
+        : '';
+      const bookParams = bookSet ? [...bookSet].map((b) => `%,${b.replace(/ /g, '')},%`) : [];
+
+      let powerClause = '';
+      const powerParams = [];
+      if (className) {
+        powerClause += ` AND lower(json_extract(listing_fields, '$.ClassName')) LIKE ?`;
+        powerParams.push(`%${String(className).toLowerCase()}%`);
+      }
+      if (level != null && level !== '') {
+        powerClause += ` AND cast(json_extract(listing_fields, '$.Level') as integer) = ?`;
+        powerParams.push(parseInt(String(level), 10));
+      }
+      if (powerType) {
+        const patterns = powerTypeLikePatterns(powerType);
+        if (patterns.length) {
+          powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.Type')) LIKE ?`).join(' OR ')})`;
+          powerParams.push(...patterns);
+        }
+      }
+
+      let rawRows;
+      if (q.length >= SEARCH_MIN) {
+        const like = `%${q}%`;
+        rawRows = this._queryAll(
+          `SELECT id, category_slug, listing_fields, body_html, index_text
+           FROM entries
+           WHERE category_slug = ? AND source = 'compendium'${bookClause}${powerClause}
+             AND (
+               lower(json_extract(listing_fields, '$.Name')) LIKE ?
+               OR lower(index_text) LIKE ?
+               OR lower(id) LIKE ?
+             )
+           ORDER BY json_extract(listing_fields, '$.Name') COLLATE NOCASE
+           LIMIT ?`,
+          [
+            categorySlug,
+            ...bookParams,
+            ...powerParams,
+            like,
+            like,
+            like,
+            Math.min(limit * 3, 600)
+          ]
+        );
+        const mapped = rawRows.map(rowToEntry);
+        const { entries } = rankSearchResults(mapped, q, limit);
+        return entries;
+      }
+
+      const fetchLimit =
+        categorySlug === 'feat' || categorySlug === 'power' ? Math.max(limit, 500) : limit;
+      rawRows = this._queryAll(
+        `SELECT id, category_slug, listing_fields, body_html, index_text
+         FROM entries
+         WHERE category_slug = ? AND source = 'compendium'${bookClause}${powerClause}
+         ORDER BY json_extract(listing_fields, '$.Name') COLLATE NOCASE
+         LIMIT ?`,
+        [categorySlug, ...bookParams, ...powerParams, fetchLimit]
+      );
+      return rawRows.map(rowToEntry).slice(0, limit);
+    }
+
+    return [];
+  }
+
+  /**
+   * @param {string} categorySlug
+   */
+  async distinctSourceBooks(categorySlug) {
+    await this.ready();
+    const collect = (values) => {
+      const set = new Set();
+      for (const v of values) {
+        for (const b of splitSourceBooks(v)) set.add(b);
+      }
+      return [...set].sort();
+    };
+
+    if (this._usesStubData()) {
+      const rows = this._stub.categories[categorySlug]?.entries ?? [];
+      return collect(rows.map((e) => e.listing_fields?.SourceBook));
+    }
+
+    if (this._usesSqlite()) {
+      const rows = this._queryAll(
+        `SELECT DISTINCT json_extract(listing_fields, '$.SourceBook') AS sb
+         FROM entries
+         WHERE category_slug = ? AND source = 'compendium'
+           AND json_extract(listing_fields, '$.SourceBook') IS NOT NULL
+           AND json_extract(listing_fields, '$.SourceBook') != ''`,
+        [categorySlug]
+      );
+      return collect(rows.map((r) => r.sb));
     }
 
     return [];
@@ -95,7 +383,7 @@ export class CompendiumProvider {
 
   async getEntry(id) {
     await this.ready();
-    if (this.mode === 'stub') {
+    if (this._usesStubData()) {
       for (const [slug, cat] of Object.entries(this._stub.categories)) {
         const hit = cat.entries?.find((e) => e.id === id);
         if (hit) {
@@ -104,10 +392,20 @@ export class CompendiumProvider {
             category_slug: slug,
             listing_fields: hit.listing_fields,
             body_html: hit.body_html ?? '',
-            index_text: hit.index_text ?? ''
+            index_text: hit.index_text ?? '',
+            ability_bonuses: hit.ability_bonuses,
+            skill_bonuses: hit.skill_bonuses
           };
         }
       }
+    }
+    if (this._usesSqlite()) {
+      const rows = this._queryAll(
+        `SELECT id, category_slug, listing_fields, body_html, index_text
+         FROM entries WHERE id = ? LIMIT 1`,
+        [id]
+      );
+      if (rows.length) return rowToEntry(rows[0]);
     }
     return null;
   }
@@ -118,3 +416,5 @@ export class CompendiumProvider {
 }
 
 export const compendium = new CompendiumProvider();
+
+export { SEARCH_MIN as COMPENDIUM_SEARCH_MIN };

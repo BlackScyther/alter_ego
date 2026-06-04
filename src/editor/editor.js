@@ -34,6 +34,19 @@ import {
   formatBreakdownLine,
   formatSkillBreakdownLine
 } from '../character/tutor.js';
+import { renderBackgroundStep } from './steps/background-step.js';
+import { renderFeatStep } from './steps/feat-step.js';
+import { renderPowerStep } from './steps/power-step.js';
+import {
+  ensureFeatSelectionsShape,
+  migrateFeatIdsToSelections,
+  pruneFeatSelections
+} from '../character/feat-selections.js';
+import {
+  ensurePowerSelectionsShape,
+  migratePowerIdsToSelections,
+  prunePowerSelections
+} from '../character/power-selections.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -110,6 +123,10 @@ function startLevelUpFlow() {
   }
   character.identity.level += 1;
   character.identity.totalXp = xpForLevel(character.identity.level);
+  ensureFeatSelectionsShape(character);
+  pruneFeatSelections(character);
+  ensurePowerSelectionsShape(character);
+  prunePowerSelections(character);
   touchCharacter(character);
   completedSteps = new Set(['basics', 'race', 'background', 'class', 'abilities']);
   builderMode = 'full';
@@ -189,9 +206,21 @@ async function renderStepPanel() {
     case 'basics':
       renderBasics(panel);
       break;
+    case 'background':
+      await renderBackgroundStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        getNotes: () => getNotesForStep('background'),
+        setNotes: (text) => setNotesForStep('background', text),
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'background')
+      });
+      break;
     case 'race':
     case 'class':
-    case 'background':
     case 'theme':
     case 'paragon':
     case 'epic':
@@ -201,9 +230,30 @@ async function renderStepPanel() {
       renderAbilities(panel);
       break;
     case 'feats':
-      await renderFeatStep(panel);
+      ensureFeatSelectionsShape(character);
+      migrateFeatIdsToSelections(character);
+      pruneFeatSelections(character);
+      await renderFeatStep(panel, {
+        character,
+        compendium,
+        def,
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'feats')
+      });
       break;
     case 'powers':
+      ensurePowerSelectionsShape(character);
+      migratePowerIdsToSelections(character);
+      prunePowerSelections(character);
+      await renderPowerStep(panel, {
+        character,
+        compendium,
+        def,
+        onPersist: async () => persist(),
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'powers')
+      });
+      break;
     case 'equipment':
       renderPlaceholder(panel, stepId);
       break;
@@ -233,6 +283,10 @@ function renderBasics(panel) {
   bind(panel, 'f-level', (v) => {
     character.identity.level = Math.min(30, Math.max(1, Number(v) || 1));
     character.identity.totalXp = xpForLevel(character.identity.level);
+    ensureFeatSelectionsShape(character);
+    pruneFeatSelections(character);
+    ensurePowerSelectionsShape(character);
+    prunePowerSelections(character);
     renderNav();
   });
   bind(panel, 'f-alignment', (v) => (character.identity.alignment = v));
@@ -261,7 +315,8 @@ async function refreshBonusesFromSelections() {
     if (id) entries[source] = await compendium.getEntry(id);
   }
   const featEntries = [];
-  for (const id of character.selections.featIds ?? []) {
+  const featIds = character.selections.featIds ?? [];
+  for (const id of featIds) {
     const entry = await compendium.getEntry(id);
     if (entry) featEntries.push(entry);
   }
@@ -511,36 +566,6 @@ async function renderCompendiumStep(panel, stepId, def) {
   await refresh();
 }
 
-async function renderFeatStep(panel) {
-  const entries = await compendium.listEntries('feat', { limit: 50 });
-  panel.innerHTML = `
-    <p style="color:var(--editor-muted);font-size:13px">Select heroic feats (rules validation in a later phase).</p>
-    <div class="feat-chips" id="feat-chips"></div>`;
-  renderSelectionTutorHint(panel, 'feats');
-  const chips = panel.querySelector('#feat-chips');
-  const selected = new Set(character.selections.featIds);
-
-  entries.forEach((e) => {
-    const name = e.listing_fields?.Name ?? e.id;
-    const chip = document.createElement('span');
-    chip.className = 'feat-chip' + (selected.has(e.id) ? ' selected' : '');
-    chip.textContent = name;
-    chip.title = e.id;
-    chip.addEventListener('click', async () => {
-      if (selected.has(e.id)) selected.delete(e.id);
-      else selected.add(e.id);
-      character.selections.featIds = [...selected];
-      character.notes.feats = [...selected]
-        .map((id) => entries.find((x) => x.id === id)?.listing_fields?.Name ?? id)
-        .join('\n');
-      await refreshBonusesFromSelections();
-      renderFeatStep(panel);
-      persist();
-    });
-    chips.appendChild(chip);
-  });
-}
-
 function renderPlaceholder(panel, stepId) {
   const def = editorMeta.steps[stepId];
   panel.innerHTML = `
@@ -579,6 +604,7 @@ function formatSelections(sel) {
   if (sel.raceId) parts.push(`race: ${sel.raceId}`);
   if (sel.classId) parts.push(`class: ${sel.classId}`);
   if (sel.featIds?.length) parts.push(`feats: ${sel.featIds.length}`);
+  if (sel.powerIds?.length) parts.push(`powers: ${sel.powerIds.length}`);
   return parts.join(' · ') || '—';
 }
 
@@ -597,12 +623,14 @@ function getSelectionIdForStep(stepId) {
 function getNotesForStep(stepId) {
   if (stepId === 'race') return character.notes.raceFeatures;
   if (stepId === 'class') return character.notes.classFeatures;
+  if (stepId === 'background') return character.notes.backgroundFeatures ?? '';
   return '';
 }
 
 function setNotesForStep(stepId, text) {
   if (stepId === 'race') character.notes.raceFeatures = text;
   if (stepId === 'class') character.notes.classFeatures = text;
+  if (stepId === 'background') character.notes.backgroundFeatures = text;
 }
 
 function applyCompendiumSelection(stepId, entry) {
@@ -615,6 +643,10 @@ function applyCompendiumSelection(stepId, entry) {
       character.identity.size = entry.listing_fields?.Size ?? character.identity.size;
       if (!character.notes.raceFeatures) {
         character.notes.raceFeatures = stripHtml(entry.body_html);
+      }
+      if (document.querySelector('.compendium-picker[data-category="background"]')) {
+        const search = document.querySelector('#picker-search');
+        search?.dispatchEvent(new Event('input', { bubbles: true }));
       }
       break;
     case 'class':
@@ -714,6 +746,8 @@ async function switchToCharacter(id) {
   if (!loaded) return;
   character = loaded;
   setActiveCharacterId(character.id);
+  ensureFeatSelectionsShape(character);
+  migrateFeatIdsToSelections(character);
   ensureAbilityShape(character);
   recomputeAbilityScores(character);
   await refreshBonusesFromSelections();
@@ -741,6 +775,8 @@ async function importCharacterFile(file) {
     const doc = await readCharacterJsonFile(file);
     character = importCharacterDocument(doc, { forceNewId: false });
     setActiveCharacterId(character.id);
+    ensureFeatSelectionsShape(character);
+    migrateFeatIdsToSelections(character);
     ensureAbilityShape(character);
     recomputeAbilityScores(character);
     await refreshBonusesFromSelections();
@@ -806,10 +842,35 @@ function openSheet() {
   }
   persist();
   stashCharacterForSheet(character);
-  window.location.href = '../sheet/index.html?from=editor';
+  const sheetHref = '../sheet/index.html?from=editor';
+  // #region agent log
+  debugClientLog('openSheet navigate', { from: location.pathname, to: sheetHref }, 'B');
+  // #endregion
+  window.location.href = sheetHref;
+}
+
+function debugClientLog(message, data, hypothesisId) {
+  // #region agent log
+  fetch('http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5d39f7' },
+    body: JSON.stringify({
+      sessionId: '5d39f7',
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/editor/editor.js:init',
+      message,
+      data,
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion
 }
 
 async function init() {
+  // #region agent log
+  debugClientLog('editor init', { pathname: location.pathname, search: location.search }, 'A');
+  // #endregion
   await loadEditorMeta();
   await compendium.ready();
 

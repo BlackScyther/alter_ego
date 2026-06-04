@@ -2,6 +2,9 @@
  * Character document — aligned with PROJECT.md party model + sheet page 1.
  */
 
+import { validateFeatsStep } from './feat-selections.js';
+import { validatePowersStep } from './power-selections.js';
+
 export const CHARACTER_VERSION = 1;
 
 export function createCharacter(partial = {}) {
@@ -52,7 +55,9 @@ export function createCharacter(partial = {}) {
       paragonPathId: null,
       epicDestinyId: null,
       featIds: [],
+      featSelections: {},
       powerIds: [],
+      powerSelections: {},
       equipmentIds: [],
       ...partial.selections
     },
@@ -75,7 +80,9 @@ export function createCharacter(partial = {}) {
     notes: {
       raceFeatures: '',
       classFeatures: '',
+      backgroundFeatures: '',
       feats: '',
+      powers: '',
       languages: '',
       apEffects: ''
     },
@@ -159,6 +166,12 @@ export function validateStep(stepId, character, editorMeta) {
       if (lvl >= 21 && !character.selections.epicDestinyId) {
         errors.push('Epic destiny required at level 21+.');
       }
+      break;
+    case 'feats':
+      errors.push(...validateFeatsStep(character));
+      break;
+    case 'powers':
+      errors.push(...validatePowersStep(character));
       break;
     default:
       break;
