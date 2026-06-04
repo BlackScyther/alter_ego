@@ -12,6 +12,7 @@ data/*.db-*
 # Build / deploy outputs
 dist/
 deploy/
+sync-from-live/
 
 # Local debug artifacts
 .cursor/*.log

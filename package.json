@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build:app": "vite build && node scripts/post-build-app.mjs",
+    "pull:live": "node scripts/pull-live.mjs",
+    "preview:live": "npx --yes serve sync-from-live -p 5180",
     "start": "vite",
     "start:legacy": "npx --yes serve . -p 5173",
     "tauri": "tauri",
