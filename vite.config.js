@@ -18,6 +18,41 @@ function safeGit(cmd) {
 }
 const srcRoot = resolve(projectRoot, 'src');
 
+const DEBUG_ENDPOINT = 'http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c';
+const DEBUG_SESSION_ID = 'f629ed';
+
+/** Log dev-server requests for 404 / path mismatch debugging (session f629ed). */
+function debugRequestPlugin() {
+  return {
+    name: 'alter-ego-debug-request',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url ?? '';
+        const pathname = url.split('?')[0];
+        // #region agent log
+        fetch(DEBUG_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': DEBUG_SESSION_ID
+          },
+          body: JSON.stringify({
+            sessionId: DEBUG_SESSION_ID,
+            runId: 'pre-fix',
+            hypothesisId: pathname.startsWith('/src/') ? 'A' : pathname.includes('editor') ? 'B' : 'D',
+            location: 'vite.config.js:debugRequestPlugin',
+            message: 'vite request',
+            data: { method: req.method, url, pathname, viteRoot: 'src' },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion
+        next();
+      });
+    }
+  };
+}
+
 /** Collect every HTML page under src/ (except legacy snippets). */
 function htmlInputs(dir, base = dir, acc = {}) {
   for (const name of readdirSync(dir)) {
@@ -86,7 +121,7 @@ export default defineConfig({
     'import.meta.env.VITE_GIT_SHA': JSON.stringify(safeGit('git rev-parse --short HEAD'))
   },
   root: srcRoot,
-  plugins: [parentStaticPlugin()],
+  plugins: [debugRequestPlugin(), parentStaticPlugin()],
   server: {
     port: 5173,
     fs: { allow: [projectRoot] },
