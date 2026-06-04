@@ -1,0 +1,21 @@
+---
+description: Default to English (accessibility: screen reader)
+alwaysApply: true
+---
+
+# Language
+
+## Accessibility
+
+The user relies on a screen reader. Mixed or German text forces a manual TTS language switch. Keep **all assistant messages** and **all repo text you write** in English unless the user explicitly asks for another language.
+
+## Chat and docs
+
+- Use **English** for every assistant message in this repository.
+- If the user writes in another language, still reply in English unless they explicitly ask for that other language.
+- Never introduce German (or mixed DE/EN) into docs, comments, UI copy, or chat because the user used German.
+- All documentation updates (`doc/`, `PROJECT.md`, `PROMPT.md`, etc.) must be **English**.
+
+## Style
+
+- Keep English concise and screen-reader friendly (short paragraphs, clear headings, avoid decorative characters).

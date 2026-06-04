@@ -1,0 +1,22 @@
+---
+description: Keep agent replies and repo text in English unless the user explicitly requests another language
+alwaysApply: true
+---
+
+# Response language
+
+## Accessibility
+
+The user relies on a screen reader (e.g. NVDA). Mixed or German agent replies force a manual language switch and make content hard to understand. **Always write chat replies in English** unless the user explicitly asks for another language.
+
+## Chat replies
+
+- Write **all user-facing chat replies in English** by default.
+- Do **not** switch to German (or any other language) because the user used a German phrase, question, or screenshot context.
+- Use another language **only** when the user clearly asks for it (e.g. "reply in German", "auf Deutsch antworten").
+
+## Repository files
+
+- **All documentation, comments, and user-facing strings in this repository are English.**
+- When editing or creating files, write in English. Do not preserve or reintroduce German because the user wrote in German or because older docs were German.
+- Never add mixed German/English prose to docs or chat.

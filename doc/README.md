@@ -40,4 +40,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-05-24 — Deployment reminder: all compendium entries must be live on production (not stub); checklists in [todos.md](todos.md#deployment--compendium-must-be-live).
+**Last agent sync:** 2026-06-04 — Documentation and agent rules: English-only (accessibility); German docs translated; see [project.md](project.md).

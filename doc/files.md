@@ -11,7 +11,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `README.md` | Index of documentation; maintenance rules; last agent sync |
-| `project.md` | Readable project description (German) |
+| `project.md` | Readable project description (English) |
 | `requirements.md` | Functional/non-functional requirements with IDs |
 | `roadmap.md` | Phases, completed online-campaign plan, backlog |
 | `todos.md` | Host, developer, and agent checklists |
