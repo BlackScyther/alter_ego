@@ -3,6 +3,7 @@
  */
 
 import { validateFeatsStep } from './feat-selections.js';
+import { validatePowersStep } from './power-selections.js';
 
 export const CHARACTER_VERSION = 1;
 
@@ -56,6 +57,7 @@ export function createCharacter(partial = {}) {
       featIds: [],
       featSelections: {},
       powerIds: [],
+      powerSelections: {},
       equipmentIds: [],
       ...partial.selections
     },
@@ -80,6 +82,7 @@ export function createCharacter(partial = {}) {
       classFeatures: '',
       backgroundFeatures: '',
       feats: '',
+      powers: '',
       languages: '',
       apEffects: ''
     },
@@ -166,6 +169,9 @@ export function validateStep(stepId, character, editorMeta) {
       break;
     case 'feats':
       errors.push(...validateFeatsStep(character));
+      break;
+    case 'powers':
+      errors.push(...validatePowersStep(character));
       break;
     default:
       break;

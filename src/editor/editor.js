@@ -36,11 +36,17 @@ import {
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
+import { renderPowerStep } from './steps/power-step.js';
 import {
   ensureFeatSelectionsShape,
   migrateFeatIdsToSelections,
   pruneFeatSelections
 } from '../character/feat-selections.js';
+import {
+  ensurePowerSelectionsShape,
+  migratePowerIdsToSelections,
+  prunePowerSelections
+} from '../character/power-selections.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -119,6 +125,8 @@ function startLevelUpFlow() {
   character.identity.totalXp = xpForLevel(character.identity.level);
   ensureFeatSelectionsShape(character);
   pruneFeatSelections(character);
+  ensurePowerSelectionsShape(character);
+  prunePowerSelections(character);
   touchCharacter(character);
   completedSteps = new Set(['basics', 'race', 'background', 'class', 'abilities']);
   builderMode = 'full';
@@ -235,6 +243,17 @@ async function renderStepPanel() {
       });
       break;
     case 'powers':
+      ensurePowerSelectionsShape(character);
+      migratePowerIdsToSelections(character);
+      prunePowerSelections(character);
+      await renderPowerStep(panel, {
+        character,
+        compendium,
+        def,
+        onPersist: async () => persist(),
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'powers')
+      });
+      break;
     case 'equipment':
       renderPlaceholder(panel, stepId);
       break;
@@ -266,6 +285,8 @@ function renderBasics(panel) {
     character.identity.totalXp = xpForLevel(character.identity.level);
     ensureFeatSelectionsShape(character);
     pruneFeatSelections(character);
+    ensurePowerSelectionsShape(character);
+    prunePowerSelections(character);
     renderNav();
   });
   bind(panel, 'f-alignment', (v) => (character.identity.alignment = v));
@@ -583,6 +604,7 @@ function formatSelections(sel) {
   if (sel.raceId) parts.push(`race: ${sel.raceId}`);
   if (sel.classId) parts.push(`class: ${sel.classId}`);
   if (sel.featIds?.length) parts.push(`feats: ${sel.featIds.length}`);
+  if (sel.powerIds?.length) parts.push(`powers: ${sel.powerIds.length}`);
   return parts.join(' · ') || '—';
 }
 
