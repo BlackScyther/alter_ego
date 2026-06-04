@@ -15,5 +15,6 @@ deploy/
 sync-from-live/
 
 # Local debug artifacts
+debug-*.log
 .cursor/*.log
 scripts/debug/
