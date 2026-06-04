@@ -15,3 +15,5 @@ When you complete any implementation, fix, or refactor in this repo:
 6. Update `PROMPT.md` only when project goals, workflows, or agent conventions change.
 
 Treat missing doc updates as incomplete work. Prefer concise tables and bullet lists consistent with existing `doc/` files.
+
+All documentation you add or change must be **English** (see `language-english-default.mdc` and `response-language.mdc`).

@@ -3,7 +3,7 @@
 Offline-capable **D&D 4th Edition** toolkit for a private group: character sheet, character generator, party/GM views, and (planned) a local compendium.
 
 - **Master spec**: [PROJECT.md](PROJECT.md)
-- **Project description (German)**: [doc/project.md](doc/project.md)
+- **Project description**: [doc/project.md](doc/project.md)
 
 ## Quick start
 

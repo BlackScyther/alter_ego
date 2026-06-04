@@ -15,12 +15,15 @@ Build and maintain **Alter Ego**: offline D&D 4e tools for a private table. Curr
 
 Spec alignment: [PROJECT.md](PROJECT.md) and `metadata/*.json`.
 
+## Accessibility
+
+- **English only** — Agent replies, docs, and user-facing UI strings must be in English unless the user explicitly asks otherwise. The user uses a screen reader; German or mixed-language text forces a manual TTS language change and is hard to follow with low vision. Do not switch to German because the user wrote in German.
+
 ## Conventions
 
 - **Stack**: Static HTML/CSS/ES modules; **Tailwind** on app screens (`rules/ui.md`); `npm start` serves the repo root on port 5173 (hub at `/src/`).
 - **Minimize scope**: Match existing style; avoid unrelated refactors.
 - **No commits** unless the user explicitly asks.
-- **English only** — Agent replies, docs, and user-facing UI strings must be in English unless the user asks otherwise. Mixed languages make screen readers switch locale and are harder to read with low vision.
 
 ## Key paths
 
