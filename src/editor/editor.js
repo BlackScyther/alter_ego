@@ -34,6 +34,7 @@ import {
   formatBreakdownLine,
   formatSkillBreakdownLine
 } from '../character/tutor.js';
+import { renderBackgroundStep } from './steps/background-step.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -189,9 +190,21 @@ async function renderStepPanel() {
     case 'basics':
       renderBasics(panel);
       break;
+    case 'background':
+      await renderBackgroundStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        getNotes: () => getNotesForStep('background'),
+        setNotes: (text) => setNotesForStep('background', text),
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'background')
+      });
+      break;
     case 'race':
     case 'class':
-    case 'background':
     case 'theme':
     case 'paragon':
     case 'epic':
@@ -597,12 +610,14 @@ function getSelectionIdForStep(stepId) {
 function getNotesForStep(stepId) {
   if (stepId === 'race') return character.notes.raceFeatures;
   if (stepId === 'class') return character.notes.classFeatures;
+  if (stepId === 'background') return character.notes.backgroundFeatures ?? '';
   return '';
 }
 
 function setNotesForStep(stepId, text) {
   if (stepId === 'race') character.notes.raceFeatures = text;
   if (stepId === 'class') character.notes.classFeatures = text;
+  if (stepId === 'background') character.notes.backgroundFeatures = text;
 }
 
 function applyCompendiumSelection(stepId, entry) {
@@ -615,6 +630,10 @@ function applyCompendiumSelection(stepId, entry) {
       character.identity.size = entry.listing_fields?.Size ?? character.identity.size;
       if (!character.notes.raceFeatures) {
         character.notes.raceFeatures = stripHtml(entry.body_html);
+      }
+      if (document.querySelector('.compendium-picker[data-category="background"]')) {
+        const search = document.querySelector('#picker-search');
+        search?.dispatchEvent(new Event('input', { bubbles: true }));
       }
       break;
     case 'class':

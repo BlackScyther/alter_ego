@@ -75,6 +75,7 @@ export function createCharacter(partial = {}) {
     notes: {
       raceFeatures: '',
       classFeatures: '',
+      backgroundFeatures: '',
       feats: '',
       languages: '',
       apEffects: ''

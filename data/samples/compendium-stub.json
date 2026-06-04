@@ -71,6 +71,24 @@
             { "skill": "religion", "amount": 2, "bonusType": "skill" },
             { "skill": "insight", "amount": 2, "bonusType": "skill" }
           ]
+        },
+        {
+          "id": "background-dwarf-outcast",
+          "listing_fields": { "Name": "Dwarf - Outcast", "Type": "Racial", "Campaign": "General", "SourceBook": "PHB2" },
+          "body_html": "<p class=flavortext><b>Type: </b>Racial<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Dwarf<br></p><p>Your clan cast you out.</p>",
+          "index_text": "Dwarf Outcast racial"
+        },
+        {
+          "id": "background-dragonborn-iconoclast",
+          "listing_fields": { "Name": "Dragonborn Iconoclast", "Type": "Racial", "Campaign": "General", "SourceBook": "PH Races" },
+          "body_html": "<p class=flavortext><b>Type: </b>Racial<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Dragonborn<br></p><p>Unconventional worship.</p>",
+          "index_text": "Dragonborn Iconoclast racial"
+        },
+        {
+          "id": "background-astronomer",
+          "listing_fields": { "Name": "Astronomer", "Type": "Occupation", "Campaign": "General", "SourceBook": "Psionic Power" },
+          "body_html": "<p class=flavortext><b>Type: </b>Occupation<br><b>Campaign Setting: </b>General<br><b>Prerequisite: </b>Psionic<br></p><p>Stars and psionic energy.</p>",
+          "index_text": "Astronomer psionic"
         }
       ]
     },
