@@ -162,7 +162,13 @@ export default defineConfig({
   server: {
     port: 5173,
     fs: { allow: [projectRoot] },
-    open: '/index.html'
+    open: '/launcher/index.html',
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true
+      }
+    }
   },
   build: {
     outDir: resolve(projectRoot, 'dist/app'),

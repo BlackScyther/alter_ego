@@ -1,0 +1,56 @@
+{
+  "specRef": "PHB Actions in Combat; iws.mx glossary Rules Combat",
+  "category": "glossary",
+  "groups": [
+    {
+      "id": "attack-actions",
+      "label": "Standard actions",
+      "matchNames": [
+        "Basic Attack",
+        "Bull Rush",
+        "Charge",
+        "Grab",
+        "Coup de Grace",
+        "Ready an action",
+        "Second wind",
+        "Total defense"
+      ]
+    },
+    {
+      "id": "move-actions",
+      "label": "Move actions",
+      "matchNames": [
+        "Escape",
+        "Move a grabbed target",
+        "Run",
+        "Shift",
+        "Walk",
+        "Crawl",
+        "Stand up"
+      ]
+    },
+    {
+      "id": "opportunity",
+      "label": "Opportunity actions",
+      "matchNames": ["Opportunity Attack"]
+    }
+  ],
+  "resolved": [
+    { "id": "glossary426", "name": "Basic Attack", "groupId": "attack-actions" },
+    { "id": "glossary323", "name": "Bull Rush", "groupId": "attack-actions" },
+    { "id": "glossary324", "name": "Charge", "groupId": "attack-actions" },
+    { "id": "glossary329", "name": "Grab", "groupId": "attack-actions" },
+    { "id": "glossary325", "name": "Coup de Grace", "groupId": "attack-actions" },
+    { "id": "glossary332", "name": "Ready an action", "groupId": "attack-actions" },
+    { "id": "glossary334", "name": "Second wind", "groupId": "attack-actions" },
+    { "id": "glossary338", "name": "Total defense", "groupId": "attack-actions" },
+    { "id": "glossary328", "name": "Escape", "groupId": "move-actions" },
+    { "id": "glossary330", "name": "Move a grabbed target", "groupId": "move-actions" },
+    { "id": "glossary333", "name": "Run", "groupId": "move-actions" },
+    { "id": "glossary335", "name": "Shift", "groupId": "move-actions" },
+    { "id": "glossary339", "name": "Walk", "groupId": "move-actions" },
+    { "id": "glossary326", "name": "Crawl", "groupId": "move-actions" },
+    { "id": "glossary337", "name": "Stand up", "groupId": "move-actions" },
+    { "id": "glossary331", "name": "Opportunity Attack", "groupId": "opportunity" }
+  ]
+}

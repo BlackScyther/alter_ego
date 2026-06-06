@@ -50,4 +50,4 @@ Use `builderFlow` from metadata. Skip steps disabled for the current level (`isS
 | Step definitions | `metadata/editor.json` |
 | Compendium pickers | `src/editor/editor.js` (`renderCompendiumStep`) |
 | Feats (level slots, eligibility filter) | `src/editor/steps/feat-step.js`, `src/editor/feat-prerequisite.js` |
-| Powers (type/level slots, class filter) | `src/editor/steps/power-step.js`, `src/editor/power-filter.js`, `src/character/power-selections.js` |
+| Powers (single picker, prerequisite filter, collection panel) | `src/editor/steps/power-step.js`, `src/editor/steps/power-collection-panel.js`, `src/editor/power-filter.js`, `src/editor/power-prerequisite.js`, `metadata/universal-actions.json`, `src/character/power-selections.js` |

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Game editor</title>
+  <link rel="stylesheet" href="../app.css" />
+  <link rel="stylesheet" href="game.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="game-shell">
+    <nav class="editor-nav game-nav" aria-label="Game editor">
+      <h1>Game editor</h1>
+      <a href="../gm/index.html">← GM console</a>
+      <a href="../launcher/index.html">Alter Ego home</a>
+      <p class="game-nav-hint text-sm text-slate-500">
+        Build encounters: party PCs, monsters, NPCs. Each row is its own instance — open the character editor to customize.
+      </p>
+    </nav>
+
+    <main class="editor-main game-main">
+      <section id="game-no-campaign" class="rounded-xl border border-slate-700 bg-slate-900/80 p-6" hidden>
+        <h2 class="text-lg font-semibold m-0">Campaign required</h2>
+        <p class="text-sm text-slate-400 mt-2">Create an online campaign in the GM console first.</p>
+        <a href="../gm/index.html" class="btn-primary inline-flex mt-4 min-h-11 items-center">Go to GM console</a>
+      </section>
+
+      <div id="game-workspace" hidden>
+        <header class="game-header">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[200px]">
+              <label class="text-sm text-slate-400">Encounter</label>
+              <select id="encounter-select" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-base"></select>
+            </div>
+            <button type="button" class="btn-secondary min-h-11" id="btn-new-encounter">New encounter</button>
+            <button type="button" class="btn-secondary min-h-11 text-sm" id="btn-delete-encounter">Delete</button>
+          </div>
+          <p id="game-status" class="text-sm text-slate-400 mt-2"></p>
+        </header>
+
+        <div class="game-tabs mt-4" role="tablist">
+          <button type="button" class="game-tab active" data-tab="roster" role="tab">Roster</button>
+          <button type="button" class="game-tab" data-tab="combat" role="tab">Combat</button>
+        </div>
+
+        <ul class="validation-errors mt-3" id="game-errors" hidden></ul>
+
+        <section id="tab-roster" class="game-tab-panel">
+          <div class="game-toolbar">
+            <button type="button" class="btn-primary min-h-11" id="btn-add-party">Add from party…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-monster">Add monster…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-companion">Add creature…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-blank">Blank NPC</button>
+          </div>
+          <div class="game-roster" id="roster-grid"></div>
+        </section>
+
+        <section id="tab-combat" class="game-tab-panel hidden">
+          <p class="text-sm text-slate-400">Initiative is stored per encounter. Reset before a new combat, then edit values below.</p>
+          <div class="game-combat-toolbar mt-3">
+            <button type="button" class="btn-secondary min-h-11" id="btn-reset-initiative">Reset all initiative</button>
+          </div>
+          <h3 class="text-base font-semibold mt-6 mb-2">Initiative order</h3>
+          <div class="game-combat-list" id="combat-list"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="dialog-party" class="game-dialog rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
+    <h3 class="text-lg font-semibold m-0">Add from party</h3>
+    <p class="text-sm text-slate-400 mt-1">Link updates when the player saves. Copy is a frozen snapshot.</p>
+    <div id="party-pick-list" class="game-pick-list mt-3"></div>
+    <div class="flex gap-2 mt-4 justify-end">
+      <button type="button" class="btn-secondary" data-close-dialog>Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-compendium" class="game-dialog rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
+    <h3 class="text-lg font-semibold m-0" id="compendium-dialog-title">Add from compendium</h3>
+    <input type="search" id="compendium-search" placeholder="Search…" class="mt-3 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
+    <div id="compendium-pick-list" class="game-pick-list mt-3 max-h-64 overflow-y-auto"></div>
+    <div class="flex gap-2 mt-4 justify-end">
+      <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>

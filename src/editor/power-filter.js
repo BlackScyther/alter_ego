@@ -3,6 +3,9 @@
  */
 
 import { filterEntriesBySearch, COMPENDIUM_SEARCH_MIN } from './picker/combobox-picker.js';
+import { buildPowerEligibilityContext, powerPassesPrerequisites } from './power-prerequisite.js';
+
+export { buildPowerEligibilityContext };
 
 /** @typedef {import('../character/power-selections.js').PowerType} PowerType */
 /** @typedef {import('../character/power-selections.js').PowerSlot} PowerSlot */
@@ -52,14 +55,22 @@ export function classNameMatches(powerClassName, characterClassName) {
  * @param {Record<string, string> | undefined} fields
  * @param {PowerSlot} slot
  * @param {{ className: string, characterLevel: number }} ctx
- * @param {{ skipClass?: boolean }} [opts]
+ * @param {{ skipClass?: boolean, skipLevel?: boolean, retrain?: boolean }} [opts]
  */
 export function powerMatchesSlot(fields, slot, ctx, opts = {}) {
   const type = normalizePowerType(fields?.Type);
   if (type !== slot.powerType) return false;
 
   const powerLevel = parseInt(String(fields?.Level ?? ''), 10);
-  if (Number.isNaN(powerLevel) || powerLevel !== slot.slotLevel) return false;
+  if (Number.isNaN(powerLevel)) return false;
+
+  if (!opts.skipLevel) {
+    if (opts.retrain) {
+      if (powerLevel > ctx.characterLevel) return false;
+    } else if (powerLevel !== slot.slotLevel) {
+      return false;
+    }
+  }
 
   if (ctx.characterLevel < slot.slotLevel) return false;
 
@@ -71,56 +82,46 @@ export function powerMatchesSlot(fields, slot, ctx, opts = {}) {
 }
 
 /**
- * @param {import('../character/model.js').Character} character
- * @param {import('../data/compendium.js').CompendiumProvider} compendium
- */
-export async function buildPowerEligibilityContext(character, compendium) {
-  const characterLevel = character.identity?.level ?? 1;
-  let className = character.identity?.class ?? '';
-  let role = '';
-  let powerSource = '';
-
-  if (character.selections?.classId) {
-    const classEntry = await compendium.getEntry(character.selections.classId);
-    if (classEntry?.listing_fields) {
-      className = classEntry.listing_fields.Name ?? className;
-      role = classEntry.listing_fields.RoleName ?? '';
-      powerSource = classEntry.listing_fields.PowerSourceText ?? '';
-    }
-  }
-
-  return {
-    characterLevel,
-    className,
-    classInfo: { className, role, powerSource }
-  };
-}
-
-/**
- * @param {{ listing_fields?: Record<string, string> }} entry
+ * @param {{ listing_fields?: Record<string, string>, body_html?: string }} entry
  * @param {object} ctx
  * @param {PowerSlot} slot
- * @param {{ showAll?: boolean }} [opts]
+ * @param {{ showAll?: boolean, retrain?: boolean, enforcePrerequisites?: boolean }} [opts]
  */
 export function powerPassesFilter(entry, ctx, slot, opts = {}) {
   const showAll = !!opts.showAll;
-  return powerMatchesSlot(entry.listing_fields, slot, ctx, { skipClass: showAll });
+  const retrain = !!opts.retrain;
+  const enforcePrerequisites = opts.enforcePrerequisites !== false && !showAll;
+
+  if (
+    !powerMatchesSlot(entry.listing_fields, slot, ctx, {
+      skipClass: showAll,
+      skipLevel: showAll,
+      retrain
+    })
+  ) {
+    return false;
+  }
+
+  if (enforcePrerequisites && !powerPassesPrerequisites(entry, ctx, slot)) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
- * @param {Array<{ id: string, listing_fields?: Record<string, string> }>} entries
+ * @param {Array<{ id: string, listing_fields?: Record<string, string>, body_html?: string }>} entries
  * @param {object} ctx
  * @param {PowerSlot} slot
- * @param {{ showAll?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
+ * @param {{ showAll?: boolean, retrain?: boolean, enforcePrerequisites?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
  */
 export function filterPowerEntries(entries, ctx, slot, opts = {}) {
-  const showAll = !!opts.showAll;
   const exclude = opts.excludeIds instanceof Set ? opts.excludeIds : new Set(opts.excludeIds ?? []);
   const q = (opts.query ?? '').trim();
 
   let list = entries.filter((e) => {
     if (exclude.has(e.id)) return false;
-    return powerPassesFilter(e, ctx, slot, { showAll });
+    return powerPassesFilter(e, ctx, slot, opts);
   });
 
   if (q.length > 0 && q.length < COMPENDIUM_SEARCH_MIN) {

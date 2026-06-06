@@ -23,7 +23,7 @@
     "dev:api": "node server/index.mjs",
     "dev:all": "node scripts/dev-all.mjs",
     "test:api": "node scripts/test-campaign-api.mjs",
-    "test": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs tests/feat-selections.test.mjs tests/feat-prerequisite.test.mjs tests/background-prerequisite.test.mjs tests/power-selections.test.mjs tests/power-filter.test.mjs",
+    "test": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs tests/feat-selections.test.mjs tests/feat-prerequisite.test.mjs tests/background-prerequisite.test.mjs tests/power-selections.test.mjs tests/power-filter.test.mjs tests/power-prerequisite.test.mjs",
     "test:security": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs"
   },
   "dependencies": {

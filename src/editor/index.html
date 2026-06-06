@@ -4,21 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>D&amp;D 4e — Character generator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../app.css" />
   <link rel="stylesheet" href="editor.css" />
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
   <div class="editor-shell min-h-screen">
     <nav class="editor-nav" aria-label="Builder steps">
       <p class="text-xs uppercase tracking-widest text-amber-500 font-semibold m-0">Character generator</p>
-      <a href="../index.html" class="text-sm text-slate-400 hover:text-slate-200 no-underline">← Home</a>
-      <a href="../sheet/index.html" class="text-sm text-slate-400 hover:text-slate-200 no-underline">Character sheet</a>
+      <a href="../launcher/index.html" id="nav-home" class="text-sm text-slate-400 hover:text-slate-200 no-underline" data-player-label="← Player home">← Home</a>
+      <a href="../sheet/index.html" id="nav-sheet" class="text-sm text-slate-400 hover:text-slate-200 no-underline">Character sheet</a>
       <label class="editor-char-picker mt-2">
         <span class="text-sm text-slate-400">Saved characters</span>
-        <select id="char-picker" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-2 py-2 text-base text-slate-100"></select>
+        <div class="char-picker-row mt-1 flex gap-2 items-stretch">
+          <select id="char-picker" class="flex-1 min-w-0 rounded border border-slate-600 bg-slate-800 px-2 py-2 text-base text-slate-100"></select>
+          <button type="button" id="btn-char-delete" class="btn-delete btn-icon-delete shrink-0" disabled aria-label="Delete selected character">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+          </button>
+        </div>
       </label>
       <ul class="step-list mt-4" id="step-list" hidden></ul>
-      <p class="mt-auto text-xs text-slate-500">
+      <p class="mt-auto text-xs text-slate-500 editor-nav-footnote">
         Flow per <code class="text-amber-500/90">rules/character-generator.md</code>
       </p>
     </nav>
@@ -26,6 +33,7 @@
     <main class="editor-main flex flex-col">
       <div class="status-bar flex flex-wrap items-center gap-2 border-b border-slate-700 px-4 py-2 text-sm">
         <span id="compendium-status">Compendium: …</span>
+        <button type="button" class="btn-secondary text-sm px-3 py-1.5 hidden" id="btn-return-game">← Back to game editor</button>
         <button type="button" class="btn-secondary text-sm px-3 py-1.5" id="btn-export">Export JSON</button>
         <label class="btn-secondary text-sm px-3 py-1.5 cursor-pointer m-0">
           Import JSON
@@ -33,35 +41,92 @@
         </label>
       </div>
 
-      <!-- Gate: load existing -->
       <section id="generator-gate" class="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
-        <h2 class="text-2xl font-semibold text-slate-100 m-0">Load a character</h2>
-        <p class="mt-2 text-base text-slate-400">Choose a saved character or import a JSON file. After loading, you can level up or start a new build.</p>
-        <div class="mt-8 flex flex-col gap-3 w-full">
-          <label class="text-left text-sm text-slate-400">Saved in this browser</label>
-          <select id="gate-char-picker" class="w-full min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-base text-slate-100"></select>
-          <label class="btn-secondary min-h-11 flex items-center justify-center rounded-lg border border-slate-600 px-4 py-3 text-base font-medium cursor-pointer mt-2">
-            Import JSON file…
-            <input type="file" id="gate-import" accept=".json,application/json" hidden />
-          </label>
+        <h2 class="text-2xl font-semibold text-slate-100 m-0" id="gate-title">Character generator</h2>
+        <p class="mt-2 text-base text-slate-400" id="gate-lead">
+          Create a new level-1 character or continue one you already started in this browser.
+        </p>
+        <p id="player-handoff-hint" class="mt-3 text-sm text-amber-500/90 hidden" role="note">
+          When finished, click <strong>Save</strong> — your GM sees your character in the party list.
+        </p>
+
+        <button type="button" id="btn-gate-create" class="gate-primary-cta mt-8 min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500">
+          Create new character
+        </button>
+        <p class="gate-cta-hint mt-2 text-sm text-slate-500 m-0">Start here if this is your first character</p>
+
+        <div class="gate-divider mt-8 mb-6 w-full" aria-hidden="true"><span>or continue a saved character</span></div>
+
+        <div class="gate-secondary w-full text-left">
+          <label class="text-sm text-slate-400" for="gate-char-picker">Saved in this browser</label>
+          <div class="char-picker-row mt-1 flex gap-2 items-stretch">
+            <select id="gate-char-picker" class="flex-1 min-w-0 min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-base text-slate-100"></select>
+            <button type="button" id="btn-gate-delete" class="btn-delete btn-icon-delete shrink-0 min-h-11" disabled aria-label="Delete selected character">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+              </svg>
+            </button>
+          </div>
+          <button type="button" id="btn-gate-continue" class="btn-secondary mt-3 min-h-11 w-full rounded-lg border border-slate-600 px-4 py-3 text-base font-medium" disabled>
+            Continue selected character
+          </button>
+        </div>
+
+        <details class="gate-advanced mt-8 w-full text-left">
+          <summary class="text-sm text-slate-500 cursor-pointer hover:text-slate-300">Backup &amp; restore (JSON file)</summary>
+          <div class="mt-3 flex flex-col gap-2">
+            <label class="btn-secondary min-h-10 flex items-center justify-center rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium cursor-pointer">
+              Import JSON file…
+              <input type="file" id="gate-import" accept=".json,application/json" hidden />
+            </label>
+            <button type="button" class="btn-secondary min-h-10 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium" id="btn-gate-export">
+              Export JSON
+            </button>
+          </div>
+        </details>
+      </section>
+
+      <section id="generator-identity-setup" class="hidden flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
+        <h2 class="text-2xl font-semibold text-slate-100 m-0">Name your character</h2>
+        <p class="mt-2 text-base text-slate-400 m-0">Choose a name for your level-1 hero. You can add an optional portrait before picking a race.</p>
+
+        <div class="identity-setup-form mt-8 w-full text-left">
+          <label class="text-sm text-slate-400" for="identity-character-name">Character name <span class="text-amber-500">*</span></label>
+          <input type="text" id="identity-character-name" class="identity-name-input mt-1 min-h-11 w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-base text-slate-100" maxlength="50" autocomplete="off" required />
+          <p class="identity-name-meta mt-1 text-xs text-slate-500 m-0"><span id="identity-name-count">0</span>/50 characters</p>
+
+          <div class="identity-portrait mt-6">
+            <label class="text-sm text-slate-400" for="identity-portrait-file">Portrait (optional)</label>
+            <div class="identity-portrait-row mt-2 flex flex-wrap items-center gap-3">
+              <label class="btn-secondary min-h-10 inline-flex items-center rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium cursor-pointer">
+                Choose image…
+                <input type="file" id="identity-portrait-file" accept="image/png,image/jpeg" hidden />
+              </label>
+              <button type="button" id="btn-identity-portrait-clear" class="btn-secondary min-h-10 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium hidden">Remove portrait</button>
+            </div>
+            <div id="identity-portrait-preview" class="identity-portrait-preview mt-3 hidden">
+              <img id="identity-portrait-img" alt="" width="128" height="128" />
+            </div>
+          </div>
+
+          <ul class="validation-errors mt-4" id="identity-errors" hidden></ul>
+
+          <button type="button" id="btn-identity-continue" class="gate-primary-cta mt-8 min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 disabled:opacity-50" disabled>
+            Continue to race
+          </button>
+          <button type="button" id="btn-identity-back" class="btn-secondary mt-3 min-h-11 w-full rounded-lg border border-slate-600 px-4 py-3 text-base font-medium">← Back</button>
         </div>
       </section>
 
-      <!-- Post-load: level up or new -->
       <section id="generator-post-load" class="hidden flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
         <h2 class="text-2xl font-semibold m-0" id="post-load-title">Character loaded</h2>
         <p class="mt-2 text-base text-slate-400" id="post-load-subtitle"></p>
         <div class="mt-8 flex flex-col gap-4 w-full">
-          <button type="button" id="btn-level-up" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-            Level up
-          </button>
-          <button type="button" id="btn-new-build" class="min-h-14 w-full rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-            Generate new character
-          </button>
+          <button type="button" id="btn-level-up" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500">Level up</button>
+          <button type="button" id="btn-new-build" class="min-h-14 w-full rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700">Create new character</button>
         </div>
       </section>
 
-      <!-- Wizard -->
       <div id="generator-wizard" class="hidden flex flex-col flex-1 min-h-0">
         <header class="editor-header px-4 pt-4">
           <h2 id="step-title" class="text-xl font-semibold m-0">…</h2>
@@ -69,7 +134,6 @@
         </header>
 
         <ul class="validation-errors mx-4" id="validation-errors" hidden></ul>
-
         <div id="step-panel" class="flex-1 overflow-auto px-4 pb-4"></div>
 
         <div class="editor-actions flex flex-wrap gap-2 border-t border-slate-700 px-4 py-3">

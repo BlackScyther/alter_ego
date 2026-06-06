@@ -32,6 +32,20 @@
   align-items: center;
 }
 
+.gm-campaign-panel h2 {
+  margin: 0;
+}
+
+.gm-quick-build-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.gm-qb-field--wide {
+  grid-column: 1 / -1;
+}
+
 .gm-party-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

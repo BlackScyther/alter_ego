@@ -1,7 +1,19 @@
+import { initBuildStamp } from '../shared/build-stamp.js';
 import { loadPartyFromFolder, loadCharactersFromFiles } from '../character/party-loader.js';
-import { importCharacterDocument } from '../character/store.js';
+import { importCharacterDocument, saveCharacter } from '../character/store.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
 import { characterExportFilename } from '../character/io.js';
+import { buildQuickCharacter } from '../character/quick-build.js';
+import { compendium } from '../data/compendium.js';
+import {
+  createCampaign,
+  getSessionCampaign,
+  isGmSession,
+  clearSessionCampaign,
+  listCampaignCharacters
+} from '../api/campaign-api.js';
+
+initBuildStamp();
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -30,9 +42,8 @@ function renderParty() {
   if (!partyEntries.length) {
     grid.innerHTML = `
       <p class="gm-empty">
-        No characters loaded. Export JSON from the editor, copy files into
-        <code>src/party/</code>, run <code>npm run party:index</code>, then click Reload.
-        Or use “Add JSON files…” to load exports without copying them into the folder.
+        No characters loaded. Players click <strong>Save</strong> in the editor after joining your campaign,
+        or import JSON backups below.
       </p>`;
     return;
   }
@@ -55,7 +66,6 @@ function renderParty() {
 
     card.querySelector('[data-action="sheet"]').addEventListener('click', () => openSheet(character));
     card.querySelector('[data-action="editor"]').addEventListener('click', () => openEditor(character));
-
     grid.appendChild(card);
   }
 }
@@ -69,30 +79,6 @@ function openSheet(character) {
 function openEditor(character) {
   const saved = importCharacterDocument(character, { forceNewId: false });
   window.location.href = `../editor/index.html?id=${encodeURIComponent(saved.id)}`;
-}
-
-async function reloadFromFolder() {
-  $('#party-status').textContent = 'Loading party folder…';
-  showErrors([]);
-
-  try {
-    const { loaded, failed } = await loadPartyFromFolder('../party/');
-    partyEntries = loaded;
-    const messages = failed.map((f) => `${f.file}: ${f.error}`);
-    showErrors(messages);
-
-    const count = loaded.length;
-    $('#party-status').textContent =
-      count > 0
-        ? `${count} character(s) from src/party/`
-        : 'Party folder is empty — add JSON files and run npm run party:index';
-  } catch (err) {
-    partyEntries = [];
-    $('#party-status').textContent = 'Could not load party folder';
-    showErrors([err.message ?? String(err)]);
-  }
-
-  renderParty();
 }
 
 function mergeFileEntries(entries) {
@@ -109,6 +95,41 @@ function mergeFileEntries(entries) {
   );
 }
 
+async function reloadFromFolder() {
+  try {
+    const { loaded, failed } = await loadPartyFromFolder('../party/');
+    mergeFileEntries(
+      loaded.map(({ file, character }) => ({
+        file: file || characterExportFilename(character),
+        character
+      }))
+    );
+    showErrors(failed.map((f) => `${f.file}: ${f.error}`));
+    $('#party-status').textContent = `${partyEntries.length} character(s) loaded`;
+  } catch (err) {
+    showErrors([err.message ?? String(err)]);
+  }
+  renderParty();
+}
+
+async function reloadOnlineParty() {
+  if (!isGmSession()) return;
+  try {
+    const data = await listCampaignCharacters();
+    partyEntries = (data.characters ?? []).map((entry) => ({
+      file: entry.file || characterExportFilename(entry.character),
+      character: entry.character
+    }));
+    $('#party-status').textContent = `${partyEntries.length} character(s) in “${data.name || 'campaign'}”`;
+    showErrors([]);
+  } catch (err) {
+    $('#party-status').textContent = 'Could not load campaign party';
+    showErrors([err.message ?? String(err)]);
+    partyEntries = [];
+  }
+  renderParty();
+}
+
 async function onFilesPicked(fileList) {
   if (!fileList?.length) return;
   const { loaded, failed } = await loadCharactersFromFiles([...fileList]);
@@ -123,10 +144,85 @@ async function onFilesPicked(fileList) {
   renderParty();
 }
 
-$('#btn-reload').addEventListener('click', reloadFromFolder);
+function refreshCampaignUi() {
+  const session = getSessionCampaign();
+  const setup = $('#campaign-setup');
+  const active = $('#campaign-active');
+  if (session?.role === 'gm') {
+    setup.hidden = true;
+    active.hidden = false;
+    $('#campaign-title').textContent = session.name;
+    $('#invite-url').value = session.inviteUrl || '';
+  } else {
+    setup.hidden = false;
+    active.hidden = true;
+  }
+}
+
+$('#btn-create-campaign').addEventListener('click', async () => {
+  const name = $('#campaign-name').value.trim() || 'Our campaign';
+  try {
+    await createCampaign(name);
+    refreshCampaignUi();
+    await reloadOnlineParty();
+    showErrors(['Campaign created. Copy the invite link for players.']);
+  } catch (err) {
+    showErrors([err.message ?? String(err)]);
+  }
+});
+
+$('#btn-copy-invite').addEventListener('click', async () => {
+  const url = $('#invite-url').value;
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    showErrors(['Invite link copied.']);
+  } catch {
+    showErrors(['Could not copy — select the link and copy manually.']);
+  }
+});
+
+$('#btn-leave-campaign').addEventListener('click', () => {
+  clearSessionCampaign();
+  refreshCampaignUi();
+  partyEntries = [];
+  $('#party-status').textContent = 'Create or join a campaign to see player characters.';
+  renderParty();
+});
+
+$('#btn-quick-build').addEventListener('click', async () => {
+  try {
+    await compendium.ready();
+    const session = getSessionCampaign();
+    const character = await buildQuickCharacter({
+      race: $('#qb-race').value,
+      class: $('#qb-class').value,
+      level: $('#qb-level').value,
+      characterName: $('#qb-name').value,
+      campaignId: session?.campaignId ?? null
+    });
+    saveCharacter(character);
+    mergeFileEntries([
+      { file: characterExportFilename(character), character }
+    ]);
+    $('#party-status').textContent = `${partyEntries.length} character(s) loaded`;
+    renderParty();
+    showErrors([`Quick-built ${character.identity.characterName}. Open in editor to refine.`]);
+  } catch (err) {
+    showErrors([err.message ?? String(err)]);
+  }
+});
+
+$('#btn-reload-dev').addEventListener('click', reloadFromFolder);
 $('#file-picker').addEventListener('change', (e) => {
   onFilesPicked(e.target.files);
   e.target.value = '';
 });
 
-reloadFromFolder();
+refreshCampaignUi();
+if (isGmSession()) {
+  reloadOnlineParty();
+  setInterval(reloadOnlineParty, 8000);
+} else {
+  reloadFromFolder();
+}

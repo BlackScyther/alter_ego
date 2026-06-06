@@ -1,0 +1,55 @@
+{
+  "classes": {
+    "Fighter": {
+      "classId": "class1",
+      "primaryAbilities": ["str", "con", "dex"],
+      "defaultBackgroundId": "background1",
+      "defaultThemeId": "theme1",
+      "startingEquipmentIds": [],
+      "powerIdsByLevel": {},
+      "sheet": { "maxHpAt1": 30, "hpPerLevel": 6, "surgesPerDay": 10, "baseSpeed": 6 }
+    },
+    "Cleric": {
+      "classId": "class2",
+      "primaryAbilities": ["wis", "con", "str"],
+      "defaultBackgroundId": "background1",
+      "defaultThemeId": "theme1",
+      "startingEquipmentIds": [],
+      "powerIdsByLevel": {},
+      "sheet": { "maxHpAt1": 24, "hpPerLevel": 5, "surgesPerDay": 7, "baseSpeed": 6 }
+    },
+    "Wizard": {
+      "classId": "class3",
+      "primaryAbilities": ["int", "con", "dex"],
+      "defaultBackgroundId": "background1",
+      "defaultThemeId": null,
+      "startingEquipmentIds": [],
+      "powerIdsByLevel": {},
+      "sheet": { "maxHpAt1": 22, "hpPerLevel": 4, "surgesPerDay": 6, "baseSpeed": 6 }
+    }
+  },
+  "featPools": {
+    "Heroic": ["feat1", "feat2", "feat3", "feat4", "feat5"],
+    "Paragon": ["feat1", "feat2"],
+    "Epic": ["feat1"]
+  },
+  "names": {
+    "human": {
+      "given": ["Aldric", "Bran", "Celia", "Dorian", "Elena", "Finn", "Gareth", "Helena"],
+      "family": ["Ashford", "Blackwood", "Carrow", "Dunstan", "Eastmere", "Frost", "Grimshaw", "Hale"]
+    },
+    "elf": {
+      "given": ["Aelindor", "Caelir", "Elaria", "Faelwen", "Galathir", "Liriel", "Sylvara", "Thalion"],
+      "family": ["Amakiir", "Holimion", "Ilphelkiir", "Meliamne", "Naelar", "Siannodel"]
+    },
+    "dwarf": {
+      "given": ["Borin", "Durin", "Helga", "Kili", "Morgran", "Thora", "Ulf", "Vondal"],
+      "family": ["Battlehammer", "Fireforge", "Ironfist", "Stonehelm", "Undershield"]
+    }
+  },
+  "raceNameSlugs": {
+    "Human": "human",
+    "Dwarf": "dwarf",
+    "Elf": "elf"
+  }
+}

@@ -10,8 +10,18 @@ import {
   loadCharacter,
   setActiveCharacterId,
   listCharacters,
-  importCharacterDocument
+  importCharacterDocument,
+  deleteCharacter
 } from '../character/store.js';
+import { initBuildStamp } from '../shared/build-stamp.js';
+import {
+  applyPlayerNav,
+  enablePlayerMode,
+  isPlayerMode,
+  syncPlayerModeFromUrl,
+  withPlayerMode
+} from '../player-mode.js';
+import { getSessionCampaign, isPlayerSession, saveCharacterToCampaign } from '../api/campaign-api.js';
 import { downloadCharacterJson, readCharacterJsonFile } from '../character/io.js';
 import { compendium } from '../data/compendium.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
@@ -54,8 +64,10 @@ let editorMeta = null;
 let character = createCharacter();
 let currentStepIndex = 0;
 let completedSteps = new Set();
-/** @type {'gate' | 'post-load' | 'create' | 'full'} */
+/** @type {'gate' | 'identity-setup' | 'post-load' | 'create' | 'full'} */
 let builderMode = 'gate';
+
+const EDITOR_RETURN_KEY = 'dnd4e.editorReturn';
 
 async function loadEditorMeta() {
   const res = await fetch('../../metadata/editor.json');
@@ -70,14 +82,18 @@ function flow() {
 
 function setUiPhase(phase) {
   const gate = $('#generator-gate');
+  const identity = $('#generator-identity-setup');
   const post = $('#generator-post-load');
   const wizard = $('#generator-wizard');
   const stepList = $('#step-list');
   const showGate = phase === 'gate';
+  const showIdentity = phase === 'identity-setup';
   const showPost = phase === 'post-load';
   const showWizard = phase === 'create' || phase === 'full';
   gate?.classList.toggle('hidden', !showGate);
   gate?.classList.toggle('flex', showGate);
+  identity?.classList.toggle('hidden', !showIdentity);
+  identity?.classList.toggle('flex', showIdentity);
   post?.classList.toggle('hidden', !showPost);
   post?.classList.toggle('flex', showPost);
   wizard?.classList.toggle('hidden', !showWizard);
@@ -102,16 +118,34 @@ function enterPostLoad() {
   refreshGatePicker();
 }
 
+function enterIdentitySetup() {
+  builderMode = 'identity-setup';
+  setUiPhase('identity-setup');
+  const nameInput = $('#identity-character-name');
+  if (nameInput) {
+    nameInput.value = '';
+    updateIdentityNameUi();
+  }
+  clearPortraitPreview();
+  showIdentityErrors([]);
+}
+
 function startCreationFlow() {
   const player = character.identity.playerName;
+  const portrait = character.portrait;
   character = createCharacter();
   if (player) character.identity.playerName = player;
+  if (portrait) character.portrait = portrait;
+  const name = $('#identity-character-name')?.value?.trim();
+  if (name) character.identity.characterName = name.slice(0, 50);
   completedSteps = new Set();
   currentStepIndex = 0;
   builderMode = 'create';
   setUiPhase('create');
   persist();
   refreshCharacterPicker();
+  refreshGatePicker();
+  updateDeleteButtons();
   renderNav();
   renderStepPanel();
 }
@@ -738,6 +772,128 @@ function refreshCharacterPicker() {
 
 function refreshGatePicker() {
   fillCharacterSelect($('#gate-char-picker'), { placeholder: '(no saved characters yet)' });
+  updateGateContinueState();
+  updateDeleteButtons();
+}
+
+function updateGateContinueState() {
+  const picker = $('#gate-char-picker');
+  const btn = $('#btn-gate-continue');
+  if (!picker || !btn) return;
+  btn.disabled = !picker.value;
+}
+
+function updateDeleteButtons() {
+  const picker = $('#char-picker');
+  const gatePicker = $('#gate-char-picker');
+  const id = picker?.value || gatePicker?.value || '';
+  const hasId = Boolean(id);
+  $('#btn-char-delete')?.toggleAttribute('disabled', !hasId);
+  $('#btn-gate-delete')?.toggleAttribute('disabled', !hasId);
+}
+
+function showIdentityErrors(errors) {
+  const box = $('#identity-errors');
+  if (!box) return;
+  if (!errors.length) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = errors.map((e) => `<li>${esc(e)}</li>`).join('');
+}
+
+function updateIdentityNameUi() {
+  const input = $('#identity-character-name');
+  const count = $('#identity-name-count');
+  const btn = $('#btn-identity-continue');
+  const len = input?.value?.length ?? 0;
+  if (count) count.textContent = String(len);
+  if (btn) btn.disabled = len < 1;
+}
+
+function clearPortraitPreview() {
+  const preview = $('#identity-portrait-preview');
+  const img = $('#identity-portrait-img');
+  const clearBtn = $('#btn-identity-portrait-clear');
+  if (preview) preview.classList.add('hidden');
+  if (img) img.removeAttribute('src');
+  if (clearBtn) clearBtn.classList.add('hidden');
+  delete character.portrait;
+}
+
+async function loadPortraitFile(file) {
+  if (!file) return;
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  character.portrait = { mimeType: file.type, dataUrl: String(dataUrl) };
+  const img = $('#identity-portrait-img');
+  const preview = $('#identity-portrait-preview');
+  const clearBtn = $('#btn-identity-portrait-clear');
+  if (img) img.src = character.portrait.dataUrl;
+  if (preview) preview.classList.remove('hidden');
+  if (clearBtn) clearBtn.classList.remove('hidden');
+}
+
+function deleteSelectedCharacter(id) {
+  if (!id) return;
+  const list = listCharacters();
+  const entry = list.find((c) => c.id === id);
+  const label = entry?.identity?.characterName || 'this character';
+  if (!confirm(`Delete “${label}”? This cannot be undone.`)) return;
+  deleteCharacter(id);
+  const wasActive = character.id === id;
+  refreshCharacterPicker();
+  refreshGatePicker();
+  if (wasActive) {
+    character = createCharacter();
+    builderMode = 'gate';
+    setUiPhase('gate');
+  }
+  showErrors([`Deleted ${label}.`]);
+}
+
+function applyPlayerEditorUi() {
+  if (!isPlayerMode()) return;
+  document.body.classList.add('player-editor');
+  const hint = $('#player-handoff-hint');
+  if (hint) {
+    hint.textContent =
+      'Create a new level-1 character. When finished, click Save — your GM sees it in the party list.';
+    hint.classList.remove('hidden');
+  }
+}
+
+function setupReturnToGame() {
+  const params = new URLSearchParams(location.search);
+  const fromGame = params.get('from') === 'game';
+  const returnHref = fromGame ? '../game/index.html' : sessionStorage.getItem(EDITOR_RETURN_KEY);
+  const btn = $('#btn-return-game');
+  if (returnHref && btn) {
+    btn.classList.remove('hidden');
+    btn.addEventListener('click', () => {
+      window.location.href = returnHref;
+    });
+  }
+}
+
+async function saveCharacterNow() {
+  persist();
+  const messages = ['Character saved locally.'];
+  if (isPlayerSession()) {
+    try {
+      await saveCharacterToCampaign(character);
+      messages.push('Sent to your GM’s campaign.');
+    } catch (err) {
+      messages.push(`Campaign save failed: ${err.message}`);
+    }
+  }
+  showErrors(messages);
 }
 
 async function switchToCharacter(id) {
@@ -842,7 +998,7 @@ function openSheet() {
   }
   persist();
   stashCharacterForSheet(character);
-  const sheetHref = '../sheet/index.html?from=editor';
+  const sheetHref = withPlayerMode('../sheet/index.html?from=editor');
   // #region agent log
   debugClientLog('openSheet navigate', { from: location.pathname, to: sheetHref }, 'B');
   // #endregion
@@ -868,14 +1024,20 @@ function debugClientLog(message, data, hypothesisId) {
 }
 
 async function init() {
-  // #region agent log
-  debugClientLog('editor init', { pathname: location.pathname, search: location.search }, 'A');
-  // #endregion
+  initBuildStamp();
+  syncPlayerModeFromUrl();
+  if (new URLSearchParams(location.search).get('mode') === 'player') {
+    enablePlayerMode();
+  }
+  applyPlayerNav({ homeLink: $('#nav-home') });
+  applyPlayerEditorUi();
+  setupReturnToGame();
+
   await loadEditorMeta();
   await compendium.ready();
 
   const params = new URLSearchParams(location.search);
-  const loadId = params.get('id');
+  const loadId = params.get('id') || params.get('characterId');
   if (loadId) {
     const loaded = loadCharacter(loadId);
     if (loaded) {
@@ -885,6 +1047,11 @@ async function init() {
   } else {
     character = createCharacter();
     builderMode = 'gate';
+  }
+
+  const session = getSessionCampaign();
+  if (session?.role === 'player' && !character.identity.playerName) {
+    character.identity.playerName = 'Player';
   }
 
   const status = compendium.getStatus();
@@ -908,8 +1075,50 @@ async function init() {
   refreshCharacterPicker();
   refreshGatePicker();
 
-  $('#char-picker')?.addEventListener('change', (e) => switchToCharacter(e.target.value));
-  $('#gate-char-picker')?.addEventListener('change', (e) => switchToCharacter(e.target.value));
+  $('#char-picker')?.addEventListener('change', (e) => {
+    updateDeleteButtons();
+    switchToCharacter(e.target.value);
+  });
+  $('#gate-char-picker')?.addEventListener('change', () => {
+    updateGateContinueState();
+    updateDeleteButtons();
+  });
+  $('#btn-gate-continue')?.addEventListener('click', () => {
+    const id = $('#gate-char-picker')?.value;
+    if (id) switchToCharacter(id);
+  });
+  $('#btn-gate-create')?.addEventListener('click', enterIdentitySetup);
+  $('#btn-gate-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#gate-char-picker')?.value));
+  $('#btn-char-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#char-picker')?.value || character.id));
+  $('#btn-gate-export')?.addEventListener('click', exportCharacterFile);
+
+  $('#identity-character-name')?.addEventListener('input', updateIdentityNameUi);
+  $('#btn-identity-continue')?.addEventListener('click', () => {
+    const name = $('#identity-character-name')?.value?.trim();
+    if (!name) {
+      showIdentityErrors(['Character name is required.']);
+      return;
+    }
+    showIdentityErrors([]);
+    startCreationFlow();
+  });
+  $('#btn-identity-back')?.addEventListener('click', () => {
+    builderMode = 'gate';
+    setUiPhase('gate');
+  });
+  $('#identity-portrait-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await loadPortraitFile(file);
+      } catch (err) {
+        showIdentityErrors([err.message ?? String(err)]);
+      }
+    }
+    e.target.value = '';
+  });
+  $('#btn-identity-portrait-clear')?.addEventListener('click', clearPortraitPreview);
+
   $('#gate-import')?.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
     if (file) importCharacterFile(file);
@@ -923,16 +1132,15 @@ async function init() {
   });
 
   $('#btn-level-up')?.addEventListener('click', startLevelUpFlow);
-  $('#btn-new-build')?.addEventListener('click', startCreationFlow);
+  $('#btn-new-build')?.addEventListener('click', enterIdentitySetup);
   $('#btn-back-to-load')?.addEventListener('click', returnToGate);
 
   $('#btn-next').addEventListener('click', nextStep);
   $('#btn-prev').addEventListener('click', prevStep);
-  $('#btn-save').addEventListener('click', () => {
-    persist();
-    showErrors(['Character saved locally.']);
-  });
+  $('#btn-save').addEventListener('click', () => saveCharacterNow());
   $('#btn-sheet').addEventListener('click', openSheet);
+
+  updateDeleteButtons();
 }
 
 init();

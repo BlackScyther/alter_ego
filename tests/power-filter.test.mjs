@@ -52,6 +52,40 @@ describe('power-filter', () => {
     );
   });
 
+  it('retrain allows power level at or below character level', () => {
+    const slot = { id: 'power-encounter-3', slotLevel: 3, powerType: 'Encounter', label: 'x' };
+    const ctx = { className: 'Fighter', characterLevel: 7 };
+    assert.ok(
+      powerMatchesSlot(
+        { Type: 'Encounter', Level: '1', ClassName: 'Fighter' },
+        slot,
+        ctx,
+        { retrain: true }
+      )
+    );
+    assert.ok(
+      !powerMatchesSlot(
+        { Type: 'Encounter', Level: '11', ClassName: 'Fighter' },
+        slot,
+        ctx,
+        { retrain: true }
+      )
+    );
+  });
+
+  it('skipLevel bypasses level checks for show-all mode', () => {
+    const slot = { id: 'power-daily-5', slotLevel: 5, powerType: 'Daily', label: 'x' };
+    const ctx = { className: 'Fighter', characterLevel: 5 };
+    assert.ok(
+      powerMatchesSlot(
+        { Type: 'Daily', Level: '1', ClassName: 'Fighter' },
+        slot,
+        ctx,
+        { skipLevel: true }
+      )
+    );
+  });
+
   it('filterPowerEntries excludes duplicates and sorts', () => {
     const slot = { id: 'power-encounter-1', slotLevel: 1, powerType: 'Encounter', label: 'x' };
     const ctx = { className: 'Fighter', characterLevel: 1 };

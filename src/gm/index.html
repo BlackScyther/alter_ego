@@ -4,38 +4,92 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>D&amp;D 4e — GM Console</title>
-  <link rel="stylesheet" href="../editor/editor.css" />
+  <link rel="stylesheet" href="../app.css" />
   <link rel="stylesheet" href="gm.css" />
 </head>
-<body>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
   <div class="gm-shell">
     <nav class="editor-nav gm-nav" aria-label="GM navigation">
       <h1>GM Console</h1>
-      <a href="../index.html">← Home</a>
+      <a href="../launcher/index.html">← Alter Ego home</a>
       <a href="../sheet/index.html">Character sheet</a>
       <a href="../editor/index.html">Character generator</a>
-      <a href="../playlist/index.html">Top of playlist</a>
-      <p class="gm-nav-hint">
-        Copy player exports into <code>src/party/</code>, run
-        <code>npm run party:index</code>, then reload this page.
+      <a href="../game/index.html">Game editor</a>
+      <p class="gm-nav-hint text-sm text-slate-500">
+        Online campaign: players <strong>Save</strong> in the editor — you see them here automatically.
+      </p>
+      <p class="gm-nav-hint text-sm text-slate-500">
+        Backup: import JSON files or dev <code>src/party/</code> folder.
       </p>
     </nav>
 
     <main class="editor-main gm-main">
+      <section id="campaign-setup" class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
+        <h2 class="text-lg font-semibold m-0">Online campaign</h2>
+        <p class="text-sm text-slate-400 mt-2">Create a campaign and send the invite link to your players.</p>
+        <label class="block mt-3 text-sm text-slate-400">Campaign name</label>
+        <input type="text" id="campaign-name" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-base" value="Our campaign" />
+        <button type="button" class="btn-primary mt-4 min-h-11" id="btn-create-campaign">Create campaign</button>
+      </section>
+
+      <section id="campaign-active" class="gm-campaign-panel rounded-xl border border-amber-500/40 bg-slate-900/80 p-4 mb-6" hidden>
+        <h2 class="text-lg font-semibold m-0" id="campaign-title">Campaign</h2>
+        <p class="text-sm text-slate-400 mt-2">Share this link with players (WhatsApp, email, …):</p>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <input type="text" id="invite-url" readonly class="flex-1 min-w-0 rounded border border-slate-600 bg-slate-800 px-3 py-2 text-sm" />
+          <button type="button" class="btn-secondary min-h-11" id="btn-copy-invite">Copy link</button>
+        </div>
+        <button type="button" class="btn-secondary mt-3 text-sm" id="btn-leave-campaign">Leave campaign (local)</button>
+      </section>
+
+      <section id="gm-quick-build" class="gm-quick-build rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
+        <h2 class="text-lg font-semibold m-0">Quick-build character</h2>
+        <p class="text-sm text-slate-400 mt-2">
+          GM only: enter race, class, and level (1–30). Feats, abilities, and name are filled automatically.
+        </p>
+        <div class="gm-quick-build-grid mt-4">
+          <label class="gm-qb-field">
+            <span class="text-sm text-slate-400">Race</span>
+            <input type="text" id="qb-race" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" value="Human" autocomplete="off" />
+          </label>
+          <label class="gm-qb-field">
+            <span class="text-sm text-slate-400">Class</span>
+            <input type="text" id="qb-class" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" value="Fighter" list="qb-class-list" autocomplete="off" />
+            <datalist id="qb-class-list">
+              <option value="Fighter"></option>
+              <option value="Cleric"></option>
+              <option value="Wizard"></option>
+            </datalist>
+          </label>
+          <label class="gm-qb-field">
+            <span class="text-sm text-slate-400">Level</span>
+            <input type="number" id="qb-level" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" min="1" max="30" value="1" />
+          </label>
+          <label class="gm-qb-field gm-qb-field--wide">
+            <span class="text-sm text-slate-400">Character name (optional)</span>
+            <input type="text" id="qb-name" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="Random name if empty" />
+          </label>
+        </div>
+        <button type="button" class="btn-primary mt-4 min-h-11" id="btn-quick-build">Quick-create character</button>
+      </section>
+
       <header class="editor-header">
         <h2>Party</h2>
-        <p id="party-status">Loading party folder…</p>
+        <p id="party-status">Create or join a campaign to see player characters.</p>
       </header>
 
       <ul class="validation-errors" id="gm-errors" hidden></ul>
 
-      <div class="gm-toolbar">
-        <button type="button" class="btn-primary" id="btn-reload">Reload party folder</button>
-        <label class="btn-secondary gm-file-label">
-          Add JSON files…
-          <input type="file" id="file-picker" accept=".json,application/json" multiple hidden />
-        </label>
-      </div>
+      <details class="gm-backup-import text-sm text-slate-400 mb-4">
+        <summary class="cursor-pointer text-slate-300">Backup: import JSON files</summary>
+        <div class="gm-toolbar mt-3">
+          <label class="btn-secondary gm-file-label cursor-pointer">
+            Add character files
+            <input type="file" id="file-picker" accept=".json,application/json" multiple hidden />
+          </label>
+          <button type="button" class="btn-secondary" id="btn-reload-dev">Reload dev folder</button>
+        </div>
+      </details>
 
       <div class="gm-party-grid" id="party-grid"></div>
     </main>

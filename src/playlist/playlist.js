@@ -1,4 +1,7 @@
+import { initBuildStamp } from '../shared/build-stamp.js';
 import { loadPartyFromFolder } from '../character/party-loader.js';
+
+initBuildStamp();
 import { importCharacterDocument } from '../character/store.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
 import { escapeHtml } from '../shared/escape-html.js';

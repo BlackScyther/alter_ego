@@ -230,6 +230,41 @@
           "index_text": "Burning Hands wizard encounter"
         }
       ]
+    },
+    "glossary": {
+      "displayName": "Glossary",
+      "entries": [
+        {
+          "id": "glossary426",
+          "listing_fields": { "Name": "Basic Attack", "Category": "Rules", "Type": "Rules Combat", "SourceBook": "PHB" },
+          "body_html": "<p>Melee or ranged basic attack available to all characters.</p>",
+          "index_text": "Basic Attack rules combat"
+        },
+        {
+          "id": "glossary323",
+          "listing_fields": { "Name": "Bull Rush", "Category": "Rules", "Type": "Rules Combat", "SourceBook": "PHB" },
+          "body_html": "<p>Push a target 1 square and shift into the vacated space.</p>",
+          "index_text": "Bull Rush rules combat"
+        },
+        {
+          "id": "glossary324",
+          "listing_fields": { "Name": "Charge", "Category": "Rules", "Type": "Rules Combat", "SourceBook": "PHB" },
+          "body_html": "<p>Move and make a melee basic attack or bull rush with +1 to the attack roll.</p>",
+          "index_text": "Charge rules combat"
+        },
+        {
+          "id": "glossary329",
+          "listing_fields": { "Name": "Grab", "Category": "Rules", "Type": "Rules Combat", "SourceBook": "PHB" },
+          "body_html": "<p>Seize an enemy; target is immobilized until escape or grab ends.</p>",
+          "index_text": "Grab rules combat"
+        },
+        {
+          "id": "glossary331",
+          "listing_fields": { "Name": "Opportunity Attack", "Category": "Rules", "Type": "Rules Combat", "SourceBook": "PHB" },
+          "body_html": "<p>Melee basic attack when an enemy provokes.</p>",
+          "index_text": "Opportunity Attack rules combat"
+        }
+      ]
     }
   }
 }

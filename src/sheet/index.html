@@ -278,7 +278,9 @@
 
   <script type="module" src="../app.js"></script>
   <script type="module">
+    import { initBuildStamp } from '../shared/build-stamp.js';
     import { SKILLS } from '../formulas.js';
+    initBuildStamp();
 
     const tbody = document.getElementById('skills-body');
     tbody.innerHTML = SKILLS.map((s) => `

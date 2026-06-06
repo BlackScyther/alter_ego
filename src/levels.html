@@ -29,7 +29,9 @@
     </dl>
   </section>
   <script type="module">
+    import { initBuildStamp } from './shared/build-stamp.js';
     import { buildLevelTable } from './formulas.js';
+    initBuildStamp();
     document.getElementById('level-table-body').innerHTML = buildLevelTable(30)
       .map((r) => `<tr>
         <td>${r.level}</td><td class="tier">${r.tier}</td><td>${r.halfLevel}</td>

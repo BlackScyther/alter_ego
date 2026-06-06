@@ -194,6 +194,45 @@ router.put('/:eid/actors/:actorId', (req, res) => {
   res.json({ ok: true, character: document, updatedAt: now });
 });
 
+router.patch('/:eid/actors/:actorId/initiative', (req, res) => {
+  const encounter = getEncounter(req.params.eid, req.params.id);
+  if (!encounter) {
+    res.status(404).json({ error: 'Encounter not found.' });
+    return;
+  }
+
+  const existing = getEncounterActor(req.params.eid, req.params.actorId);
+  if (!existing) {
+    res.status(404).json({ error: 'Actor not found.' });
+    return;
+  }
+
+  const document = { ...existing.character };
+  document.sheet = document.sheet ?? {};
+  document.sheet.combat = document.sheet.combat ?? {};
+
+  const { initiative = null, initiativeRoll = null } = req.body ?? {};
+  document.sheet.combat.initiative = initiative;
+  document.sheet.combat.initiativeRoll = initiativeRoll;
+
+  const now = new Date().toISOString();
+  document.meta = { ...document.meta, updatedAt: now };
+
+  upsertEncounterActor({
+    encounterId: req.params.eid,
+    actorId: req.params.actorId,
+    sortOrder: existing.sortOrder,
+    templateId: existing.templateId,
+    actorKind: existing.actorKind,
+    linkedCharacterId: existing.linkedCharacterId,
+    documentJson: JSON.stringify(document),
+    updatedAt: now
+  });
+  touchEncounter(req.params.eid, now);
+
+  res.json({ ok: true, character: document, updatedAt: now });
+});
+
 router.delete('/:eid/actors/:actorId', (req, res) => {
   const ok = deleteEncounterActor(req.params.eid, req.params.actorId);
   if (!ok) {
