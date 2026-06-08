@@ -42,11 +42,17 @@ import {
   abilityScoreBreakdown,
   skillBonusBreakdown,
   formatBreakdownLine,
-  formatSkillBreakdownLine
+  formatSkillBreakdownLine,
+  syncRaceBonusChoicesToBonuses
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
 import { renderPowerStep } from './steps/power-step.js';
+import { renderRaceStep } from './steps/race-step.js';
+import { ensureRaceSelectionsShape } from '../character/race-selections.js';
+import { buildCompendiumLinkIndex } from '../data/compendium-link-index.js';
+import { attachCompendiumHoverDelegates } from '../ui/compendium-hover-card.js';
+import { renderLinkedEntryPreview } from '../ui/compendium-links.js';
 import {
   ensureFeatSelectionsShape,
   migrateFeatIdsToSelections,
@@ -64,6 +70,8 @@ let editorMeta = null;
 let character = createCharacter();
 let currentStepIndex = 0;
 let completedSteps = new Set();
+/** @type {import('../data/compendium-link-index.js').buildCompendiumLinkIndex extends (...args: any) => Promise<infer R> ? R : never} */
+let linkIndex = { terms: [], byName: new Map() };
 /** @type {'gate' | 'identity-setup' | 'post-load' | 'create' | 'full'} */
 let builderMode = 'gate';
 
@@ -254,6 +262,25 @@ async function renderStepPanel() {
       });
       break;
     case 'race':
+      await renderRaceStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        getNotes: () => getNotesForStep('race'),
+        setNotes: (text) => setNotesForStep('race', text),
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'race'),
+        linkIndex,
+        renderPreviewEntry: (entry) => {
+          const preview = panel.querySelector('#entry-preview');
+          if (!entry || !preview) return;
+          if (linkIndex?.terms?.length) renderLinkedEntryPreview(preview, entry.body_html ?? '', linkIndex);
+          else preview.innerHTML = entry.body_html ?? '';
+        }
+      });
+      break;
     case 'class':
     case 'theme':
     case 'paragon':
@@ -356,6 +383,7 @@ async function refreshBonusesFromSelections() {
   }
   ensureAbilityShape(character);
   syncBonusesFromSelections(character, entries, featEntries);
+  syncRaceBonusChoicesToBonuses(character);
 }
 
 function renderAbilities(panel) {
@@ -560,8 +588,8 @@ async function renderCompendiumStep(panel, stepId, def) {
       .map((e) => {
         const name = e.listing_fields?.Name ?? e.id;
         const meta = formatListingMeta(e.listing_fields, def.compendiumCategory);
-        const sel = e.id === selectedId ? 'selected' : '';
-        return `<button type="button" class="picker-btn w-full min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-left text-base font-medium text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${sel ? 'ring-2 ring-amber-500/80' : ''}" data-id="${e.id}">
+        const sel = e.id === selectedId;
+        return `<button type="button" class="picker-btn w-full min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-left text-base font-medium text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500${sel ? ' ring-2 ring-amber-500/80' : ''}" data-id="${e.id}">
           <span class="block">${esc(name)}</span>
           <span class="block text-sm font-normal text-slate-400">${esc(meta)}</span>
         </button>`;
@@ -671,18 +699,16 @@ function applyCompendiumSelection(stepId, entry) {
   if (!entry) return;
   const name = entry.listing_fields?.Name ?? entry.id;
   switch (stepId) {
-    case 'race':
+    case 'race': {
       character.selections.raceId = entry.id;
       character.identity.race = name;
       character.identity.size = entry.listing_fields?.Size ?? character.identity.size;
-      if (!character.notes.raceFeatures) {
-        character.notes.raceFeatures = stripHtml(entry.body_html);
-      }
       if (document.querySelector('.compendium-picker[data-category="background"]')) {
         const search = document.querySelector('#picker-search');
         search?.dispatchEvent(new Event('input', { bubbles: true }));
       }
       break;
+    }
     case 'class':
       character.selections.classId = entry.id;
       character.identity.class = name;
@@ -1035,6 +1061,8 @@ async function init() {
 
   await loadEditorMeta();
   await compendium.ready();
+  linkIndex = await buildCompendiumLinkIndex(compendium);
+  attachCompendiumHoverDelegates(document);
 
   const params = new URLSearchParams(location.search);
   const loadId = params.get('id') || params.get('characterId');
@@ -1062,6 +1090,7 @@ async function init() {
   $('#compendium-status').classList.toggle('mode-stub', status.mode === 'stub');
 
   ensureAbilityShape(character);
+  ensureRaceSelectionsShape(character);
   recomputeAbilityScores(character);
   await refreshBonusesFromSelections();
 

@@ -17,9 +17,57 @@ function safeGit(cmd) {
   }
 }
 const srcRoot = resolve(projectRoot, 'src');
+const tailwindSnippet = readFileSync(resolve(srcRoot, 'ui/tailwind.html'), 'utf-8');
+
+/** Inject shared Tailwind CDN snippet into app HTML pages (see rules/ui.md). */
+function injectTailwindPlugin() {
+  return {
+    name: 'alter-ego-inject-tailwind',
+    transformIndexHtml(html, ctx) {
+      const path = (ctx.path ?? ctx.filename ?? '').replace(/\\/g, '/');
+      if (path.includes('/sheet/') || path.endsWith('tailwind.html')) return html;
+      if (html.includes('cdn.tailwindcss.com')) return html;
+      return html.replace('</head>', `${tailwindSnippet}\n</head>`);
+    }
+  };
+}
 
 const DEBUG_ENDPOINT = 'http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c';
 const DEBUG_SESSION_ID = '5d39f7';
+
+/** Redirect bare /editor → /editor/ so MPA routes work when index.html is stripped from URLs. */
+function trailingSlashRedirectPlugin() {
+  const segments = [
+    'editor',
+    'sheet',
+    'launcher',
+    'player',
+    'gm',
+    'game',
+    'join',
+    'playlist',
+    'levels'
+  ];
+  return {
+    name: 'alter-ego-trailing-slash-redirect',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const raw = req.url ?? '';
+        const pathname = raw.split('?')[0];
+        const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
+        for (const seg of segments) {
+          if (pathname === `/${seg}`) {
+            res.statusCode = 301;
+            res.setHeader('Location', `/${seg}/${query}`);
+            res.end();
+            return;
+          }
+        }
+        next();
+      });
+    }
+  };
+}
 
 /** Redirect /src/* → /* when Vite root is src/ (sync-from-live URLs vs dev URLs). */
 function legacySrcPrefixRedirectPlugin() {
@@ -158,7 +206,7 @@ export default defineConfig({
     'import.meta.env.VITE_GIT_SHA': JSON.stringify(safeGit('git rev-parse --short HEAD'))
   },
   root: srcRoot,
-  plugins: [legacySrcPrefixRedirectPlugin(), debugRequestPlugin(), parentStaticPlugin()],
+  plugins: [injectTailwindPlugin(), trailingSlashRedirectPlugin(), legacySrcPrefixRedirectPlugin(), debugRequestPlugin(), parentStaticPlugin()],
   server: {
     port: 5173,
     fs: { allow: [projectRoot] },
@@ -166,7 +214,13 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3000',
-        changeOrigin: true
+        changeOrigin: true,
+        bypass(req) {
+          const pathname = (req.url ?? '').split('?')[0];
+          if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
+            return req.url;
+          }
+        }
       }
     }
   },

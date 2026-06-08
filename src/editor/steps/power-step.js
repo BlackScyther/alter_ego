@@ -27,6 +27,7 @@ import {
   loadUniversalActionsMeta
 } from './power-collection-panel.js';
 import { escapeHtml as esc } from '../../shared/escape-html.js';
+import { pickerCardClass } from '../picker/picker-card.js';
 
 const LIST_CAP = 100;
 const ELIGIBLE_FETCH_LIMIT = 500;
@@ -51,7 +52,7 @@ export async function renderPowerStep(panel, ctx) {
     panel.innerHTML = `
       <section class="power-slots-section" aria-label="Powers">
         <h3 class="tutor-bonuses-title">Powers</h3>
-        <p class="feat-step-hint" style="color:var(--editor-muted);font-size:13px">
+        <p class="feat-step-hint">
           Complete the <strong>Class</strong> step before choosing powers.
         </p>
       </section>`;
@@ -74,19 +75,18 @@ export async function renderPowerStep(panel, ctx) {
     if (!typeSlots?.length) return '';
     const rows = typeSlots
       .map((slot) => {
-        const pid = character.selections.powerSelections?.[slot.id];
-        const status = pid ? 'filled' : 'empty';
+        const isActive = slot.id === activeSlotId;
         return `
-          <button type="button" class="power-slot-row" data-slot-id="${esc(slot.id)}" data-status="${status}">
-            <span class="power-slot-row-label">${esc(slot.label)}</span>
-            <span class="power-slot-row-status">${pid ? 'Selected' : 'Empty'}</span>
+          <button type="button" class="${pickerCardClass(isActive)} power-slot-row" data-slot-id="${esc(slot.id)}">
+            <span class="block">${esc(slot.label)}</span>
+            <span class="block text-sm font-normal text-slate-400 power-slot-row-meta">Empty — click to choose</span>
           </button>`;
       })
       .join('');
     return `
       <div class="power-type-section" data-power-type="${esc(type)}">
         <h4 class="power-type-heading">${esc(type)}</h4>
-        <div class="power-slot-rows">${rows}</div>
+        <div class="flex flex-col gap-2 w-full">${rows}</div>
       </div>`;
   }).join('');
 
@@ -97,7 +97,7 @@ export async function renderPowerStep(panel, ctx) {
         Choose <strong>${slots.length}</strong> class power${slots.length === 1 ? '' : 's'} for your level.
         <span class="meta" id="power-slot-quota">(${filled} / ${slots.length} filled)</span>
       </p>
-      <p class="feat-step-hint" style="color:var(--editor-muted);font-size:13px;margin:0 0 8px">
+      <p class="feat-step-hint">
         You can replace any class power by selecting its slot and picking a different one
         (same type, level ≤ character level, prerequisites met). Type at least ${COMPENDIUM_SEARCH_MIN} letters to search.
       </p>
@@ -118,16 +118,36 @@ export async function renderPowerStep(panel, ctx) {
       </div>
       <div class="power-step-layout">
         <div class="power-step-picker-col">
-          <div id="power-slot-list" class="power-slot-list-compact">${slotListHtml}</div>
-          <div id="power-shared-picker" class="power-shared-picker"></div>
+          <div class="compendium-picker">
+            <div class="picker-toolbar">
+              <span class="power-step-panel-label">Class power slots</span>
+            </div>
+            <div id="power-slot-list" class="power-slot-list-compact">${slotListHtml}</div>
+          </div>
+          <div class="compendium-picker">
+            <div class="picker-toolbar">
+              <span class="power-step-panel-label">Search powers</span>
+            </div>
+            <div id="power-shared-picker" class="power-shared-picker"></div>
+          </div>
         </div>
-        <aside class="power-step-collection-col" id="power-collection-root" aria-label="Your powers"></aside>
+        <aside class="compendium-picker power-step-collection-col" id="power-collection-root" aria-label="Your powers">
+          <div class="picker-toolbar">
+            <span class="power-step-panel-label">Your powers</span>
+          </div>
+          <div class="power-collection-body" id="power-collection-body"></div>
+        </aside>
       </div>
-      <div class="entry-preview power-collection-preview" id="power-collection-preview"></div>
+      <div class="compendium-picker power-preview-panel">
+        <div class="picker-toolbar">
+          <span class="power-step-panel-label">Compendium preview</span>
+        </div>
+        <div class="entry-preview power-collection-preview" id="power-collection-preview"></div>
+      </div>
     </section>`;
 
   const pickerCol = panel.querySelector('#power-shared-picker');
-  const collectionRoot = panel.querySelector('#power-collection-root');
+  const collectionRoot = panel.querySelector('#power-collection-body');
   const collectionPreview = panel.querySelector('#power-collection-preview');
   const enforceCheckbox = panel.querySelector('#power-enforce-prereq');
   const showAllCheckbox = panel.querySelector('#power-show-all');
@@ -167,10 +187,28 @@ export async function renderPowerStep(panel, ctx) {
     panel.querySelectorAll('.power-slot-row').forEach((row) => {
       const sid = row.dataset.slotId;
       const pid = character.selections.powerSelections?.[sid];
-      row.dataset.status = pid ? 'filled' : 'empty';
-      row.querySelector('.power-slot-row-status').textContent = pid ? 'Selected' : 'Empty';
-      row.classList.toggle('power-slot-row--active', sid === activeSlotId);
+      const isActive = sid === activeSlotId;
+      row.classList.remove('ring-2', 'ring-amber-500/80');
+      if (isActive) row.classList.add('ring-2', 'ring-amber-500/80');
     });
+  }
+
+  async function refreshSlotLabels() {
+    const rows = panel.querySelectorAll('.power-slot-row');
+    await Promise.all(
+      [...rows].map(async (row) => {
+        const sid = row.dataset.slotId;
+        const pid = character.selections.powerSelections?.[sid];
+        const metaEl = row.querySelector('.power-slot-row-meta');
+        if (!metaEl) return;
+        if (!pid) {
+          metaEl.textContent = 'Empty — click to choose';
+          return;
+        }
+        const entry = await compendium.getEntry(pid);
+        metaEl.textContent = entry?.listing_fields?.Name ?? 'Selected';
+      })
+    );
   }
 
   function updateFilterStatus(count) {
@@ -303,6 +341,7 @@ export async function renderPowerStep(panel, ctx) {
         btn.setAttribute('aria-selected', 'true');
         updateQuota();
         updateSlotListUi();
+        await refreshSlotLabels();
         await refreshCollection();
         collectionPreview.innerHTML = entry.body_html ?? '';
       },
@@ -345,6 +384,7 @@ export async function renderPowerStep(panel, ctx) {
   });
 
   updateSlotListUi();
+  await refreshSlotLabels();
   await syncPickerFromSlot();
   await refreshPicker('');
   await refreshCollection();

@@ -1,6 +1,6 @@
 # Project description — Alter Ego
 
-**Last updated:** 2026-06-04
+**Last updated:** 2026-06-07
 
 ## What this is
 
@@ -64,6 +64,7 @@ Details: [architecture.md](architecture.md).
 - Online campaign: create, invite, save sync, GM party (polling)
 - Game editor: encounters, spawn monsters/party, editor bridge, combat tab
 - Character generator, sheet, formulas, JSON export
+- **Race step:** core/subrace pickers, ability “or” choices on race step, racial power/feat grant tiles, compendium hover links in preview and notes
 - Vite build, launcher, player hub, GM JSON backup import
 - Desktop (Tauri), CI builds Windows/Mac
 - API smoke test: `npm run test:api`

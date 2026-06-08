@@ -1,6 +1,7 @@
 import { POWER_TYPE_ORDER } from '../../character/power-selections.js';
 import { formatPowerListingMeta } from '../power-filter.js';
 import { escapeHtml as esc } from '../../shared/escape-html.js';
+import { pickerCardClass, setPickerCardSelected, clearPickerCardSelection } from '../picker/picker-card.js';
 
 /** @type {object | null} */
 let universalActionsCache = null;
@@ -68,7 +69,7 @@ function formatGlossaryMeta(fields) {
 function renderCardButton(container, { id, name, meta, selected, slotId, readonly }) {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = `picker-btn power-collection-card w-full min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-left text-base font-medium text-slate-100 hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500${selected ? ' ring-2 ring-amber-500/80' : ''}`;
+  btn.className = `${pickerCardClass(selected)} power-collection-card`;
   btn.dataset.id = id;
   if (slotId) btn.dataset.slotId = slotId;
   if (readonly) btn.dataset.readonly = 'true';
@@ -90,7 +91,7 @@ function renderGroup(parent, title, note) {
   group.innerHTML = `
     <h4 class="power-collection-group-title">${esc(title)}</h4>
     ${note ? `<p class="power-collection-group-note">${esc(note)}</p>` : ''}
-    <div class="power-collection-cards flex flex-col gap-2"></div>`;
+    <div class="power-collection-cards flex flex-col gap-2 w-full"></div>`;
   parent.appendChild(group);
   return group.querySelector('.power-collection-cards');
 }
@@ -137,10 +138,8 @@ export async function renderPowerCollectionPanel(root, ctx) {
       btn.addEventListener('click', async () => {
         const e = await compendium.getEntry(item.id);
         onPreview?.(e);
-        cardsEl.parentElement?.parentElement
-          ?.querySelectorAll('.power-collection-card')
-          .forEach((b) => b.classList.remove('ring-2', 'ring-amber-500/80'));
-        btn.classList.add('ring-2', 'ring-amber-500/80');
+        clearPickerCardSelection(root);
+        setPickerCardSelected(btn, true);
       });
     }
   }

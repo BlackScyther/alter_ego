@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-06-07
 
 ## Automation status
 
@@ -17,7 +17,7 @@
 
 ## Automated security suite (`npm test`)
 
-Runs **51** tests across five files. Spawns a temporary campaign API (isolated SQLite) for integration checks.
+Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated SQLite) for integration checks.
 
 | File | Covers |
 |------|--------|
@@ -26,6 +26,20 @@ Runs **51** tests across five files. Spawns a temporary campaign API (isolated S
 | `tests/character-io.test.mjs` | Export filename sanitization, import validation |
 | `tests/party-loader.test.mjs` | GM **file picker** and **folder/text import**: bad JSON, malicious filenames, XSS in fields, `__proto__` |
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
+| `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
+| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text |
+| `tests/compendium-links.test.mjs` | Compendium keyword linking in editor previews |
+
+## Manual test checklist — race step (editor)
+
+Requires `npm run dev:src` or `npm run dev:all`.
+
+- [ ] Race list excludes subraces (Gold Dwarf not in base list)
+- [ ] Pick **Dwarf** → subrace picker appears; choose **Gold Dwarf**
+- [ ] Ability “or” choice (Wisdom vs Strength) blocks **Next** until selected
+- [ ] Preview shows Average Height with `· cm` suffix; flavor is collapsed
+- [ ] Racial powers appear as tiles; hover shows compendium card
+- [ ] Notes linked preview highlights terms; saved JSON notes stay plain text
 
 **Requirements:** Node 20+ (uses global `File` for file-picker tests). API tests need a free local port (~3100–3999).
 

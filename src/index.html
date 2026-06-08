@@ -18,35 +18,17 @@
     })();
   </script>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
-  <main
-    class="min-h-screen flex flex-col items-center justify-center gap-8 px-6"
-    aria-label="Choose application"
-  >
-    <header class="text-center">
-      <p class="text-sm uppercase tracking-widest text-amber-500/90 font-semibold">Dungeons &amp; Dragons 4e</p>
-      <h1 class="mt-2 text-2xl font-semibold text-slate-100">Character tools</h1>
+<body class="hub-page">
+  <main class="hub-shell" aria-label="Choose application">
+    <header class="hub-header">
+      <p class="hub-kicker">Dungeons &amp; Dragons 4e</p>
+      <h1 class="hub-title">Character tools</h1>
     </header>
 
-    <nav class="flex flex-col gap-4 w-full max-w-md" aria-label="Main menu">
-      <a
-        href="launcher/index.html"
-        class="text-center text-sm text-slate-500 hover:text-slate-300 no-underline mb-2"
-      >
-        ← Role picker (player / GM)
-      </a>
-      <a
-        href="editor/index.html"
-        class="min-h-14 flex items-center justify-center rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 no-underline"
-      >
-        Character generator
-      </a>
-      <a
-        href="playlist/index.html"
-        class="min-h-14 flex items-center justify-center rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700 no-underline"
-      >
-        Top of playlist
-      </a>
+    <nav class="hub-nav" aria-label="Main menu">
+      <a href="launcher/index.html" class="hub-link">← Role picker (player / GM)</a>
+      <a href="editor/index.html" class="hub-btn hub-btn-primary">Character generator</a>
+      <a href="playlist/index.html" class="hub-btn hub-btn-secondary">Top of playlist</a>
     </nav>
   </main>
   <script type="module">

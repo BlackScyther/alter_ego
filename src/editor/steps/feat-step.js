@@ -59,7 +59,7 @@ export async function renderFeatStep(panel, ctx) {
         Choose <strong>${slots.length}</strong> feat${slots.length === 1 ? '' : 's'} for your level.
         <span class="meta">(${filled} / ${slots.length} filled)</span>
       </p>
-      <p class="feat-step-hint" style="color:var(--editor-muted);font-size:13px;margin:0 0 12px">
+      <p class="feat-step-hint">
         You can change any earlier feat by picking a different one in its slot. Type at least ${COMPENDIUM_SEARCH_MIN} letters to search.
       </p>
       <div class="feat-step-toolbar">

@@ -1,0 +1,8 @@
+{
+  "subracesByParent": {
+    "race2": ["race54", "race55"],
+    "race3": ["race56", "race57"],
+    "race4": ["race16", "race58", "race59", "race64"],
+    "race20": ["race69"]
+  }
+}

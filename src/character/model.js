@@ -4,6 +4,7 @@
 
 import { validateFeatsStep } from './feat-selections.js';
 import { validatePowersStep } from './power-selections.js';
+import { validateRaceStep } from './race-selections.js';
 
 export const CHARACTER_VERSION = 1;
 
@@ -49,6 +50,10 @@ export function createCharacter(partial = {}) {
     },
     selections: {
       raceId: null,
+      raceBuildChoices: {},
+      raceBonusChoices: { ability: {}, skill: {} },
+      racePowerIds: [],
+      raceFeatIds: [],
       classId: null,
       backgroundId: null,
       themeId: null,
@@ -79,6 +84,7 @@ export function createCharacter(partial = {}) {
     },
     notes: {
       raceFeatures: '',
+      racialPowers: '',
       classFeatures: '',
       backgroundFeatures: '',
       feats: '',
@@ -138,7 +144,7 @@ export function validateStep(stepId, character, editorMeta) {
       if (lvl < 1 || lvl > 30) errors.push('Level must be between 1 and 30.');
       break;
     case 'race':
-      if (!character.selections.raceId) errors.push('Select a race from the compendium.');
+      errors.push(...validateRaceStep(character, null, null));
       break;
     case 'class':
       if (!character.selections.classId) errors.push('Select a class from the compendium.');

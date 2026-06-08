@@ -1,0 +1,51 @@
+{
+  "byRaceId": {
+    "race1": {
+      "decisions": [
+        {
+          "id": "racial-encounter",
+          "label": "Racial encounter power",
+          "prompt": "Choose your Dragonborn racial encounter power.",
+          "previewTerms": ["Dragon Breath", "Dragonfear"],
+          "options": [
+            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448" },
+            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577" }
+          ]
+        }
+      ]
+    },
+    "race33": {
+      "decisions": [
+        {
+          "id": "manifestation",
+          "label": "Elemental Manifestation",
+          "prompt": "Choose your Genasi elemental manifestation.",
+          "previewTerms": ["Firepulse", "Earthshock", "Promise of Storm", "Swiftcurrent", "Windwalker"],
+          "options": [
+            { "id": "earthsoul", "label": "Earthsoul", "powerId": "power1767" },
+            { "id": "firesoul", "label": "Firesoul", "powerId": "power1766" },
+            { "id": "stormsoul", "label": "Stormsoul", "powerId": "power1769" },
+            { "id": "watersoul", "label": "Watersoul", "powerId": "power1770" },
+            { "id": "windsoul", "label": "Windsoul", "powerId": "power1828" }
+          ]
+        }
+      ]
+    }
+  },
+  "byRaceName": {
+    "Dragonborn": {
+      "decisions": [
+        {
+          "id": "racial-encounter",
+          "label": "Racial encounter power",
+          "prompt": "Choose your Dragonborn racial encounter power.",
+          "previewTerms": ["Dragon Breath", "Dragonfear"],
+          "options": [
+            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448" },
+            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577" }
+          ]
+        }
+      ]
+    }
+  }
+}

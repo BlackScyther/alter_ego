@@ -169,70 +169,79 @@ function rawSkillRow(b, source, entry) {
   };
 }
 
+const ABILITY_NAME_RE =
+  '(Strength|Constitution|Dexterity|Intelligence|Wisdom|Charisma|STR|CON|DEX|INT|WIS|CHA)';
+
+function abilityBonusRow(source, entry, name, ability, amount, choiceGroup, note) {
+  return {
+    source,
+    sourceId: entry?.id ?? null,
+    sourceName: name,
+    ability: normalizeAbility(ability),
+    amount,
+    bonusType: defaultBonusTypeForSource(source),
+    choiceGroup,
+    alternatives: [],
+    excludesItemBonus: false,
+    note: note ?? `+${amount} ${ability}`
+  };
+}
+
+function extractAbilityBonusBlock(text) {
+  const match = text.match(/ability\s+(?:bonus(?:es)?|scores):?\s*([^.]+)/i);
+  return match?.[1]?.trim() ?? '';
+}
+
 export function parseAbilityBonusesFromHtml(html, source, entry) {
   const text = stripHtml(html);
   if (!text) return [];
   const name = entry?.listing_fields?.Name ?? entry?.id ?? source;
-  const out = [];
-  const blockRe = /ability\s+bonus[s]?:?\s*([^.]+)/i;
-  const block = text.match(blockRe)?.[1] ?? '';
-
-  const fixedRe = /\+\s*(\d+)\s*(Strength|Constitution|Dexterity|Intelligence|Wisdom|Charisma|STR|CON|DEX|INT|WIS|CHA)/gi;
-  let m;
-  while ((m = fixedRe.exec(block)) !== null) {
-    out.push({
-      source,
-      sourceId: entry?.id ?? null,
-      sourceName: name,
-      ability: normalizeAbility(m[2]),
-      amount: Number(m[1]),
-      bonusType: defaultBonusTypeForSource(source),
-      choiceGroup: null,
-      alternatives: [],
-      excludesItemBonus: false,
-      note: m[0].trim()
-    });
-  }
+  const block = extractAbilityBonusBlock(text);
+  if (!block) return [];
 
   if (/one ability score of your choice/i.test(block)) {
-    out.push({
-      source,
-      sourceId: entry?.id ?? null,
-      sourceName: name,
-      ability: 'any',
-      amount: 2,
-      bonusType: 'race',
-      choiceGroup: `${entry?.id ?? source}-any-one`,
-      alternatives: [],
-      excludesItemBonus: false,
-      note: '+2 to one ability score of your choice'
-    });
+    return [
+      abilityBonusRow(source, entry, name, 'any', 2, `${entry?.id ?? source}-any-one`, block.slice(0, 120))
+    ];
   }
 
-  const orPair = /\+\s*(\d+)\s*(\w+),\s*\+\s*(\d+)\s*(\w+)\s+or\s+(\w+)/i.exec(block);
-  if (orPair) {
-    const [, a1, ab1, a2, ab2, alt] = orPair;
-    const group = `${entry?.id ?? source}-or`;
-    for (const [amount, ab] of [
-      [Number(a1), normalizeAbility(ab1)],
-      [Number(a2), normalizeAbility(ab2)],
-      [Number(a2), normalizeAbility(alt)]
-    ]) {
-      out.push({
-        source,
-        sourceId: entry?.id ?? null,
-        sourceName: name,
-        ability: ab,
-        amount,
-        bonusType: defaultBonusTypeForSource(source),
-        choiceGroup: group,
-        alternatives: [],
-        excludesItemBonus: false,
-        note: block.trim().slice(0, 120)
-      });
-    }
+  const group = `${entry?.id ?? source}-or`;
+
+  // +2 Constitution, +2 Strength or +2 Wisdom
+  const fullOr = new RegExp(
+    `\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}\\s*,\\s*\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}\\s+or\\s+\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}`,
+    'i'
+  ).exec(block);
+  if (fullOr) {
+    const [, fixedAmt, fixedAb, optAmt1, optAb1, optAmt2, optAb2] = fullOr;
+    return [
+      abilityBonusRow(source, entry, name, fixedAb, Number(fixedAmt), null, block.slice(0, 120)),
+      abilityBonusRow(source, entry, name, optAb1, Number(optAmt1), group, block.slice(0, 120)),
+      abilityBonusRow(source, entry, name, optAb2, Number(optAmt2), group, block.slice(0, 120))
+    ];
   }
 
+  // +2 Constitution, +2 Wisdom or Strength
+  const shortOr = new RegExp(
+    `\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}\\s*,\\s*\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}\\s+or\\s+${ABILITY_NAME_RE}`,
+    'i'
+  ).exec(block);
+  if (shortOr) {
+    const [, fixedAmt, fixedAb, optAmt, optAb1, optAb2] = shortOr;
+    const amount = Number(optAmt);
+    return [
+      abilityBonusRow(source, entry, name, fixedAb, Number(fixedAmt), null, block.slice(0, 120)),
+      abilityBonusRow(source, entry, name, optAb1, amount, group, block.slice(0, 120)),
+      abilityBonusRow(source, entry, name, optAb2, amount, group, block.slice(0, 120))
+    ];
+  }
+
+  const out = [];
+  const fixedRe = new RegExp(`\\+\\s*(\\d+)\\s*${ABILITY_NAME_RE}`, 'gi');
+  let m;
+  while ((m = fixedRe.exec(block)) !== null) {
+    out.push(abilityBonusRow(source, entry, name, m[2], Number(m[1]), null, m[0].trim()));
+  }
   return out;
 }
 
@@ -303,6 +312,7 @@ function applyDefaultChoiceGroups(bonuses) {
   const groups = new Map();
   for (const b of bonuses) {
     if (!b.choiceGroup) continue;
+    if (b.source === 'race') continue;
     if (!groups.has(b.choiceGroup)) groups.set(b.choiceGroup, []);
     groups.get(b.choiceGroup).push(b);
   }
@@ -344,7 +354,23 @@ function defaultEnabled(raw, character) {
   );
   if (prev) return prev.enabled;
   if (!raw.choiceGroup) return true;
+  if (raw.source === 'race') {
+    return isRaceBonusChoiceEnabled(character, raw);
+  }
   return false;
+}
+
+function isRaceBonusChoiceEnabled(character, raw) {
+  if (raw.source !== 'race' || !raw.choiceGroup) return !raw.choiceGroup;
+  const kind = raw.skill ? 'skill' : 'ability';
+  const bucket = character.selections?.raceBonusChoices?.[kind] ?? {};
+  const chosen = bucket[raw.choiceGroup];
+  if (!chosen) return false;
+  if (kind === 'ability') {
+    if (raw.ability === 'any') return Boolean(chosen) && chosen !== 'any';
+    return raw.ability === chosen;
+  }
+  return raw.skill === chosen;
 }
 
 export function ensureAbilityShape(character) {
@@ -524,7 +550,7 @@ export function formatBonusSummary(character) {
       const t = BONUS_TYPE_LABELS[b.bonusType] ?? b.bonusType;
       const a =
         b.ability === 'any'
-          ? (character.abilities.anyChoice?.[b.id] ?? '?').toUpperCase()
+          ? (character.abilities.anyChoice?.[b.id] ?? character.selections?.raceBonusChoices?.ability?.[b.choiceGroup] ?? '?').toUpperCase()
           : b.ability.toUpperCase();
       return `${b.sourceName} (+${b.amount} ${a}, ${t})`;
     }),
@@ -534,4 +560,100 @@ export function formatBonusSummary(character) {
     })
   ];
   return parts.length ? parts.join(' · ') : 'No bonuses enabled';
+}
+
+/**
+ * @param {object | null | undefined} entry
+ */
+export function parseRaceBonusDecisions(entry) {
+  if (!entry) return [];
+  const { ability, skill } = bonusesFromEntry(entry, 'race');
+  /** @type {Array<{ choiceGroup: string, kind: 'ability'|'skill', options: Array<{ ability?: string, skill?: string, amount: number }>, prompt: string }>} */
+  const out = [];
+
+  const abilityGroups = new Map();
+  for (const b of ability) {
+    if (!b.choiceGroup) continue;
+    if (!abilityGroups.has(b.choiceGroup)) abilityGroups.set(b.choiceGroup, []);
+    abilityGroups.get(b.choiceGroup).push(b);
+  }
+  for (const [choiceGroup, rows] of abilityGroups) {
+    const options = [];
+    const seen = new Set();
+    for (const r of rows) {
+      const key = r.ability === 'any' ? 'any' : r.ability;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      options.push({ ability: r.ability, amount: r.amount });
+    }
+    if (!options.length) continue;
+    out.push({
+      choiceGroup,
+      kind: 'ability',
+      options,
+      prompt: rows[0]?.note || 'Choose an ability bonus.'
+    });
+  }
+
+  const skillGroups = new Map();
+  for (const b of skill) {
+    if (!b.choiceGroup) continue;
+    if (!skillGroups.has(b.choiceGroup)) skillGroups.set(b.choiceGroup, []);
+    skillGroups.get(b.choiceGroup).push(b);
+  }
+  for (const [choiceGroup, rows] of skillGroups) {
+    const options = rows.map((r) => ({ skill: r.skill, amount: r.amount }));
+    out.push({
+      choiceGroup,
+      kind: 'skill',
+      options,
+      prompt: rows[0]?.note || 'Choose a skill bonus.'
+    });
+  }
+
+  return out;
+}
+
+/**
+ * @param {object} character
+ * @param {'ability'|'skill'} kind
+ * @param {string} choiceGroup
+ * @param {string} value
+ */
+export function applyRaceBonusChoice(character, kind, choiceGroup, value) {
+  ensureAbilityShape(character);
+  character.selections = character.selections ?? {};
+  if (!character.selections.raceBonusChoices) {
+    character.selections.raceBonusChoices = { ability: {}, skill: {} };
+  }
+  character.selections.raceBonusChoices[kind] = character.selections.raceBonusChoices[kind] ?? {};
+  character.selections.raceBonusChoices[kind][choiceGroup] = value;
+  syncRaceBonusChoicesToBonuses(character);
+  return character;
+}
+
+export function syncRaceBonusChoicesToBonuses(character) {
+  ensureAbilityShape(character);
+  const choices = character.selections?.raceBonusChoices ?? { ability: {}, skill: {} };
+
+  for (const b of character.abilities.bonuses ?? []) {
+    if (b.source !== 'race' || !b.choiceGroup) continue;
+    b.enabled = isRaceBonusChoiceEnabled(character, b);
+    if (b.enabled && b.ability === 'any') {
+      const picked = choices.ability?.[b.choiceGroup];
+      if (picked && picked !== 'any') {
+        character.abilities.anyChoice = character.abilities.anyChoice ?? {};
+        character.abilities.anyChoice[b.id] = picked;
+      }
+    }
+  }
+
+  for (const b of character.skillBonuses ?? []) {
+    if (b.source !== 'race' || !b.choiceGroup) continue;
+    b.enabled = isRaceBonusChoiceEnabled(character, b);
+  }
+
+  recomputeAbilityScores(character);
+  recomputeSkillBonuses(character);
+  return character;
 }

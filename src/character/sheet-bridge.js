@@ -38,6 +38,7 @@ export function characterToSheetPayload(character) {
     milestones: sheet.milestones,
     'armor-penalty-global': sheet.armorPenaltyGlobal,
     'race-features': character.notes.raceFeatures,
+    'racial-powers': character.notes.racialPowers ?? '',
     'class-features': character.notes.classFeatures,
     feats: character.notes.feats,
     languages: character.notes.languages,

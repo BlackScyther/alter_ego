@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-05-23 (online campaign + doc set)
+**Last updated:** 2026-06-07 (race step rebuild)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -51,6 +51,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `editor.json` | Character editor wizard: steps, compendium categories, `writesTo` paths |
+| `race-subraces.json` | Parent race → subrace id map (Dwarf, Elf, etc.) |
+| `race-build-options.json` | Dragonborn / Genasi build-choice definitions (power picks) |
 | `import.json` | iws.mx JSONP import URLs and SQLite target spec |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
 | `README.md` | Index of metadata files; points to Alter Ego `PROJECT.md` |
@@ -83,6 +85,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `character-io.test.mjs` | Export filename sanitization, import |
 | `party-loader.test.mjs` | GM file picker, folder/text import |
 | `html-escape.test.mjs` | XSS escaping for GM/party UI |
+| `race-subraces.test.mjs` | Subrace map and base-race filter |
+| `race-parse.test.mjs` | Race HTML parsing, metric helpers, notes compaction |
+| `compendium-links.test.mjs` | Compendium term linking (longest-first, boundaries) |
 
 ## `server/`
 
@@ -163,8 +168,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `model.js` | `createCharacter`, schema version, identity/sheet/selections |
 | `store.js` | `localStorage` multi-character list |
 | `io.js` | Export/import `{Name}_{level}.json` filenames and parsing |
-| `sheet-bridge.js` | Maps character document → sheet field IDs |
-| `tutor.js` | Ability/skill bonuses, choice groups, 4e stacking rules |
+| `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
+| `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking |
+| `race-subraces.js` | Core/subrace map helpers and base-race filtering |
+| `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants |
+| `race-selections.js` | Race step validation, build/bonus choices, grant sync |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
 | `party-loader.js` | Loads party JSON for GM console |
 
@@ -180,14 +188,31 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `index.html` | Generator: gate (load) → post-load → wizard (Tailwind + editor.css) |
-| `editor.js` | Gate modes, `creationFlow` / `builderFlow`, compendium pickers |
-| `editor.css` | Editor layout and components (complements Tailwind) |
+| `editor.js` | Gate modes, `creationFlow` / `builderFlow`, compendium pickers, link index init |
+| `editor.css` | Editor layout, race step, compendium hover cards |
+| `steps/race-step.js` | 3-phase race picker, bonus/build choices, grants, linked preview |
+| `steps/race-grants-panel.js` | Racial power/feat tile cards on race step |
 
 ## `src/shared/`
 
 | File | Role |
 |------|------|
 | `escape-html.js` | Shared HTML escaping for GM/party cards |
+| `imperial-metric.js` | Height/weight metric helpers for race preview |
+
+## `src/data/`
+
+| File | Role |
+|------|------|
+| `compendium.js` | SQLite/stub compendium provider |
+| `compendium-link-index.js` | Longest-first compendium name index for editor tooltips |
+
+## `src/ui/`
+
+| File | Role |
+|------|------|
+| `compendium-links.js` | Link compendium terms in plain text and HTML previews |
+| `compendium-hover-card.js` | Floating hover card for `.comp-link` terms |
 
 ## `src/gm/`
 

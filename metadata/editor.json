@@ -35,7 +35,17 @@
       "subtitle": "Compendium race entry",
       "compendiumCategory": "race",
       "selectionCardinality": 1,
-      "writesTo": ["identity.race", "identity.size", "selections.raceId", "notes.raceFeatures"]
+      "writesTo": [
+        "identity.race",
+        "identity.size",
+        "selections.raceId",
+        "selections.raceBuildChoices",
+        "selections.raceBonusChoices",
+        "selections.racePowerIds",
+        "selections.raceFeatIds",
+        "notes.raceFeatures",
+        "notes.racialPowers"
+      ]
     },
     "class": {
       "title": "Class",

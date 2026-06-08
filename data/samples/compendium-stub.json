@@ -15,13 +15,25 @@
         {
           "id": "race2",
           "listing_fields": { "Name": "Dwarf", "Origin": "Natural", "Size": "Medium", "SourceBook": "PHB" },
-          "body_html": "<p><b>Ability Bonus:</b> +2 Constitution, +2 Wisdom or Strength.</p>",
+          "body_html": "<h1 class=player>Dwarf</h1><i>Stout defenders of mountain halls.</i><p class=flavor><b>RACIAL TRAITS</b></p><blockquote><b>Average Height:</b> 4'3\"–4'9\"<br><b>Average Weight:</b> 160–220 lb.<br><b>Ability scores:</b> +2 Constitution, +2 Wisdom or Strength<br><b>Size:</b> Medium<br><b>Speed:</b> 5 squares<br><b>Vision:</b> Low-light<br><b>Languages:</b> Common, Dwarven<br><b>Skill Bonuses:</b> +2 Dungeoneering, +2 Endurance<br><b>Cast-Iron Stomach:</b> +5 racial bonus to saving throws against poison.<br><b>Dwarven Resilience:</b> power99</blockquote><p class=flavor>A dwarf is a stout warrior and master craftsman.</p><h3>PHYSICAL QUALITIES</h3><p class=flavor>A dwarf grows thick muscle in a lifetime of labor.</p>",
           "ability_bonuses": [
             { "ability": "con", "amount": 2 },
             { "ability": "wis", "amount": 2, "choiceGroup": "dwarf-second", "alternatives": ["str"], "note": "Or +2 Strength instead" },
             { "ability": "str", "amount": 2, "choiceGroup": "dwarf-second", "alternatives": ["wis"], "note": "Or +2 Wisdom instead" }
           ],
           "index_text": "Dwarf natural medium"
+        },
+        {
+          "id": "race54",
+          "listing_fields": { "Name": "Gold Dwarf", "Origin": "Natural", "Size": "Medium", "SourceBook": "FRPG" },
+          "body_html": "<h1 class=player>Gold Dwarf</h1><p class=flavor>A gold dwarf hails from the southern deserts.</p><h3>Gold Dwarf Benefits</h3><p><b>Cast-Iron Stomach:</b> Same as dwarf.</p><p><b>Gold Dwarf Power:</b> power100</p>",
+          "index_text": "Gold Dwarf subrace"
+        },
+        {
+          "id": "race55",
+          "listing_fields": { "Name": "Shield Dwarf", "Origin": "Natural", "Size": "Medium", "SourceBook": "FRPG" },
+          "body_html": "<h1 class=player>Shield Dwarf</h1><p class=flavor>A shield dwarf is a northern mountain dwarf.</p><h3>Shield Dwarf Benefits</h3><p><b>Dwarven Weapon Training:</b> proficiency with throwing hammer and warhammer.</p>",
+          "index_text": "Shield Dwarf subrace"
         },
         {
           "id": "race3",
@@ -181,6 +193,18 @@
     "power": {
       "displayName": "Power",
       "entries": [
+        {
+          "id": "power99",
+          "listing_fields": { "Name": "Dwarven Resilience", "ClassName": "Dwarf", "Level": "1", "Type": "Encounter", "Action": "Minor", "SourceBook": "PHB" },
+          "body_html": "<p>Use second wind as a minor action once per encounter.</p>",
+          "index_text": "Dwarven Resilience dwarf racial"
+        },
+        {
+          "id": "power100",
+          "listing_fields": { "Name": "Gold Dwarf Resilience", "ClassName": "Gold Dwarf", "Level": "1", "Type": "Encounter", "Action": "Minor", "SourceBook": "FRPG" },
+          "body_html": "<p>Gold dwarf racial encounter power.</p>",
+          "index_text": "Gold Dwarf racial power"
+        },
         {
           "id": "power1",
           "listing_fields": { "Name": "Cleave", "ClassName": "Fighter", "Level": "1", "Type": "At-Will", "Action": "Standard", "SourceBook": "PHB" },
