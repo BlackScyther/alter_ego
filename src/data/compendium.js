@@ -4,7 +4,7 @@
 
 import initSqlJs from 'sql.js/dist/sql-wasm.js';
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
-import { classNameMatches, normalizePowerType, powerTypeLikePatterns } from '../editor/power-filter.js';
+import { classNameMatches, classNameLikePatterns, normalizePowerType, powerTypeLikePatterns } from '../editor/power-filter.js';
 
 const SEARCH_MIN = 3;
 
@@ -288,8 +288,11 @@ export class CompendiumProvider {
       let powerClause = '';
       const powerParams = [];
       if (className) {
-        powerClause += ` AND lower(json_extract(listing_fields, '$.ClassName')) LIKE ?`;
-        powerParams.push(`%${String(className).toLowerCase()}%`);
+        const patterns = classNameLikePatterns(className);
+        if (patterns.length) {
+          powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.ClassName')) LIKE ?`).join(' OR ')})`;
+          powerParams.push(...patterns);
+        }
       }
       if (level != null && level !== '') {
         powerClause += ` AND cast(json_extract(listing_fields, '$.Level') as integer) = ?`;

@@ -1,0 +1,12 @@
+{
+  "byClassId": {
+    "class8": {
+      "powerIds": ["power1590"]
+    }
+  },
+  "byClassName": {
+    "Warlord (Marshal)": {
+      "powerIds": ["power1590"]
+    }
+  }
+}

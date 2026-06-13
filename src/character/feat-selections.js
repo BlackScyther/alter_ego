@@ -5,6 +5,9 @@
 /** Levels at which a character gains a feat (4e). */
 export const FEAT_GAIN_LEVELS = [1, 2, 4, 6, 8, 10, 11, 12, 14, 16, 18, 20, 21, 22, 24, 26, 28, 30];
 
+/** @type {const} */
+export const FEAT_TIER_ORDER = ['Heroic', 'Paragon', 'Epic'];
+
 /**
  * @param {number} slotLevel
  * @returns {'Heroic' | 'Paragon' | 'Epic'}
@@ -34,6 +37,23 @@ export function getFeatSlotsForLevel(characterLevel) {
       label: `Level ${slotLevel} feat (${tier})`
     };
   });
+}
+
+/**
+ * @param {FeatSlot[]} slots
+ * @returns {Record<(typeof FEAT_TIER_ORDER)[number], FeatSlot[]>}
+ */
+export function groupFeatSlotsByTier(slots) {
+  /** @type {Record<(typeof FEAT_TIER_ORDER)[number], FeatSlot[]>} */
+  const groups = {
+    Heroic: [],
+    Paragon: [],
+    Epic: []
+  };
+  for (const slot of slots) {
+    groups[slot.tier]?.push(slot);
+  }
+  return groups;
 }
 
 /**

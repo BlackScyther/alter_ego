@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   normalizePowerType,
   classNameMatches,
+  classNameLikePatterns,
   powerMatchesSlot,
   filterPowerEntries,
   formatPowerListingMeta
@@ -12,8 +13,12 @@ describe('power-filter', () => {
   it('normalizes power type strings', () => {
     assert.equal(normalizePowerType('At-Will'), 'At-Will');
     assert.equal(normalizePowerType('At Will'), 'At-Will');
-    assert.equal(normalizePowerType('Encounter'), 'Encounter');
-    assert.equal(normalizePowerType('Daily'), 'Daily');
+    assert.equal(normalizePowerType('Enc. Attack'), 'Encounter');
+    assert.equal(normalizePowerType('Enc. Utility'), 'Utility');
+    assert.equal(normalizePowerType('Daily Attack'), 'Daily');
+    assert.equal(normalizePowerType('Daily Utility'), 'Utility');
+    assert.equal(normalizePowerType('At-Will Attack'), 'At-Will');
+    assert.equal(normalizePowerType('At-Will Utility'), 'Utility');
     assert.equal(normalizePowerType('Utility'), 'Utility');
   });
 
@@ -22,6 +27,26 @@ describe('power-filter', () => {
     assert.ok(classNameMatches('Fighter / Wizard', 'Fighter'));
     assert.ok(classNameMatches('Fighter/Wizard', 'Wizard'));
     assert.ok(!classNameMatches('Fighter', 'Cleric'));
+  });
+
+  it('powerMatchesSlot accepts compendium utility type strings', () => {
+    const slot = { id: 'power-utility-2', slotLevel: 2, powerType: 'Utility', label: 'x' };
+    const ctx = { className: 'Warlord', characterLevel: 2 };
+    assert.ok(
+      powerMatchesSlot(
+        { Type: 'Enc. Utility', Level: '2', ClassName: 'Warlord' },
+        slot,
+        ctx
+      )
+    );
+    assert.ok(
+      powerMatchesSlot(
+        { Type: 'Daily Utility', Level: '2', ClassName: 'Warlord' },
+        slot,
+        ctx
+      )
+    );
+    assert.ok(!powerMatchesSlot({ Type: 'Enc. Attack', Level: '2', ClassName: 'Warlord' }, slot, ctx));
   });
 
   it('powerMatchesSlot enforces type level and class', () => {
@@ -99,14 +124,29 @@ describe('power-filter', () => {
     assert.equal(list[0].id, 'b');
   });
 
-  it('formatPowerListingMeta includes level and type', () => {
+  it('classNameLikePatterns includes Essentials base name', () => {
+    const patterns = classNameLikePatterns('Warlord (Marshal)');
+    assert.ok(patterns.includes('%warlord (marshal)%'));
+    assert.ok(patterns.includes('%warlord%'));
+  });
+
+  it('formatPowerListingMeta leads with type then level', () => {
     const meta = formatPowerListingMeta({
       Level: '3',
       Type: 'Encounter',
       Action: 'Standard',
       SourceBook: 'PHB'
     });
+    assert.ok(meta.startsWith('Encounter'));
     assert.ok(meta.includes('Lv 3'));
-    assert.ok(meta.includes('Encounter'));
+  });
+
+  it('formatPowerListingMeta can omit type for badge layout', () => {
+    const meta = formatPowerListingMeta(
+      { Level: '3', Type: 'Encounter', Action: 'Standard' },
+      { omitType: true }
+    );
+    assert.ok(!meta.includes('Encounter'));
+    assert.ok(meta.startsWith('Lv 3'));
   });
 });

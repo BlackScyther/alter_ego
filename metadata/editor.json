@@ -7,6 +7,8 @@
     "background",
     "class",
     "abilities",
+    "powers",
+    "feats",
     "equipment"
   ],
   "builderFlow": [
@@ -15,9 +17,8 @@
     "background",
     "class",
     "abilities",
-    "theme",
-    "feats",
     "powers",
+    "feats",
     "equipment",
     "paragon",
     "epic",
@@ -52,7 +53,20 @@
       "subtitle": "Base class (hybrid later)",
       "compendiumCategory": "class",
       "selectionCardinality": 1,
-      "writesTo": ["identity.class", "identity.role", "selections.classId", "notes.classFeatures"]
+      "writesTo": [
+        "identity.class",
+        "identity.role",
+        "selections.classId",
+        "selections.classBuildChoices",
+        "selections.classTrainedSkillChoices",
+        "selections.classPowerIds",
+        "selections.trainedSkillIds",
+        "notes.classFeatures",
+        "sheet.hp",
+        "sheet.defenses",
+        "sheet.speed",
+        "sheet.skills"
+      ]
     },
     "abilities": {
       "title": "Ability Scores",
@@ -68,21 +82,29 @@
       "compendiumCategory": "background",
       "selectionCardinality": 1,
       "optional": true,
-      "writesTo": ["selections.backgroundId", "identity.background"]
-    },
-    "theme": {
-      "title": "Theme",
-      "compendiumCategory": "theme",
-      "selectionCardinality": 1,
-      "optional": true,
-      "writesTo": ["selections.themeId"]
+      "writesTo": [
+        "selections.backgroundId",
+        "selections.backgroundBonusChoices",
+        "selections.backgroundEffectChoices",
+        "selections.backgroundSkillBonusKind",
+        "identity.background",
+        "notes.backgroundFeatures"
+      ]
     },
     "feats": {
       "title": "Feats",
       "subtitle": "Pick one feat per slot for your level. Eligible feats are filtered by race, class, and prerequisites.",
       "compendiumCategory": "feat",
       "selectionCardinality": "level-based",
-      "writesTo": ["selections.featIds", "selections.featSelections", "notes.feats"],
+      "writesTo": [
+        "selections.featIds",
+        "selections.featSelections",
+        "notes.feats",
+        "selections.grantedRitualIds",
+        "selections.ritualSelections",
+        "selections.ritualIds",
+        "notes.rituals"
+      ],
       "filters": [
         { "id": "all", "label": "All", "default": true },
         { "id": "phb", "label": "PHB", "sourceBooks": ["PHB"] },
@@ -96,7 +118,13 @@
       "compendiumCategory": "power",
       "filterByClass": true,
       "selectionCardinality": "level-based",
-      "writesTo": ["selections.powerIds", "selections.powerSelections", "notes.powers"]
+      "writesTo": ["selections.powerIds", "selections.powerSelections", "notes.powers", "notes.rituals"],
+      "filters": [
+        { "id": "all", "label": "All", "default": true },
+        { "id": "phb", "label": "PHB", "sourceBooks": ["PHB"] },
+        { "id": "phb2", "label": "PHB2", "sourceBooks": ["PHB2"] },
+        { "id": "darksun", "label": "Dark Sun", "sourceBooks": ["DSCS", "DSDG", "DSH", "DSE", "DSAT", "DSCH", "DSE2", "DSH2"] }
+      ]
     },
     "equipment": {
       "title": "Equipment",
@@ -127,7 +155,7 @@
     "abilityBonuses": "Same bonus type on one ability does not stack (use highest). Different types add (e.g. Racial + Feat). Point-buy is base only; end result is held firm on the sheet.",
     "skillBonuses": "Two Skill bonuses to the same skill do not add. Skill + Feat to the same skill do add. Totals apply to sheet skill Misc.",
     "itemBonuses": "Enhancement and item bonuses on the sheet do not stack with each other; use the highest. Some features exclude item bonuses — note those in Misc on the sheet.",
-    "sources": ["race", "class", "background", "theme"]
+    "sources": ["race", "class", "background"]
   },
   "partyLimits": {
     "minActiveCharacters": 3,

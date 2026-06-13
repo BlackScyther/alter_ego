@@ -144,6 +144,28 @@ export async function renderPowerCollectionPanel(root, ctx) {
     }
   }
 
+  const classPowerIds = Array.isArray(character.selections?.classPowerIds)
+    ? character.selections.classPowerIds
+    : [];
+
+  if (classPowerIds.length) {
+    const cardsEl = renderGroup(root, 'Class powers', 'Granted by class features and build.');
+    for (const pid of classPowerIds) {
+      const entry = await compendium.getEntry(pid);
+      if (!entry) continue;
+      const name = entry.listing_fields?.Name ?? pid;
+      const btn = renderCardButton(cardsEl, {
+        id: pid,
+        name,
+        meta: formatPowerListingMeta(entry.listing_fields),
+        readonly: true
+      });
+      btn.addEventListener('click', async () => {
+        onPreview?.(entry);
+      });
+    }
+  }
+
   if (racePowerIds.length) {
     const cardsEl = renderGroup(
       root,

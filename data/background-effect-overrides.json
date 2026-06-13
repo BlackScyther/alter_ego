@@ -1,0 +1,11 @@
+{
+  "background.auspicious-birth": [
+    { "type": "hp-con-substitute", "mode": "choose-one" }
+  ],
+  "background.gritty-sergeant": [
+    { "type": "initiative-misc", "amount": 1 }
+  ],
+  "background.officer-who-came-out-of-retirement": [
+    { "type": "initiative-misc", "amount": 1 }
+  ]
+}

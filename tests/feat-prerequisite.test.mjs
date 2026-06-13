@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {
   isEmptyPrerequisite,
   featMatchesSlotTier,
+  featMatchesSlotTierRetrain,
   prereqPassesLevelGate,
   prereqPassesRace,
   prereqPassesClass,
   prereqPassesAbilities,
   featPassesDefaultFilter,
+  featPassesTierFilter,
   filterFeatEntries
 } from '../src/editor/feat-prerequisite.js';
 
@@ -103,6 +105,29 @@ describe('feat-prerequisite', () => {
     assert.equal(featPassesDefaultFilter(strFeat, ctx, slot), true);
   });
 
+  it('featMatchesSlotTierRetrain allows lower tiers on paragon slots', () => {
+    assert.equal(featMatchesSlotTierRetrain('Heroic', 'Paragon'), true);
+    assert.equal(featMatchesSlotTierRetrain('Paragon', 'Paragon'), true);
+    assert.equal(featMatchesSlotTierRetrain('Epic', 'Paragon'), false);
+  });
+
+  it('filterFeatEntries retrain mode allows heroic feats on paragon slot', () => {
+    const ctx = {
+      level: 11,
+      raceTerms: [],
+      classInfo: { className: '', role: '', powerSource: '' },
+      backgroundName: '',
+      abilityScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      trainedSkills: new Set(),
+      hasTrainingData: false,
+      ownedFeatNames: new Set(),
+      ownedFeatIds: new Set()
+    };
+    const slot = { id: 'feat-11', slotLevel: 11, tier: 'Paragon' };
+    const list = filterFeatEntries([genericFeat], ctx, slot, { retrain: true });
+    assert.equal(list.length, 1);
+  });
+
   it('filterFeatEntries excludes other slot picks', () => {
     const ctx = {
       level: 1,
@@ -122,5 +147,26 @@ describe('feat-prerequisite', () => {
     });
     assert.equal(list.length, 1);
     assert.equal(list[0].id, 'feat_generic');
+  });
+
+  it('filterFeatEntries enforcePrerequisites=false skips class prerequisite', () => {
+    const ctx = {
+      level: 1,
+      raceTerms: [],
+      classInfo: { className: 'Wizard', role: '', powerSource: '' },
+      backgroundName: '',
+      abilityScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      trainedSkills: new Set(),
+      hasTrainingData: false,
+      ownedFeatNames: new Set(),
+      ownedFeatIds: new Set()
+    };
+    const slot = { id: 'feat-1', slotLevel: 1, tier: 'Heroic' };
+    assert.equal(featPassesDefaultFilter(fighterFeat, ctx, slot), false);
+    assert.equal(featPassesTierFilter(fighterFeat, ctx, slot), true);
+    const strict = filterFeatEntries([fighterFeat], ctx, slot, { enforcePrerequisites: true });
+    const relaxed = filterFeatEntries([fighterFeat], ctx, slot, { enforcePrerequisites: false });
+    assert.equal(strict.length, 0);
+    assert.equal(relaxed.length, 1);
   });
 });

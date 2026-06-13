@@ -40,4 +40,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-06-07 — Race step rebuild: subraces, parsing, grants, compendium hover links; see [project.md](project.md) and [tests.md](tests.md).
+**Last agent sync:** 2026-06-13 — Feats step uses the same shared-picker layout, filters, and slot mechanics as the Powers step.

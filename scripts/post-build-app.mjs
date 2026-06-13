@@ -31,4 +31,10 @@ if (existsSync(db)) {
 cpSync(resolve(projectRoot, 'dimensions.json'), resolve(appDir, 'dimensions.json'));
 copyIntoApp(resolve(projectRoot, 'src/party'), 'party');
 
+const favicon = resolve(projectRoot, 'src/assets/favicon.png');
+if (existsSync(favicon)) {
+  mkdirSync(resolve(appDir, 'assets'), { recursive: true });
+  cpSync(favicon, resolve(appDir, 'assets/favicon.png'));
+}
+
 console.log('[post-build-app] Static assets copied into dist/app');

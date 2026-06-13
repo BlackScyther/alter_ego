@@ -75,13 +75,3 @@ export function renderLinkedEntryPreview(previewEl, html, index) {
   previewEl.classList.add('comp-linked-preview');
 }
 
-/**
- * @param {HTMLElement} container
- * @param {string} text
- * @param {{ terms: Array<{ id: string, name: string, category_slug: string }> }} index
- */
-export function renderLinkedTextPreview(container, text, index) {
-  if (!container) return;
-  container.innerHTML = linkCompendiumTermsInText(text, index);
-  container.classList.add('comp-linked-preview');
-}

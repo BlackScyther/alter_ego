@@ -8,6 +8,11 @@ import {
   normalizeBonusType,
   stackBonusesOnTarget
 } from './bonus-stacking.js';
+import { parseBackgroundEntry } from './background-parse.js';
+import { isBackgroundSkillChoiceComplete } from './background-selections.js';
+import { detectBackgroundEffects, applyBackgroundEffects } from './background-effects.js';
+import { ensureDerivedBonuses } from './hp.js';
+import { syncClassTraitsToSheet } from './class-selections.js';
 
 export const ABILITY_KEYS = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export const SKILL_IDS = SKILLS.map((s) => s.id);
@@ -134,11 +139,36 @@ export function bonusesFromEntry(entry, source) {
     for (const b of entry.skill_bonuses) {
       skill.push(rawSkillRow(b, source, entry));
     }
+  } else if (source === 'background' && parseBackgroundEntry(entry).skillBonusKind === 'choice') {
+    // Skill bonuses come from backgroundBonusChoices, not HTML parsing.
   } else {
     skill.push(...parseSkillBonusesFromHtml(entry.body_html, source, entry));
   }
 
   return { ability, skill };
+}
+
+/**
+ * @param {object} character
+ * @param {object} entry
+ * @param {ReturnType<typeof parseBackgroundEntry>} parsed
+ */
+export function backgroundSkillBonusesFromChoices(character, entry, parsed) {
+  const choices = character.selections?.backgroundBonusChoices ?? { mode: null, skills: [] };
+  if (!isBackgroundSkillChoiceComplete(parsed, choices)) return [];
+
+  const amount = choices.mode === 'plus2-one' ? 2 : 1;
+  const name = entry.listing_fields?.Name ?? entry.id;
+  return (choices.skills ?? []).map((skillId) => ({
+    source: 'background',
+    sourceId: entry.id,
+    sourceName: name,
+    skill: normalizeSkillId(skillId),
+    amount,
+    bonusType: 'skill',
+    choiceGroup: 'background-associated-skills',
+    note: `+${amount} ${normalizeSkillId(skillId)}`
+  }));
 }
 
 function rawAbilityRow(b, source, entry) {
@@ -281,6 +311,15 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
     if (!entry) continue;
     const { ability, skill } = bonusesFromEntry(entry, source);
     for (const raw of ability) derivedAbility.push(toAbilityRow(raw, character));
+    if (source === 'background') {
+      const parsed = parseBackgroundEntry(entry);
+      if (parsed.skillBonusKind === 'choice') {
+        for (const raw of backgroundSkillBonusesFromChoices(character, entry, parsed)) {
+          derivedSkill.push(toSkillRow(raw, character));
+        }
+        continue;
+      }
+    }
     for (const raw of skill) derivedSkill.push(toSkillRow(raw, character));
   }
 
@@ -300,7 +339,31 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
   character.skillBonuses = skillMerged;
   recomputeAbilityScores(character);
   recomputeSkillBonuses(character);
+  syncBackgroundEffects(character, entriesBySource.background, entriesBySource.class);
+  if (entriesBySource.class) {
+    syncClassTraitsToSheet(character, entriesBySource.class);
+  }
   return character;
+}
+
+/**
+ * @param {object} character
+ * @param {object | null | undefined} backgroundEntry
+ * @param {object | null | undefined} [classEntry]
+ */
+export function syncBackgroundEffects(character, backgroundEntry, classEntry = null) {
+  if (!backgroundEntry) {
+    ensureDerivedBonuses(character);
+    character.sheet.derivedBonuses.initiative = 0;
+    character.sheet.derivedBonuses.hpSubstituteAbility = null;
+    character.sheet.derivedBonuses.hpSubstituteScore = null;
+    return character;
+  }
+
+  const parsed = parseBackgroundEntry(backgroundEntry);
+  const effects = detectBackgroundEffects(backgroundEntry, parsed);
+  const scores = getFinalScores(character);
+  return applyBackgroundEffects(character, effects, { classEntry, scores });
 }
 
 /** @deprecated use syncBonusesFromSelections */
@@ -512,12 +575,18 @@ export function setBaseScore(character, ability, value) {
   return character;
 }
 
+/** Race ability/skill choices are made on the race step — hide those rows from tutor tables. */
+export function bonusesForTutorTable(bonuses) {
+  return (bonuses ?? []).filter((b) => b.source !== 'race');
+}
+
 export function tutorWarnings(character) {
   const warnings = [];
   const abilityBreak = abilityScoreBreakdown(character);
   const skillBreak = skillBonusBreakdown(character);
 
   for (const b of character.abilities.bonuses ?? []) {
+    if (b.source === 'race') continue;
     if (b.enabled && b.ability === 'any' && !character.abilities.anyChoice?.[b.id]) {
       warnings.push(`Choose which ability receives ${b.sourceName}'s bonus.`);
     }

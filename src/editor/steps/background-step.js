@@ -14,9 +14,52 @@ import {
   showIdleHint,
   COMPENDIUM_SEARCH_MIN
 } from '../picker/combobox-picker.js';
+import {
+  renderBackgroundPreviewHtml,
+  buildBackgroundNotesText,
+  parseBackgroundEntry
+} from '../../character/background-parse.js';
+import {
+  ensureBackgroundSelectionsShape,
+  resetBackgroundBonusChoices,
+  setBackgroundSkillMode,
+  toggleBackgroundSkillChoice
+} from '../../character/background-selections.js';
+import { setBackgroundHpSubstituteAbility } from '../../character/background-effect-selections.js';
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 
 const LIST_LIMIT = 500;
+
+/**
+ * @param {HTMLElement} previewEl
+ * @param {(mode: 'plus2-one' | 'plus1-two') => void} onModeChange
+ * @param {(skillId: string) => void} onSkillToggle
+ */
+function attachPreviewSkillChoices(previewEl, onModeChange, onSkillToggle, onHpAbilityPick) {
+  if (!previewEl || previewEl.dataset.skillDelegation) return;
+  previewEl.dataset.skillDelegation = 'true';
+
+  previewEl.addEventListener('change', (e) => {
+    const input = e.target;
+    if (input?.name === 'background-skill-mode' && input.checked) {
+      onModeChange(input.value);
+    }
+  });
+
+  previewEl.addEventListener('click', (e) => {
+    const skillBtn = e.target.closest('.background-skill-btn');
+    if (skillBtn) {
+      const skillId = skillBtn.dataset.skill;
+      if (skillId) onSkillToggle(skillId);
+      return;
+    }
+    const hpBtn = e.target.closest('.background-hp-ability-btn');
+    if (hpBtn) {
+      const ability = hpBtn.dataset.ability;
+      if (ability) onHpAbilityPick(ability);
+    }
+  });
+}
 
 /**
  * @param {HTMLElement} panel
@@ -34,6 +77,7 @@ const LIST_LIMIT = 500;
 export async function renderBackgroundStep(panel, ctx) {
   const { character, compendium, def, applySelection, getNotes, setNotes, onPersist, refreshBonuses, renderTutorHint } =
     ctx;
+  ensureBackgroundSelectionsShape(character);
   const filterMode = getBackgroundRaceFilterMode();
   const getSelectedId = () => character.selections.backgroundId ?? null;
 
@@ -56,18 +100,62 @@ export async function renderBackgroundStep(panel, ctx) {
         })}
       </div>
       <div class="entry-preview" id="entry-preview"></div>
-    </div>
-    <div class="field" style="margin-top:12px">
-      <label>Notes (features text)</label>
-      <textarea id="step-notes" rows="4">${esc(getNotes())}</textarea>
     </div>`;
 
   const listbox = panel.querySelector('#picker-listbox');
   const preview = panel.querySelector('#entry-preview');
   const searchInput = panel.querySelector('#picker-search');
   const raceFilterSelect = panel.querySelector('#picker-race-filter');
-
   let raceTerms = await getRaceMatchTerms(character, compendium);
+  /** @type {object | null} */
+  let currentEntry = null;
+
+  function refreshPreview(entry) {
+    if (!entry) {
+      preview.innerHTML = '';
+      return;
+    }
+    preview.innerHTML = renderBackgroundPreviewHtml(entry, {
+      choices: character.selections.backgroundBonusChoices,
+      effectChoices: character.selections.backgroundEffectChoices
+    });
+  }
+
+  async function syncNotesFromEntry(entry) {
+    if (!entry) return;
+    const text = buildBackgroundNotesText(
+      entry,
+      character.selections.backgroundBonusChoices,
+      character.selections.backgroundEffectChoices
+    );
+    if (text) setNotes(text);
+  }
+
+  async function afterChoiceChange() {
+    if (!currentEntry) return;
+    refreshPreview(currentEntry);
+    await syncNotesFromEntry(currentEntry);
+    await refreshBonuses();
+    await onPersist();
+  }
+
+  attachPreviewSkillChoices(
+    preview,
+    (mode) => {
+      const parsed = parseBackgroundEntry(currentEntry);
+      setBackgroundSkillMode(character, mode, parsed);
+      afterChoiceChange();
+    },
+    (skillId) => {
+      const parsed = parseBackgroundEntry(currentEntry);
+      toggleBackgroundSkillChoice(character, skillId, parsed);
+      afterChoiceChange();
+    },
+    (ability) => {
+      setBackgroundHpSubstituteAbility(character, ability);
+      afterChoiceChange();
+    }
+  );
 
   async function loadFilteredEntries() {
     const raw = await compendium.listEntries('background', { limit: LIST_LIMIT });
@@ -117,7 +205,9 @@ export async function renderBackgroundStep(panel, ctx) {
   async function onPick(id, button) {
     const entry = await compendium.getEntry(id);
     if (!entry) return;
+    resetBackgroundBonusChoices(character);
     applySelection('background', entry);
+    currentEntry = entry;
     await refreshBonuses();
     searchInput.value = entry.listing_fields?.Name ?? id;
     combobox.closeDropdown();
@@ -127,8 +217,8 @@ export async function renderBackgroundStep(panel, ctx) {
     });
     button.classList.add('picker-option--selected');
     button.setAttribute('aria-selected', 'true');
-    preview.innerHTML = entry.body_html ?? '';
-    panel.querySelector('#step-notes').value = getNotes();
+    refreshPreview(entry);
+    if (!getNotes()) await syncNotesFromEntry(entry);
     await onPersist();
   }
 
@@ -139,11 +229,6 @@ export async function renderBackgroundStep(panel, ctx) {
     refresh(searchInput.value);
   });
 
-  panel.querySelector('#step-notes').addEventListener('input', (e) => {
-    setNotes(e.target.value);
-    onPersist();
-  });
-
   renderTutorHint?.(panel);
   await refresh();
 
@@ -151,6 +236,10 @@ export async function renderBackgroundStep(panel, ctx) {
   if (initialId) {
     await setComboboxInputFromEntry(searchInput, compendium, initialId);
     const entry = await compendium.getEntry(initialId);
-    if (entry) preview.innerHTML = entry.body_html ?? '';
+    if (entry) {
+      currentEntry = entry;
+      refreshPreview(entry);
+      await syncNotesFromEntry(entry);
+    }
   }
 }

@@ -9,9 +9,12 @@ const ABIL_MAP = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export function characterToSheetPayload(character) {
   const id = character.identity;
   const scores = getFinalScores(character);
-  const sheet = character.sheet;
+  const sheet = character.sheet ?? {};
+  const extras = sheet.extraFields ?? {};
+  const session = sheet.session ?? {};
+  const skills = sheet.skills ?? {};
 
-  return {
+  const payload = {
     'player-name': id.playerName,
     'character-name': id.characterName,
     level: id.level,
@@ -39,14 +42,62 @@ export function characterToSheetPayload(character) {
     'armor-penalty-global': sheet.armorPenaltyGlobal,
     'race-features': character.notes.raceFeatures,
     'racial-powers': character.notes.racialPowers ?? '',
-    'class-features': character.notes.classFeatures,
+    'class-features': formatClassFeaturesForSheet(character.notes),
+    'class-powers': character.notes.powers ?? '',
     feats: character.notes.feats,
+    rituals: character.notes.rituals ?? '',
     languages: character.notes.languages,
     'ap-effects': character.notes.apEffects,
     ...flattenDefenses(sheet.defenses),
     ...flattenSpeed(sheet.speed),
-    ...flattenSkillBonuses(getSkillBonusTotals(character))
+    ...flattenSkillBonuses(getSkillBonusTotals(character)),
+    'init-conditional': extras['init-conditional'] ?? '',
+    'save-mods': extras['save-mods'] ?? '',
+    resistances: extras.resistances ?? '',
+    conditions: extras.conditions ?? '',
+    'special-movement': extras['special-movement'] ?? '',
+    'special-senses': extras['special-senses'] ?? '',
+    'second-wind': Boolean(session.secondWind),
+    'death-fail-1': Boolean(session.deathFail1),
+    'death-fail-2': Boolean(session.deathFail2),
+    'death-fail-3': Boolean(session.deathFail3),
+    'melee-name': extras['melee-name'] ?? 'Melee Basic Attack — Unarmed',
+    'ranged-name': extras['ranged-name'] ?? 'Ranged Basic Attack — Unarmed',
+    'melee-dice': extras['melee-dice'] ?? '1d4',
+    'ranged-dice': extras['ranged-dice'] ?? '1d4'
   };
+
+  for (const skill of ['acrobatics', 'arcana', 'athletics', 'bluff', 'diplomacy', 'dungeoneering', 'endurance', 'heal', 'history', 'insight', 'intimidate', 'nature', 'perception', 'religion', 'stealth', 'streetwise', 'thievery']) {
+    const state = skills[skill] ?? {};
+    if (state.trained) payload[`skill-${skill}-trained`] = true;
+    if (state.pen) payload[`skill-${skill}-pen`] = state.pen;
+  }
+
+  for (let i = 1; i <= 4; i++) {
+    for (const key of ['atk', 'vs', 'weapon', 'dmg']) {
+      const fieldId = `basic${i}-${key}`;
+      if (extras[fieldId] !== undefined) payload[fieldId] = extras[fieldId];
+    }
+  }
+
+  for (const [key, val] of Object.entries(extras)) {
+    if (payload[key] === undefined && val !== undefined && val !== null) {
+      payload[key] = val;
+    }
+  }
+
+  return payload;
+}
+
+function formatClassFeaturesForSheet(notes) {
+  const parts = [];
+  if (notes.backgroundFeatures?.trim()) {
+    parts.push(`Background\n${notes.backgroundFeatures.trim()}`);
+  }
+  if (notes.classFeatures?.trim()) {
+    parts.push(notes.classFeatures.trim());
+  }
+  return parts.join('\n\n');
 }
 
 function flattenSkillBonuses(totals) {

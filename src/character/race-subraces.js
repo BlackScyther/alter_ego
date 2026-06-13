@@ -48,6 +48,13 @@ export function effectiveRaceId(raceId) {
   return variantId ?? baseId ?? raceId;
 }
 
+/** Parent race id used for ability/skill bonus parsing when a subrace is selected. */
+export function raceBonusEntryId(raceId) {
+  if (!raceId) return null;
+  const { baseId } = resolveRacePair(raceId);
+  return baseId ?? raceId;
+}
+
 /**
  * @param {Array<{ id: string }>} entries
  */

@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-06-07
+**Last updated:** 2026-06-11
 
 ## Automation status
 
@@ -28,14 +28,32 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
 | `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text |
-| `tests/compendium-links.test.mjs` | Compendium keyword linking in editor previews |
+| `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
+| `tests/character-collection.test.mjs` | Class grant collection; racial powers stay out of the class-powers sheet note |
+| `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations |
+| `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
+| `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering |
+| `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
+| `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
+| `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
+| `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
+
+## Manual test checklist — background step (editor)
+
+Requires `npm run dev:src` or `npm run dev:all` and imported compendium (`data/alter_eger.db`).
+
+- [ ] Pick **Cult Survivor** — preview shows narrative fold, Associated Skills (Arcana, Athletics, Religion), and +2/+1 skill picker
+- [ ] Choose **+2 to one skill** and pick a skill — status line and **Background Features** sheet mirror field update
+- [ ] Re-open the background step — prior skill choice is restored in preview and mirror
+- [ ] Pick **Airspur** — fixed +2 Acrobatics and +2 Diplomacy (no picker); Benefit row visible
 
 ## Manual test checklist — race step (editor)
 
 Requires `npm run dev:src` or `npm run dev:all`.
 
-- [ ] Race list excludes subraces (Gold Dwarf not in base list)
+- [ ] Race list excludes subraces (Gold Dwarf, Bozak Draconian not in base list)
 - [ ] Pick **Dwarf** → subrace picker appears; choose **Gold Dwarf**
+- [ ] Pick **Dragonborn** → subrace picker offers **Bozak Draconian** / **Kapak Draconian**; preview title shows `Dragonborn — …`
 - [ ] Ability “or” choice (Wisdom vs Strength) blocks **Next** until selected
 - [ ] Preview shows Average Height with `· cm` suffix; flavor is collapsed
 - [ ] Racial powers appear as tiles; hover shows compendium card
@@ -119,6 +137,8 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 ### Character generator (`/src/editor/`)
 
+- [ ] Post-load: **Edit character** opens full builder at current level (feats onward)
+- [ ] Post-load: **Level up** disabled until sheet Total XP meets next-level threshold; tooltip on hover when disabled
 - [ ] Creation flow: Race → Background → Class → Attributes → Equipment
 - [ ] Export downloads `.json`
 

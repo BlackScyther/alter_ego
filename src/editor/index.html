@@ -122,7 +122,10 @@
         <h2 class="text-2xl font-semibold m-0" id="post-load-title">Character loaded</h2>
         <p class="mt-2 text-base text-slate-400" id="post-load-subtitle"></p>
         <div class="mt-8 flex flex-col gap-4 w-full">
-          <button type="button" id="btn-level-up" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500">Level up</button>
+          <button type="button" id="btn-edit-character" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500">Edit character</button>
+          <span id="btn-level-up-wrap" class="post-load-cta-wrap w-full">
+            <button type="button" id="btn-level-up" class="min-h-14 w-full rounded-xl bg-amber-600 px-6 py-4 text-lg font-semibold text-slate-950 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Level up</button>
+          </span>
           <button type="button" id="btn-new-build" class="min-h-14 w-full rounded-xl border border-slate-600 bg-slate-800 px-6 py-4 text-lg font-semibold text-slate-100 hover:bg-slate-700">Create new character</button>
         </div>
       </section>
@@ -134,7 +137,24 @@
         </header>
 
         <ul class="validation-errors mx-4" id="validation-errors" hidden></ul>
-        <div id="step-panel" class="flex-1 overflow-auto px-4 pb-4"></div>
+        <div id="sheet-mirror-panel" class="sheet-mirror-panel mx-4 mb-3 hidden" aria-label="Character sheet preview"></div>
+        <div id="character-collection-panel" class="character-collection-panel mx-4 mb-3 hidden" aria-label="Character collection">
+          <header class="character-collection-header">
+            <button type="button" class="character-collection-toggle sheet-mirror-toggle" aria-expanded="true" aria-label="Collapse character collection">
+              <svg class="sheet-mirror-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              <span class="sheet-mirror-toggle-text">
+                <span class="sheet-mirror-toggle-label">Character collection</span>
+                <span class="sheet-mirror-toggle-hint">Powers, feats, and rituals</span>
+              </span>
+            </button>
+          </header>
+          <div class="character-collection-body">
+            <div class="character-collection-cards-host"></div>
+            <div id="character-collection-ritual-picker" class="character-collection-ritual-picker hidden"></div>
+            <div class="entry-preview character-collection-preview hidden" id="character-collection-preview"></div>
+          </div>
+        </div>
+        <div id="step-panel" class="flex-1 overflow-auto px-4 pb-16"></div>
 
         <div class="editor-actions flex flex-wrap gap-2 border-t border-slate-700 px-4 py-3">
           <button type="button" class="btn-secondary min-h-11 px-4 text-base" id="btn-back-to-load">Change character</button>

@@ -20,10 +20,10 @@ export function normalizePowerType(raw) {
     .toLowerCase()
     .replace(/\s+/g, ' ');
   if (!t) return null;
-  if (t.includes('at-will') || t === 'at will' || t === 'atwill') return 'At-Will';
-  if (t.includes('encounter')) return 'Encounter';
-  if (t.includes('daily')) return 'Daily';
   if (t.includes('utility')) return 'Utility';
+  if (t.includes('at-will') || t === 'at will' || t === 'atwill') return 'At-Will';
+  if (t.includes('enc.') || t.includes('encounter')) return 'Encounter';
+  if (t.includes('daily')) return 'Daily';
   return null;
 }
 
@@ -49,6 +49,29 @@ export function classNameMatches(powerClassName, characterClassName) {
 
   const powerLower = power.toLowerCase();
   return powerLower === chosenLower || powerLower.includes(chosenLower) || chosenLower.includes(powerLower);
+}
+
+/**
+ * SQL LIKE patterns aligned with {@link classNameMatches} (Essentials names vs compendium ClassName).
+ * @param {string} characterClassName
+ * @returns {string[]}
+ */
+export function classNameLikePatterns(characterClassName) {
+  const chosen = String(characterClassName ?? '').trim().toLowerCase();
+  if (!chosen) return [];
+
+  const patterns = new Set();
+  patterns.add(`%${chosen}%`);
+
+  const beforeParen = chosen.split('(')[0].trim();
+  if (beforeParen) patterns.add(`%${beforeParen}%`);
+
+  for (const seg of chosen.split(/[/|]/)) {
+    const base = seg.trim().split('(')[0].trim();
+    if (base) patterns.add(`%${base}%`);
+  }
+
+  return [...patterns];
 }
 
 /**
@@ -139,11 +162,20 @@ export function filterPowerEntries(entries, ctx, slot, opts = {}) {
 
 /**
  * @param {Record<string, string> | undefined} fields
+ * @returns {string}
  */
-export function formatPowerListingMeta(fields) {
+export function formatPowerTypeBadge(fields) {
+  return normalizePowerType(fields?.Type) ?? String(fields?.Type ?? '').trim();
+}
+
+/**
+ * @param {Record<string, string> | undefined} fields
+ * @param {{ omitType?: boolean }} [opts]
+ */
+export function formatPowerListingMeta(fields, opts = {}) {
   const parts = [];
+  if (fields?.Type && !opts.omitType) parts.push(fields.Type);
   if (fields?.Level) parts.push(`Lv ${fields.Level}`);
-  if (fields?.Type) parts.push(fields.Type);
   if (fields?.Action) parts.push(fields.Action);
   if (fields?.SourceBook) parts.push(fields.SourceBook);
   return parts.join(' · ');
@@ -159,7 +191,7 @@ export function powerTypeLikePatterns(powerType) {
     case 'At-Will':
       return ['%at-will%', '%at will%', '%atwill%'];
     case 'Encounter':
-      return ['%encounter%'];
+      return ['%encounter%', '%enc.%'];
     case 'Daily':
       return ['%daily%'];
     case 'Utility':

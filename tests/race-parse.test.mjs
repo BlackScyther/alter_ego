@@ -111,6 +111,33 @@ test('extractBenefitSections splits run-on plain text fields', () => {
   assert.equal(rows[3]?.label, 'Speed');
 });
 
+test('extractBenefitSections ignores embedded power cards (Genasi-style html)', () => {
+  const genasiLikeHtml =
+    '<blockquote><b>Size:</b> Medium<br><b>Elemental Origins:</b> Your ancestors were native to the Elemental Chaos.<br></blockquote><br>' +
+    '<h1 class=encounterpower>Acid Surge<span class=level>Genasi Racial Power</span></h1>' +
+    '<p class=flavor><i>You dissolve into a bubbling liquid.</i></p>' +
+    '<p class=powerstat><b>Encounter</b> ✦ <b>Acid</b><br><b>Move Action</b> <b>Personal</b></p>' +
+    '<p class=powerstat><b>Attack</b>: Strength + 3 vs. Reflex<br>Level 11: The bonus on the attack increases to + 6<br>Level 21: The bonus on the attack increases to + 9</p>' +
+    '<h1 class=encounterpower>Firepulse<span class=level>Genasi Racial Power</span></h1>' +
+    '<p class=powerstat><b>Trigger</b>: An enemy hits you with a melee attack</p>' +
+    '<h3>PHYSICAL QUALITIES</h3><p class=flavor>A genasi shimmers with elemental energy.</p>';
+  const sections = extractBenefitSections(genasiLikeHtml, { raceName: 'Genasi' });
+  const rows = sections.flatMap((s) => s.rows);
+  assert.ok(rows.some((r) => r.label === 'Elemental Origins'));
+  for (const label of ['Attack', 'Level 11', 'Level 21', 'Trigger', 'Encounter', 'Move Action']) {
+    assert.ok(!rows.some((r) => r.label === label), `unexpected power-card row: ${label}`);
+  }
+});
+
+test('extractFlavorFolds ignores embedded power cards', () => {
+  const html =
+    '<p class=flavor>A genasi shimmers with elemental energy and chaos.</p>' +
+    '<h1 class=encounterpower>Sun Flare<span class=level>Sunsoul Genasi Racial Power</span></h1>' +
+    '<p class=powerstat><b>Attack</b>: Strength + 3 vs. Reflex</p>';
+  const folds = extractFlavorFolds(html);
+  assert.ok(!folds.some((f) => /Sun Flare|Attack/.test(f.summary + f.bodyHtml)));
+});
+
 test('extractFlavorFolds creates separate folds for leads and h3 sections', () => {
   const folds = extractFlavorFolds(
     '<p class=flavor>A dwarf is a stout warrior.</p><h3>PHYSICAL QUALITIES</h3><p class=flavor>A dwarf grows thick muscle.</p>'

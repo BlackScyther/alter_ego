@@ -1,0 +1,114 @@
+{
+  "byClassId": {
+    "class8": {
+      "decisions": [
+        {
+          "id": "build",
+          "label": "Build option",
+          "prompt": "Choose your Warlord build.",
+          "previewTerms": [],
+          "options": [
+            {
+              "id": "bravura-warlord",
+              "label": "Bravura Warlord",
+              "previewTerms": ["Bravura"],
+              "powerIds": ["power1063"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power1063",
+                "power-atwill-1-b": "power620",
+                "power-encounter-1": "power1066",
+                "power-daily-1": "power239"
+              }
+            },
+            {
+              "id": "inspiring-warlord",
+              "label": "Inspiring Warlord",
+              "previewTerms": ["Inspiring"],
+              "powerIds": ["power1061"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power1061",
+                "power-atwill-1-b": "power1063",
+                "power-encounter-1": "power1066",
+                "power-daily-1": "power10913"
+              }
+            },
+            {
+              "id": "tactical-warlord",
+              "label": "Tactical Warlord",
+              "previewTerms": ["Tactical"],
+              "powerIds": ["power1061"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power1061",
+                "power-atwill-1-b": "power620",
+                "power-encounter-1": "power1064",
+                "power-daily-1": "power431"
+              }
+            },
+            {
+              "id": "resourceful-warlord",
+              "label": "Resourceful Warlord",
+              "previewTerms": ["Resourceful"],
+              "powerIds": ["power4541"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power4541",
+                "power-atwill-1-b": "power1063",
+                "power-encounter-1": "power4544",
+                "power-daily-1": "power4547"
+              }
+            },
+            {
+              "id": "skirmishing-warlord",
+              "label": "Skirmishing Warlord",
+              "previewTerms": ["Skirmishing"],
+              "powerIds": ["power10888"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power10888",
+                "power-atwill-1-b": "power7398",
+                "power-encounter-1": "power1554",
+                "power-daily-1": "power4548"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "byClassName": {
+    "Warlord (Marshal)": {
+      "decisions": [
+        {
+          "id": "build",
+          "label": "Build option",
+          "prompt": "Choose your Warlord build.",
+          "previewTerms": [],
+          "options": [
+            {
+              "id": "bravura-warlord",
+              "label": "Bravura Warlord",
+              "previewTerms": ["Bravura"],
+              "powerIds": ["power1063"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power1063",
+                "power-atwill-1-b": "power620",
+                "power-encounter-1": "power1066",
+                "power-daily-1": "power239"
+              }
+            },
+            {
+              "id": "tactical-warlord",
+              "label": "Tactical Warlord",
+              "previewTerms": ["Tactical"],
+              "powerIds": ["power1061"],
+              "powerSlotSeeds": {
+                "power-atwill-1-a": "power1061",
+                "power-atwill-1-b": "power620",
+                "power-encounter-1": "power1064",
+                "power-daily-1": "power431"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

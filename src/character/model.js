@@ -5,6 +5,8 @@
 import { validateFeatsStep } from './feat-selections.js';
 import { validatePowersStep } from './power-selections.js';
 import { validateRaceStep } from './race-selections.js';
+import { validateBackgroundStep } from './background-selections.js';
+import { validateClassStep } from './class-selections.js';
 
 export const CHARACTER_VERSION = 1;
 
@@ -55,7 +57,14 @@ export function createCharacter(partial = {}) {
       racePowerIds: [],
       raceFeatIds: [],
       classId: null,
+      classBuildChoices: {},
+      classTrainedSkillChoices: [],
+      classPowerIds: [],
+      trainedSkillIds: [],
       backgroundId: null,
+      backgroundBonusChoices: { mode: null, skills: [] },
+      backgroundEffectChoices: { hpSubstituteAbility: null },
+      backgroundSkillBonusKind: 'none',
       themeId: null,
       paragonPathId: null,
       epicDestinyId: null,
@@ -63,8 +72,15 @@ export function createCharacter(partial = {}) {
       featSelections: {},
       powerIds: [],
       powerSelections: {},
+      grantedRitualIds: [],
+      ritualSelections: {},
+      ritualIds: [],
       equipmentIds: [],
       ...partial.selections
+    },
+    builderFlags: {
+      retraining: false,
+      ...(partial.builderFlags ?? {})
     },
     skillBonuses: [],
     sheet: {
@@ -79,6 +95,11 @@ export function createCharacter(partial = {}) {
       speed: { base: 6, armor: 0, item: 0, misc: 0 },
       skills: {},
       initMisc: 0,
+      derivedBonuses: {
+        initiative: 0,
+        hpSubstituteAbility: null,
+        hpSubstituteScore: null
+      },
       milestones: 0,
       armorPenaltyGlobal: 0
     },
@@ -89,6 +110,7 @@ export function createCharacter(partial = {}) {
       backgroundFeatures: '',
       feats: '',
       powers: '',
+      rituals: '',
       languages: '',
       apEffects: ''
     },
@@ -147,7 +169,10 @@ export function validateStep(stepId, character, editorMeta) {
       errors.push(...validateRaceStep(character, null, null));
       break;
     case 'class':
-      if (!character.selections.classId) errors.push('Select a class from the compendium.');
+      errors.push(...validateClassStep(character, null));
+      break;
+    case 'background':
+      errors.push(...validateBackgroundStep(character, null));
       break;
     case 'abilities': {
       const base = character.abilities.baseScores ?? character.abilities.scores;

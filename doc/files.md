@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-06-07 (race step rebuild)
+**Last updated:** 2026-06-13 (homepage logo)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -51,7 +51,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `editor.json` | Character editor wizard: steps, compendium categories, `writesTo` paths |
-| `race-subraces.json` | Parent race → subrace id map (Dwarf, Elf, etc.) |
+| `race-subraces.json` | Parent race → subrace id map (Dragonborn, Dwarf, Eladrin, Elf, Gnome) |
 | `race-build-options.json` | Dragonborn / Genasi build-choice definitions (power picks) |
 | `import.json` | iws.mx JSONP import URLs and SQLite target spec |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
@@ -72,8 +72,10 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `export-pdf.mjs` | Playwright: local HTTP server → Letter PDF in `output/` |
 | `build-party-index.mjs` | Scans `src/party/*.json` → writes `src/party/index.json` |
 | `pack-player.mjs` | Legacy: browser player zip with start scripts |
-| `post-build-app.mjs` | Writes `dist/app/index.html` redirect for Tauri |
+| `post-build-app.mjs` | Copies metadata, party, favicon, and DB into `dist/app/` after Vite build |
 | `test-campaign-api.mjs` | Smoke test: campaign + encounters + spawn actors (port 3099) |
+| `audit-background-parse.mjs` | Dev audit: background HTML patterns vs parser coverage |
+| `audit-race-subraces.mjs` | Dev audit: benefit-only race entries vs `race-subraces.json` (exit 1 if unmapped) |
 
 ## `tests/`
 
@@ -86,7 +88,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `party-loader.test.mjs` | GM file picker, folder/text import |
 | `html-escape.test.mjs` | XSS escaping for GM/party UI |
 | `race-subraces.test.mjs` | Subrace map and base-race filter |
-| `race-parse.test.mjs` | Race HTML parsing, metric helpers, notes compaction |
+| `race-parse.test.mjs` | Race HTML parsing, metric helpers, notes compaction, power-card stripping |
+| `race-selections.test.mjs` | Race build decisions: powers gated behind manifestation choice |
 | `compendium-links.test.mjs` | Compendium term linking (longest-first, boundaries) |
 
 ## `server/`
@@ -142,8 +145,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `index.html` | Home hub: Character generator vs Top of playlist (Tailwind, centered) |
-| `launcher/` | Role picker (Player / GM) — desktop app entry |
+| `index.html` | Home hub: logo header, Character generator vs Top of playlist (Tailwind, centered) |
+| `assets/alter-ego-logo.png` | Placeholder homepage logo (4E Alter Ego wordmark, transparent background) |
+| `assets/favicon.png` | Browser tab icon (4E Alter Ego mark, transparent background) |
+| `app.css` | Shared hub/launcher shell styles (imports editor.css) |
+| `launcher/` | Role picker (Player / GM) — desktop app entry; logo header |
 | `player/index.html` | Player hub: generator + sheet only |
 | `desktop/tauri-bridge.js` | Native save/open dialogs and party folder (Tauri) |
 | `ui/app.css` | Tailwind build input (`@import tailwindcss`) |
@@ -173,6 +179,12 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `race-subraces.js` | Core/subrace map helpers and base-race filtering |
 | `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants |
 | `race-selections.js` | Race step validation, build/bonus choices, grant sync |
+| `background-parse.js` | Parse background HTML (iws.mx inline skills + raw narrative), preview fold, skill picker, compact notes |
+| `background-selections.js` | Background associated-skill +2/+1 choices and step validation |
+| `background-effects.js` | HP substitute, initiative misc, and other composable background effects |
+| `background-effect-selections.js` | Persist HP-substitute ability choice on character |
+| `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills) |
+| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, grants, sheet sync |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
 | `party-loader.js` | Loads party JSON for GM console |
 
@@ -187,10 +199,20 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `index.html` | Generator: gate (load) → post-load → wizard (Tailwind + editor.css) |
-| `editor.js` | Gate modes, `creationFlow` / `builderFlow`, compendium pickers, link index init |
-| `editor.css` | Editor layout, race step, compendium hover cards |
-| `steps/race-step.js` | 3-phase race picker, bonus/build choices, grants, linked preview |
+| `index.html` | Generator: gate (load) → post-load (Edit character, Level up, Create new) → wizard (Tailwind + editor.css) |
+| `editor.js` | Gate modes, `creationFlow` / `builderFlow`, post-load actions, compendium pickers, link index init |
+| `post-load.js` | Level-up XP gate (`canLevelUp`, tooltip text) and retraining builder entry index |
+| `editor.css` | Editor layout, race step, sheet-mirror tabs, compendium hover cards |
+| `collapsible-chevron.js` | Shared SVG chevron for collapsible editor panels (sheet mirror, character collection) |
+| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state |
+| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …) |
+| `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
+| `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview |
+| `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
+| `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
+| `steps/feat-step.js` | Feat slots grouped by tier + shared combobox (same layout/filters as power step); compendium open link (↗) on filled slots; source combo filter above picker |
+| `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat) |
+| `choice-guide.js` | Sequential pending-choice highlight, scroll, and focus (race + class steps) |
 | `steps/race-grants-panel.js` | Racial power/feat tile cards on race step |
 
 ## `src/shared/`

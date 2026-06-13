@@ -23,6 +23,29 @@ import {
 const BUILD_BY_ID = buildOptionsMeta.byRaceId ?? {};
 const BUILD_BY_NAME = buildOptionsMeta.byRaceName ?? {};
 
+/**
+ * @param {string | undefined} raw
+ * @returns {string[]}
+ */
+function splitSourceBooks(raw) {
+  return String(raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * @param {Array<{ sourceBook?: string }>} options
+ * @param {string[] | null} activeSourceBooks — null means all sources (race picker "All").
+ */
+export function filterDecisionOptionsBySource(options, activeSourceBooks) {
+  if (!activeSourceBooks) return options ?? [];
+  const bookSet = new Set(activeSourceBooks);
+  return (options ?? []).filter((opt) =>
+    splitSourceBooks(opt.sourceBook).some((book) => bookSet.has(book))
+  );
+}
+
 export function ensureRaceSelectionsShape(character) {
   character.selections = character.selections ?? {};
   if (!character.selections.raceBuildChoices) character.selections.raceBuildChoices = {};
@@ -116,18 +139,19 @@ export function collectRaceGrantIds(character, baseEntry, variantEntry) {
   const { baseId } = resolveRacePair(character.selections?.raceId);
   const decisions = getRaceBuildDecisions(baseId ?? character.selections?.raceId, baseEntry?.listing_fields?.Name);
   const choices = character.selections.raceBuildChoices ?? {};
+
+  // Powers tied to a build decision are granted only once that decision is
+  // made — never show all options' powers up front.
+  for (const d of decisions) {
+    for (const opt of d.options ?? []) {
+      if (opt.powerId) powerIds.delete(String(opt.powerId).toLowerCase());
+    }
+  }
   for (const d of decisions) {
     const picked = choices[d.id];
     if (!picked) continue;
     const opt = d.options?.find((o) => o.id === picked);
     if (opt?.powerId) powerIds.add(String(opt.powerId).toLowerCase());
-  }
-
-  for (const term of previewTerms) {
-    for (const entry of [baseEntry, variantEntry]) {
-      if (!entry?.body_html) continue;
-      if (!entry.body_html.toLowerCase().includes(term.toLowerCase())) continue;
-    }
   }
 
   return {
@@ -176,6 +200,36 @@ export function syncRaceNotesAndGrants(character, baseEntry, variantEntry, power
  * @param {object | null | undefined} baseEntry
  * @param {object | null | undefined} variantEntry
  */
+/**
+ * Clear build choices that are no longer visible under the active source filter.
+ * @param {object} character
+ * @param {object | null | undefined} baseEntry
+ * @param {object | null | undefined} variantEntry
+ * @param {string[] | null} activeSourceBooks
+ */
+export function pruneRaceBuildChoicesForSource(character, baseEntry, variantEntry, activeSourceBooks) {
+  ensureRaceSelectionsShape(character);
+  const raceId = character.selections?.raceId;
+  if (!raceId) return false;
+
+  const { baseId } = resolveRacePair(raceId);
+  const decisions = getRaceBuildDecisions(baseId ?? raceId, baseEntry?.listing_fields?.Name);
+  const map = character.selections.raceBuildChoices ?? {};
+  let changed = false;
+
+  for (const d of decisions) {
+    const picked = map[d.id];
+    if (!picked) continue;
+    const visible = filterDecisionOptionsBySource(d.options, activeSourceBooks);
+    if (visible.some((o) => o.id === picked)) continue;
+    delete map[d.id];
+    changed = true;
+  }
+
+  if (changed) syncRaceNotesAndGrants(character, baseEntry, variantEntry);
+  return changed;
+}
+
 export function setRaceBuildChoice(character, decisionId, optionId, baseEntry, variantEntry) {
   ensureRaceSelectionsShape(character);
   character.selections.raceBuildChoices[decisionId] = optionId;

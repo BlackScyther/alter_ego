@@ -5,6 +5,7 @@ import {
   isStepEnabled,
   pointBuySpent
 } from '../character/model.js';
+import { focusPendingChoice } from './choice-guide.js';
 import {
   saveCharacter,
   loadCharacter,
@@ -25,7 +26,9 @@ import { getSessionCampaign, isPlayerSession, saveCharacterToCampaign } from '..
 import { downloadCharacterJson, readCharacterJsonFile } from '../character/io.js';
 import { compendium } from '../data/compendium.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
+import { raceBonusEntryId } from '../character/race-subraces.js';
 import { xpForLevel } from '../formulas.js';
+import { canLevelUp, levelUpTooltip, retrainingBuilderStart } from './post-load.js';
 import {
   ABILITY_KEYS,
   BONUS_TYPE_LABELS,
@@ -38,6 +41,7 @@ import {
   recomputeAbilityScores,
   recomputeSkillBonuses,
   tutorWarnings,
+  bonusesForTutorTable,
   formatBonusSummary,
   abilityScoreBreakdown,
   skillBonusBreakdown,
@@ -49,7 +53,11 @@ import { renderBackgroundStep } from './steps/background-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
 import { renderPowerStep } from './steps/power-step.js';
 import { renderRaceStep } from './steps/race-step.js';
+import { renderClassStep } from './steps/class-step.js';
 import { ensureRaceSelectionsShape } from '../character/race-selections.js';
+import { resetBackgroundBonusChoices } from '../character/background-selections.js';
+import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
+import { getHpSubstituteTutorHint } from '../character/hp.js';
 import { buildCompendiumLinkIndex } from '../data/compendium-link-index.js';
 import { attachCompendiumHoverDelegates } from '../ui/compendium-hover-card.js';
 import { renderLinkedEntryPreview } from '../ui/compendium-links.js';
@@ -63,6 +71,44 @@ import {
   migratePowerIdsToSelections,
   prunePowerSelections
 } from '../character/power-selections.js';
+import {
+  applySheetValueToCharacter,
+  buildMirrorPayload,
+  initSheetMirror,
+  renderSheetMirror,
+  setSheetMirrorVisible
+} from './sheet-mirror.js';
+import {
+  attachSkillsTableHandlers,
+  getSkillFieldMap,
+  populateSkillsTable,
+  renderSkillsTableHtml
+} from './skills-table.js';
+import { syncCollectionNotes } from '../character/character-collection.js';
+import {
+  renderCharacterCollectionPanel,
+  initCharacterCollectionPanel
+} from './steps/character-collection-panel.js';
+import { loadUniversalActionsMeta } from './steps/power-collection-panel.js';
+import {
+  ensureRitualSelectionsShape,
+  pruneRitualSelections,
+  setRitualForSlot,
+  syncGrantedRitualIds
+} from '../character/ritual-selections.js';
+import {
+  getClassTrainedSkillCheckboxState,
+  syncClassNotesAndGrants,
+  toggleClassTrainedSkill
+} from '../character/class-selections.js';
+import {
+  renderComboboxHtml,
+  attachComboboxBehavior,
+  renderPickerOptions,
+  setComboboxInputFromEntry,
+  showEmptyHint,
+  COMPENDIUM_SEARCH_MIN
+} from './picker/combobox-picker.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -74,6 +120,16 @@ let completedSteps = new Set();
 let linkIndex = { terms: [], byName: new Map() };
 /** @type {'gate' | 'identity-setup' | 'post-load' | 'create' | 'full'} */
 let builderMode = 'gate';
+/** @type {string | null} */
+let activePowerSlotId = null;
+/** @type {string | null} */
+let activeFeatSlotId = null;
+/** @type {string | null} */
+let activeRitualSlotId = null;
+/** @type {object | null} */
+let cachedClassEntry = null;
+/** @type {import('./picker/combobox-picker.js').ComboboxController | null} */
+let ritualCombobox = null;
 
 const EDITOR_RETURN_KEY = 'dnd4e.editorReturn';
 
@@ -109,6 +165,114 @@ function setUiPhase(phase) {
   if (stepList) {
     stepList.hidden = !showWizard;
   }
+  setSheetMirrorVisible(showWizard);
+  setCharacterCollectionVisible(showWizard);
+  if (showWizard) {
+    renderSheetMirror(character);
+    refreshCharacterCollection();
+  }
+}
+
+/**
+ * @param {boolean} visible
+ */
+function setCharacterCollectionVisible(visible) {
+  const panel = $('#character-collection-panel');
+  if (!panel) return;
+  panel.classList.toggle('hidden', !visible);
+}
+
+async function refreshCharacterCollection() {
+  const panel = $('#character-collection-panel');
+  if (!panel || panel.classList.contains('hidden')) return;
+  const body = panel.querySelector('.character-collection-body');
+  const preview = $('#character-collection-preview');
+  if (!body) return;
+
+  const hostEl = body.querySelector('.character-collection-cards-host');
+  if (!hostEl) return;
+  const universalMeta = await loadUniversalActionsMeta();
+
+  await renderCharacterCollectionPanel(hostEl, {
+    character,
+    compendium,
+    linkIndex,
+    universalMeta,
+    activeSlotId: currentStepId() === 'feats' ? activeFeatSlotId : activePowerSlotId,
+    onPreview: () => {
+      if (preview) preview.classList.add('hidden');
+    },
+    onActivateSlot: (slotId) => {
+      if (String(slotId).startsWith('feat-')) {
+        activeFeatSlotId = slotId;
+        if (currentStepId() === 'feats') {
+          document.querySelector(`.power-slot-row[data-slot-id="${slotId}"]`)?.click();
+        }
+        refreshCharacterCollection();
+        return;
+      }
+      activePowerSlotId = slotId;
+      const powerStep = flow().includes('powers') && currentStepId() === 'powers';
+      if (!powerStep) return;
+      const row = document.querySelector(`.power-slot-row[data-slot-id="${slotId}"]`);
+      row?.click();
+      refreshCharacterCollection();
+    },
+    onActivateRitualSlot: (slotId) => {
+      activeRitualSlotId = slotId;
+      showRitualPicker(slotId);
+    }
+  });
+}
+
+function showRitualPicker(slotId) {
+  const panel = $('#character-collection-panel');
+  const pickerHost = panel?.querySelector('#character-collection-ritual-picker');
+  if (!pickerHost) return;
+  pickerHost.classList.remove('hidden');
+  pickerHost.dataset.slotId = slotId;
+  refreshRitualPicker(slotId, '');
+}
+
+async function refreshRitualPicker(slotId, query = '') {
+  const panel = $('#character-collection-panel');
+  const listbox = panel?.querySelector('#picker-listbox-ritual');
+  const input = panel?.querySelector('#picker-ritual');
+  if (!listbox || !input) return;
+
+  const level = character.identity?.level ?? 1;
+  const q = query.trim();
+  const entries = await compendium.listEntries('ritual', {
+    search: q.length >= COMPENDIUM_SEARCH_MIN ? q : '',
+    limit: 100
+  });
+  const exclude = new Set(character.selections.ritualIds ?? []);
+  const filtered = entries.filter((e) => {
+    const ritualLevel = parseInt(String(e.listing_fields?.Level ?? ''), 10);
+    if (!Number.isNaN(ritualLevel) && ritualLevel > level) return false;
+    return !exclude.has(e.id);
+  });
+
+  const selectedId = character.selections.ritualSelections?.[slotId] ?? null;
+  if (!filtered.length) {
+    showEmptyHint(listbox, 'No matching rituals.');
+    return;
+  }
+
+  renderPickerOptions(listbox, filtered.slice(0, 100), selectedId, async (id) => {
+    const entry = await compendium.getEntry(id);
+    if (!entry) return;
+    setRitualForSlot(character, slotId, id);
+    await syncCollectionNotes(character, compendium);
+    await persist();
+    input.value = entry.listing_fields?.Name ?? id;
+    ritualCombobox?.closeDropdown();
+    await refreshCharacterCollection();
+    await refreshBonusesFromSelections();
+  }, (e) => {
+    const parts = [e.listing_fields?.Level ? `Level ${e.listing_fields.Level}` : '', e.listing_fields?.SourceBook].filter(Boolean);
+    return parts.join(' · ');
+  });
 }
 
 function updatePostLoadHeader() {
@@ -118,10 +282,29 @@ function updatePostLoadHeader() {
   $('#post-load-subtitle').textContent = `Level ${lvl} · ${character.identity.race || '—'} ${character.identity.class ? `/ ${character.identity.class}` : ''}`;
 }
 
+function refreshPostLoadActions() {
+  const levelUpBtn = $('#btn-level-up');
+  const wrap = $('#btn-level-up-wrap');
+  if (!levelUpBtn) return;
+  const allowed = canLevelUp(character);
+  levelUpBtn.disabled = !allowed;
+  const tooltip = levelUpTooltip(character);
+  if (wrap) {
+    wrap.title = allowed ? '' : tooltip;
+    wrap.classList.toggle('post-load-cta-wrap--disabled', !allowed);
+    if (!allowed && tooltip) {
+      wrap.setAttribute('aria-label', tooltip);
+    } else {
+      wrap.removeAttribute('aria-label');
+    }
+  }
+}
+
 function enterPostLoad() {
   builderMode = 'post-load';
   setUiPhase('post-load');
   updatePostLoadHeader();
+  refreshPostLoadActions();
   refreshCharacterPicker();
   refreshGatePicker();
 }
@@ -158,30 +341,45 @@ function startCreationFlow() {
   renderStepPanel();
 }
 
-function startLevelUpFlow() {
-  if (character.identity.level >= 30) {
-    showErrors(['Already at maximum level (30).']);
-    return;
+function enterRetrainingFlow({ incrementLevel = false } = {}) {
+  if (incrementLevel) {
+    if (!canLevelUp(character)) {
+      const msg = levelUpTooltip(character);
+      if (msg) showErrors([msg]);
+      return;
+    }
+    character.identity.level += 1;
+    character.identity.totalXp = xpForLevel(character.identity.level);
   }
-  character.identity.level += 1;
-  character.identity.totalXp = xpForLevel(character.identity.level);
+  character.builderFlags = character.builderFlags ?? {};
+  character.builderFlags.retraining = true;
   ensureFeatSelectionsShape(character);
   pruneFeatSelections(character);
   ensurePowerSelectionsShape(character);
   prunePowerSelections(character);
+  ensureRitualSelectionsShape(character);
+  pruneRitualSelections(character);
   touchCharacter(character);
-  completedSteps = new Set(['basics', 'race', 'background', 'class', 'abilities']);
+  const { completedSteps: completed, startStepIndex } = retrainingBuilderStart(flow());
+  completedSteps = new Set(completed);
   builderMode = 'full';
-  const steps = flow();
-  let idx = steps.indexOf('feats');
-  if (idx < 0) idx = steps.indexOf('review');
-  if (idx < 0) idx = 0;
-  currentStepIndex = idx;
+  currentStepIndex = startStepIndex;
   setUiPhase('full');
   persist();
   renderNav();
   renderStepPanel();
-  showErrors([`Level increased to ${character.identity.level}. Continue with feats and later steps.`]);
+  const msg = incrementLevel
+    ? `Level increased to ${character.identity.level}. Continue with powers, feats, and later steps.`
+    : 'Editing character at current level. Continue with powers, feats, and later steps.';
+  showErrors([msg]);
+}
+
+function startLevelUpFlow() {
+  enterRetrainingFlow({ incrementLevel: true });
+}
+
+function startEditCharacterFlow() {
+  enterRetrainingFlow({ incrementLevel: false });
 }
 
 function returnToGate() {
@@ -267,8 +465,6 @@ async function renderStepPanel() {
         compendium,
         def,
         applySelection: applyCompendiumSelection,
-        getNotes: () => getNotesForStep('race'),
-        setNotes: (text) => setNotesForStep('race', text),
         onPersist: async () => persist(),
         refreshBonuses: refreshBonusesFromSelections,
         renderTutorHint: (p) => renderSelectionTutorHint(p, 'race'),
@@ -282,12 +478,31 @@ async function renderStepPanel() {
       });
       break;
     case 'class':
-    case 'theme':
+      await renderClassStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        getNotes: () => getNotesForStep('class'),
+        setNotes: (text) => setNotesForStep('class', text),
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'class'),
+        linkIndex,
+        renderPreviewEntry: (entry) => {
+          const preview = panel.querySelector('#entry-preview');
+          if (!entry || !preview) return;
+          if (linkIndex?.terms?.length) renderLinkedEntryPreview(preview, entry.body_html ?? '', linkIndex);
+          else preview.innerHTML = entry.body_html ?? '';
+        }
+      });
+      break;
     case 'paragon':
     case 'epic':
       await renderCompendiumStep(panel, stepId, def);
       break;
     case 'abilities':
+      await refreshBonusesFromSelections();
       renderAbilities(panel);
       break;
     case 'feats':
@@ -300,6 +515,10 @@ async function renderStepPanel() {
         def,
         onPersist: async () => persist(),
         refreshBonuses: refreshBonusesFromSelections,
+        onCollectionRefresh: refreshCharacterCollection,
+        onActiveSlotChange: (slotId) => {
+          activeFeatSlotId = slotId;
+        },
         renderTutorHint: (p) => renderSelectionTutorHint(p, 'feats')
       });
       break;
@@ -312,6 +531,11 @@ async function renderStepPanel() {
         compendium,
         def,
         onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        onCollectionRefresh: refreshCharacterCollection,
+        onActiveSlotChange: (slotId) => {
+          activePowerSlotId = slotId;
+        },
         renderTutorHint: (p) => renderSelectionTutorHint(p, 'powers')
       });
       break;
@@ -326,6 +550,8 @@ async function renderStepPanel() {
   }
 
   showErrors([]);
+  renderSheetMirror(character);
+  await refreshCharacterCollection();
 }
 
 function renderBasics(panel) {
@@ -369,11 +595,12 @@ async function refreshBonusesFromSelections() {
   const map = [
     ['race', character.selections.raceId],
     ['class', character.selections.classId],
-    ['background', character.selections.backgroundId],
-    ['theme', character.selections.themeId]
+    ['background', character.selections.backgroundId]
   ];
   for (const [source, id] of map) {
-    if (id) entries[source] = await compendium.getEntry(id);
+    if (!id) continue;
+    const entryId = source === 'race' ? raceBonusEntryId(id) ?? id : id;
+    entries[source] = await compendium.getEntry(entryId);
   }
   const featEntries = [];
   const featIds = character.selections.featIds ?? [];
@@ -384,6 +611,11 @@ async function refreshBonusesFromSelections() {
   ensureAbilityShape(character);
   syncBonusesFromSelections(character, entries, featEntries);
   syncRaceBonusChoicesToBonuses(character);
+  if (entries.class) syncGrantedRitualIds(character, entries.class);
+  cachedClassEntry = entries.class ?? null;
+  await syncCollectionNotes(character, compendium);
+  renderSheetMirror(character);
+  await refreshCharacterCollection();
 }
 
 function renderAbilities(panel) {
@@ -398,6 +630,7 @@ function renderAbilities(panel) {
   const over = remaining < 0;
   const warnings = tutorWarnings(character);
   const bonuses = character.abilities.bonuses ?? [];
+  const hpHint = getHpSubstituteTutorHint(character);
 
   panel.innerHTML = `
     <div class="point-buy-status ${over ? 'over' : ''}">
@@ -405,6 +638,7 @@ function renderAbilities(panel) {
       ${remaining >= 0 ? `(${remaining} remaining)` : `(${-remaining} over budget)`}
     </div>
     <p class="tutor-summary">${esc(formatBonusSummary(character))}</p>
+    ${hpHint ? `<p class="tutor-hp-hint">${esc(hpHint)}</p>` : ''}
     <div class="ability-grid ability-grid--dual">
       ${ABILITY_KEYS.map((a) => {
         const row = breakdown[a];
@@ -433,15 +667,16 @@ function renderAbilities(panel) {
         }).join('')}
       </div>
     </section>
+    <section class="sheet-mirror-section sheet-mirror-section--skills-table abilities-skills-section" aria-label="Skills">
+      <h3 class="tutor-bonuses-title">Skills</h3>
+      <p class="tutor-footnote">Use the <strong>Trained</strong> checkboxes to pick class skills (only class-skill rows are clickable). When a build is chosen on the Class step, suggested skills are pre-selected; you can deselect and switch to any other class skill. Fixed class skills stay locked. Totals include ability, half level, training, armor penalty, and bonuses from race, background, and feats.</p>
+      <div id="abilities-skills-table"></div>
+    </section>
     <section class="tutor-bonuses" id="tutor-bonuses"></section>
     <section class="tutor-bonuses" id="tutor-skill-bonuses"></section>
     <ul class="tutor-warnings" id="tutor-warnings" ${warnings.length ? '' : 'hidden'}></ul>`;
 
   renderTutorGuide(panel, 'abilityBonuses');
-  const skillGuide = document.createElement('aside');
-  skillGuide.className = 'tutor-guide tutor-guide--compact';
-  skillGuide.innerHTML = `<strong>${esc(TUTOR_GUIDE.skillBonuses.title)}</strong><p>${esc(TUTOR_GUIDE.skillBonuses.body)}</p>`;
-  panel.querySelector('#tutor-skill-bonuses').before(skillGuide);
 
   const itemNote = document.createElement('p');
   itemNote.className = 'tutor-footnote';
@@ -451,16 +686,16 @@ function renderAbilities(panel) {
   renderBonusTable(panel.querySelector('#tutor-bonuses'), {
     title: 'Ability bonuses',
     empty:
-      'Select race, class, or theme for ability bonuses. Same type on one ability does not stack; different types do.',
-    rows: bonuses,
+      'Select class for ability bonuses. Racial bonuses are chosen on the race step. Same type on one ability does not stack; different types do.',
+    rows: bonusesForTutorTable(bonuses),
     kind: 'ability'
   });
 
   renderBonusTable(panel.querySelector('#tutor-skill-bonuses'), {
     title: 'Skill bonuses',
     empty:
-      'Select background and feats with skill bonuses. Two Skill-type bonuses on one skill do not add; Skill + Feat do.',
-    rows: skillBonuses,
+      'Select background and feats with skill bonuses. Racial skill bonuses are chosen on the race step. Two Skill-type bonuses on one skill do not add; Skill + Feat do.',
+    rows: bonusesForTutorTable(skillBonuses),
     kind: 'skill',
     breakdown: skillBreak
   });
@@ -477,6 +712,48 @@ function renderAbilities(panel) {
       renderAbilities(panel);
     });
   }
+
+  const skillsHost = panel.querySelector('#abilities-skills-table');
+  if (skillsHost) {
+    skillsHost.innerHTML = renderSkillsTableHtml({ idPrefix: 'abilities' });
+    delete skillsHost.dataset.skillsBound;
+    attachSkillsTableHandlers(skillsHost, (fieldId, value) => {
+      const trainedMatch = fieldId.match(/^skill-(.+)-trained$/);
+      if (trainedMatch && cachedClassEntry) {
+        const skillId = trainedMatch[1];
+        const ctrl = getClassTrainedSkillCheckboxState(character, cachedClassEntry, skillId);
+        if (!ctrl.editable) {
+          populateAbilitiesSkillsTable(skillsHost);
+          return;
+        }
+        const picked = character.selections?.classTrainedSkillChoices ?? [];
+        const wants = Boolean(value);
+        const has = picked.includes(skillId);
+        if (wants === has) return;
+        toggleClassTrainedSkill(character, skillId, cachedClassEntry);
+        syncClassNotesAndGrants(character, cachedClassEntry);
+        recomputeSkillBonuses(character);
+        persist();
+        populateAbilitiesSkillsTable(skillsHost);
+        renderSheetMirror(character);
+        return;
+      }
+      applySheetValueToCharacter(character, fieldId, value);
+      recomputeSkillBonuses(character);
+      persist();
+      populateAbilitiesSkillsTable(skillsHost);
+    });
+    populateAbilitiesSkillsTable(skillsHost);
+  }
+}
+
+function populateAbilitiesSkillsTable(host) {
+  if (!host) return;
+  const payload = buildMirrorPayload(character);
+  populateSkillsTable(host, payload, getSkillFieldMap(), {
+    getTrainedCheckboxState: (skillId) =>
+      getClassTrainedSkillCheckboxState(character, cachedClassEntry, skillId)
+  });
 }
 
 function renderBonusTable(container, { title, empty, rows, kind, breakdown }) {
@@ -555,7 +832,7 @@ function renderSelectionTutorHint(panel, stepId) {
     hint.textContent = meta.skillBonuses ?? meta.abilityBonuses;
   } else if (stepId === 'feats') {
     hint.textContent = meta.skillBonuses ?? meta.abilityBonuses;
-  } else if (['race', 'class', 'theme'].includes(stepId)) {
+  } else if (['race', 'class'].includes(stepId)) {
     hint.textContent = meta.abilityBonuses;
   }
   if (hint.textContent) panel.prepend(hint);
@@ -572,10 +849,6 @@ async function renderCompendiumStep(panel, stepId, def) {
       </div>
       <div class="picker-list" id="picker-list"></div>
       <div class="entry-preview" id="entry-preview"></div>
-    </div>
-    <div class="field" style="margin-top:12px">
-      <label>Notes (features text)</label>
-      <textarea id="step-notes" rows="4">${esc(getNotesForStep(stepId))}</textarea>
     </div>`;
 
   const listEl = panel.querySelector('#picker-list');
@@ -607,7 +880,6 @@ async function renderCompendiumStep(panel, stepId, def) {
         });
         row.classList.add('ring-2', 'ring-amber-500/80');
         preview.innerHTML = entry?.body_html ?? '';
-        panel.querySelector('#step-notes').value = getNotesForStep(stepId);
         persist();
       });
     });
@@ -619,10 +891,6 @@ async function renderCompendiumStep(panel, stepId, def) {
   }
 
   search.addEventListener('input', () => refresh(search.value));
-  panel.querySelector('#step-notes').addEventListener('input', (e) => {
-    setNotesForStep(stepId, e.target.value);
-    persist();
-  });
 
   renderSelectionTutorHint(panel, stepId);
   await refresh();
@@ -675,7 +943,6 @@ function getSelectionIdForStep(stepId) {
     race: 'raceId',
     class: 'classId',
     background: 'backgroundId',
-    theme: 'themeId',
     paragon: 'paragonPathId',
     epic: 'epicDestinyId'
   };
@@ -683,14 +950,12 @@ function getSelectionIdForStep(stepId) {
 }
 
 function getNotesForStep(stepId) {
-  if (stepId === 'race') return character.notes.raceFeatures;
   if (stepId === 'class') return character.notes.classFeatures;
   if (stepId === 'background') return character.notes.backgroundFeatures ?? '';
   return '';
 }
 
 function setNotesForStep(stepId, text) {
-  if (stepId === 'race') character.notes.raceFeatures = text;
   if (stepId === 'class') character.notes.classFeatures = text;
   if (stepId === 'background') character.notes.backgroundFeatures = text;
 }
@@ -713,17 +978,21 @@ function applyCompendiumSelection(stepId, entry) {
       character.selections.classId = entry.id;
       character.identity.class = name;
       character.identity.role = entry.listing_fields?.RoleName ?? '';
-      if (!character.notes.classFeatures) {
-        character.notes.classFeatures = stripHtml(entry.body_html);
-      }
       break;
-    case 'background':
+    case 'background': {
+      if (character.selections.backgroundId !== entry.id) {
+        resetBackgroundBonusChoices(character);
+      }
       character.selections.backgroundId = entry.id;
       character.identity.background = name;
+      character.selections.backgroundSkillBonusKind = parseBackgroundEntry(entry).skillBonusKind;
+      character.notes.backgroundFeatures = buildBackgroundNotesText(
+        entry,
+        character.selections.backgroundBonusChoices,
+        character.selections.backgroundEffectChoices
+      );
       break;
-    case 'theme':
-      character.selections.themeId = entry.id;
-      break;
+    }
     case 'paragon':
       character.selections.paragonPathId = entry.id;
       character.identity.paragonPath = name;
@@ -769,6 +1038,12 @@ function persist() {
   saveCharacter(character);
   setActiveCharacterId(character.id);
   refreshCharacterPicker();
+  renderSheetMirror(character);
+}
+
+function handleSheetMirrorChange(fieldId, value) {
+  applySheetValueToCharacter(character, fieldId, value);
+  persist();
 }
 
 function fillCharacterSelect(select, { placeholder = '(none saved)' } = {}) {
@@ -991,9 +1266,15 @@ async function nextStep() {
   const errors = validateStep(stepId, character, editorMeta);
   if (errors.length) {
     showErrors(errors);
+    if (stepId === 'race' || stepId === 'class') {
+      focusPendingChoice($('#step-panel'));
+    }
     return;
   }
   completedSteps.add(stepId);
+  if (stepId === 'review' && character.builderFlags?.retraining) {
+    character.builderFlags.retraining = false;
+  }
   showErrors([]);
   if (currentStepIndex < flow().length - 1) {
     let next = currentStepIndex + 1;
@@ -1025,28 +1306,7 @@ function openSheet() {
   persist();
   stashCharacterForSheet(character);
   const sheetHref = withPlayerMode('../sheet/index.html?from=editor');
-  // #region agent log
-  debugClientLog('openSheet navigate', { from: location.pathname, to: sheetHref }, 'B');
-  // #endregion
   window.location.href = sheetHref;
-}
-
-function debugClientLog(message, data, hypothesisId) {
-  // #region agent log
-  fetch('http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5d39f7' },
-    body: JSON.stringify({
-      sessionId: '5d39f7',
-      runId: 'pre-fix',
-      hypothesisId,
-      location: 'src/editor/editor.js:init',
-      message,
-      data,
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
 }
 
 async function init() {
@@ -1063,6 +1323,33 @@ async function init() {
   await compendium.ready();
   linkIndex = await buildCompendiumLinkIndex(compendium);
   attachCompendiumHoverDelegates(document);
+
+  const mirrorPanel = $('#sheet-mirror-panel');
+  if (mirrorPanel) {
+    initSheetMirror(mirrorPanel, handleSheetMirrorChange);
+  }
+
+  const collectionPanel = $('#character-collection-panel');
+  if (collectionPanel) {
+    initCharacterCollectionPanel(collectionPanel);
+    const ritualPicker = collectionPanel.querySelector('#character-collection-ritual-picker');
+    if (ritualPicker) {
+      ritualPicker.innerHTML = renderComboboxHtml({
+        inputId: 'picker-ritual',
+        listboxId: 'picker-listbox-ritual',
+        placeholder: 'Select a ritual',
+        visibleLabel: 'Ritual'
+      });
+      const ritualInput = ritualPicker.querySelector('#picker-ritual');
+      const ritualListbox = ritualPicker.querySelector('#picker-listbox-ritual');
+      if (ritualInput && ritualListbox) {
+        ritualCombobox = attachComboboxBehavior(ritualInput, ritualListbox, (q) => {
+          const slotId = ritualPicker.dataset.slotId;
+          if (slotId) refreshRitualPicker(slotId, q);
+        });
+      }
+    }
+  }
 
   const params = new URLSearchParams(location.search);
   const loadId = params.get('id') || params.get('characterId');
@@ -1160,6 +1447,7 @@ async function init() {
     e.target.value = '';
   });
 
+  $('#btn-edit-character')?.addEventListener('click', startEditCharacterFlow);
   $('#btn-level-up')?.addEventListener('click', startLevelUpFlow);
   $('#btn-new-build')?.addEventListener('click', enterIdentitySetup);
   $('#btn-back-to-load')?.addEventListener('click', returnToGate);

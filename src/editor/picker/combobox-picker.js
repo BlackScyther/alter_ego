@@ -135,9 +135,14 @@ export function renderComboboxHtml({ inputId, listboxId, placeholder, visibleLab
  * @param {HTMLInputElement} input
  * @param {HTMLElement} listbox
  * @param {(query: string) => void} onQuery
+ * @param {{ clearOnFocus?: boolean }} [opts]
  */
-export function attachComboboxBehavior(input, listbox, onQuery) {
+export function attachComboboxBehavior(input, listbox, onQuery, opts = {}) {
   installDropdownListeners();
+
+  const { clearOnFocus = false } = opts;
+  let restoreValue = '';
+  let selectionCommitted = false;
 
   const open = () => {
     setDropdownOpen(input, listbox, true);
@@ -145,7 +150,21 @@ export function attachComboboxBehavior(input, listbox, onQuery) {
   };
   const close = () => setDropdownOpen(input, listbox, false);
 
-  input.addEventListener('focus', open);
+  const commitSelection = () => {
+    selectionCommitted = true;
+    restoreValue = '';
+  };
+
+  input.addEventListener('focus', () => {
+    if (clearOnFocus) {
+      selectionCommitted = false;
+      if (input.value) {
+        restoreValue = input.value;
+        input.value = '';
+      }
+    }
+    open();
+  });
   input.addEventListener('input', open);
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -153,7 +172,15 @@ export function attachComboboxBehavior(input, listbox, onQuery) {
       input.blur();
     }
   });
-  input.addEventListener('blur', () => window.setTimeout(close, 160));
+  input.addEventListener('blur', () => {
+    window.setTimeout(() => {
+      if (clearOnFocus && !selectionCommitted && restoreValue) {
+        input.value = restoreValue;
+      }
+      restoreValue = '';
+      close();
+    }, 160);
+  });
   listbox.addEventListener('mousedown', (e) => e.preventDefault());
 
   const toggle = input.closest('.picker-combobox')?.querySelector('.picker-combobox-toggle');
@@ -169,7 +196,7 @@ export function attachComboboxBehavior(input, listbox, onQuery) {
     }
   });
 
-  return { openDropdown: open, closeDropdown: close };
+  return { openDropdown: open, closeDropdown: close, commitSelection };
 }
 
 /**
@@ -178,8 +205,9 @@ export function attachComboboxBehavior(input, listbox, onQuery) {
  * @param {string | null} selectedId
  * @param {(id: string, button: HTMLButtonElement) => void} onSelect
  * @param {(entry: { listing_fields?: Record<string, string>, body_html?: string }) => string} formatMeta
+ * @param {(entry: { listing_fields?: Record<string, string>, body_html?: string }) => string} [formatTypeBadge]
  */
-export function renderPickerOptions(listbox, entries, selectedId, onSelect, formatMeta) {
+export function renderPickerOptions(listbox, entries, selectedId, onSelect, formatMeta, formatTypeBadge) {
   if (!entries.length) {
     showEmptyHint(listbox, 'No matching entries.');
     return;
@@ -189,9 +217,13 @@ export function renderPickerOptions(listbox, entries, selectedId, onSelect, form
     .map((e) => {
       const name = e.listing_fields?.Name ?? e.id;
       const meta = formatMeta(e);
+      const typeLabel = formatTypeBadge?.(e) ?? '';
+      const typeHtml = typeLabel
+        ? `<span class="picker-option-type">${esc(typeLabel)}</span>`
+        : '';
       const sel = e.id === selectedId;
       return `<button type="button" role="option" class="picker-option${sel ? ' picker-option--selected' : ''}" data-id="${esc(e.id)}" aria-selected="${sel ? 'true' : 'false'}">
-          <span class="picker-option-name">${esc(name)}</span>
+          <span class="picker-option-head">${typeHtml}<span class="picker-option-name">${esc(name)}</span></span>
           <span class="picker-option-meta">${esc(meta)}</span>
         </button>`;
     })

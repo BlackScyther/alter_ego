@@ -12,6 +12,7 @@ import {
   attachSourceCombo,
   getActiveSourceBooksFromCombo
 } from '../picker/picker-source-combo.js';
+import { applyChoiceGuide } from '../choice-guide.js';
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 import {
   filterBaseRaces,
@@ -24,18 +25,15 @@ import {
   ensureRaceSelectionsShape,
   resetRaceDerivedSelections,
   getRaceBuildDecisions,
+  collectRaceGrantIds,
   syncRaceNotesAndGrants,
   setRaceBuildChoice,
   setRaceBonusChoice,
   validateRaceStep
 } from '../../character/race-selections.js';
-import {
-  renderCombinedRacePreviewHtml,
-  extractPowerIdsFromRaceHtml,
-  extractFeatIdsFromRaceHtml
-} from '../../character/race-parse.js';
-import { renderRaceGrantsPanel } from './race-grants-panel.js';
-import { renderLinkedEntryPreview, renderLinkedTextPreview } from '../../ui/compendium-links.js';
+import { renderCombinedRacePreviewHtml } from '../../character/race-parse.js';
+import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
+import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
 
 const BASE_PICKER_KEY = 'race-base';
 const SUBRACE_PICKER_KEY = 'race-subrace';
@@ -73,34 +71,70 @@ function attachPreviewBonusChoices(previewEl, onChange) {
   });
 }
 
-function renderBuildChoiceGroups(container, character, baseEntry, onChange) {
+function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, onChange) {
   const raceId = character.selections?.raceId ?? pendingBaseId;
   const { baseId } = resolveRacePair(raceId);
   const decisions = getRaceBuildDecisions(baseId ?? raceId, baseEntry?.listing_fields?.Name);
   if (!decisions.length) {
-    container.innerHTML = '';
+    container.querySelector('.race-build-choices-host')?.remove();
     container.hidden = true;
     return;
   }
   container.hidden = false;
   const choices = character.selections?.raceBuildChoices ?? {};
-  container.innerHTML = `<h3 class="race-section-title">Build choices</h3>`;
+  let choicesHost = container.querySelector('.race-build-choices-host');
+  if (!choicesHost) {
+    choicesHost = document.createElement('div');
+    choicesHost.className = 'race-build-choices-host';
+    container.appendChild(choicesHost);
+  }
+  choicesHost.innerHTML = `<h3 class="race-section-title">Build choices</h3>`;
   for (const d of decisions) {
     const fieldset = document.createElement('fieldset');
     fieldset.className = 'race-build-fieldset';
+    fieldset.dataset.choiceGuide = 'race-build';
+    fieldset.dataset.decisionId = d.id;
+    fieldset.id = `choice-guide-race-build-${d.id}`;
     fieldset.innerHTML = `<legend>${esc(d.prompt || d.label)}</legend>`;
     const picked = choices[d.id] ?? '';
-    for (const opt of d.options ?? []) {
-      const id = `race-build-${d.id}-${opt.id}`;
+    const options = d.options ?? [];
+    if (!options.length) {
+      const hint = document.createElement('p');
+      hint.className = 'race-build-empty-hint';
+      hint.textContent = 'No build options available.';
+      fieldset.appendChild(hint);
+      choicesHost.appendChild(fieldset);
+      continue;
+    }
+    for (const opt of options) {
+      const inputId = `race-build-${d.id}-${opt.id}`;
+      const row = document.createElement('div');
+      row.className = 'race-build-option-row';
+
       const wrap = document.createElement('label');
       wrap.className = 'race-build-option';
-      wrap.innerHTML = `<input type="radio" name="race-build-${d.id}" id="${esc(id)}" value="${esc(opt.id)}" ${picked === opt.id ? 'checked' : ''} /><span>${esc(opt.label)}</span>`;
+      wrap.innerHTML = `<input type="radio" name="race-build-${d.id}" id="${esc(inputId)}" value="${esc(opt.id)}" ${picked === opt.id ? 'checked' : ''} /><span>${esc(opt.label)}</span>`;
       wrap.querySelector('input').addEventListener('change', (e) => {
         if (e.target.checked) onChange(d.id, opt.id);
       });
-      fieldset.appendChild(wrap);
+      row.appendChild(wrap);
+
+      if (opt.powerId) {
+        const openLink = document.createElement('a');
+        openLink.className = 'character-collection-open race-build-open';
+        openLink.href = compendiumEntryPageUrl(opt.powerId, location.pathname);
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.title = 'Open compendium entry in new window';
+        openLink.setAttribute('aria-label', `Open ${opt.label} in compendium`);
+        openLink.textContent = '↗';
+        openLink.addEventListener('click', (e) => e.stopPropagation());
+        row.appendChild(openLink);
+      }
+
+      fieldset.appendChild(row);
     }
-    container.appendChild(fieldset);
+    choicesHost.appendChild(fieldset);
   }
 }
 
@@ -121,8 +155,6 @@ export async function renderRaceStep(panel, ctx) {
     compendium,
     def,
     applySelection,
-    getNotes,
-    setNotes,
     onPersist,
     refreshBonuses,
     renderTutorHint,
@@ -176,12 +208,6 @@ export async function renderRaceStep(panel, ctx) {
       </div>
       <div class="entry-preview" id="entry-preview"></div>
       <div id="race-build-choices" class="race-choices-panel" hidden></div>
-      <div id="race-grants-panel"></div>
-    </div>
-    <div class="field" style="margin-top:12px">
-      <label>Notes (features text)</label>
-      <textarea id="step-notes" rows="4">${esc(getNotes())}</textarea>
-      <div id="step-notes-linked" class="comp-linked-preview" aria-label="Linked preview"></div>
     </div>`;
 
   const baseListbox = panel.querySelector('#picker-listbox-base');
@@ -190,9 +216,6 @@ export async function renderRaceStep(panel, ctx) {
   const baseSearch = panel.querySelector('#picker-search');
   const subraceSearch = panel.querySelector('#picker-subrace-search');
   const buildEl = panel.querySelector('#race-build-choices');
-  const grantsEl = panel.querySelector('#race-grants-panel');
-  const notesLinked = panel.querySelector('#step-notes-linked');
-  const notesTextarea = panel.querySelector('#step-notes');
 
   let baseEntry = null;
   let variantEntry = null;
@@ -270,12 +293,10 @@ export async function renderRaceStep(panel, ctx) {
   }
 
   async function loadGrantEntriesForPreview() {
-    const ids = new Set();
-    for (const entry of [baseEntry, variantEntry]) {
-      if (!entry) continue;
-      for (const id of extractPowerIdsFromRaceHtml(entry.body_html ?? '')) ids.add(id);
-      for (const id of extractFeatIdsFromRaceHtml(entry.body_html ?? '')) ids.add(id);
-    }
+    // Same gating as the actual grants: powers tied to an unmade build
+    // decision are not previewed until the user picks an option.
+    const { racePowerIds, raceFeatIds } = collectRaceGrantIds(character, baseEntry, variantEntry);
+    const ids = new Set([...racePowerIds, ...raceFeatIds]);
     /** @type {Array<{ id: string, name: string, bodyHtml: string, kind: string }>} */
     const grantEntries = [];
     for (const id of ids) {
@@ -308,23 +329,14 @@ export async function renderRaceStep(panel, ctx) {
     if (linkIndex) renderLinkedEntryPreview(preview, html, linkIndex);
     else preview.innerHTML = html;
 
-    if (linkIndex) renderLinkedTextPreview(notesLinked, getNotes(), linkIndex);
-    else notesLinked.textContent = getNotes();
-
-    await renderRaceGrantsPanel(grantsEl, {
-      character,
-      compendium,
-      linkIndex,
-      onPreview: renderPreviewEntry
-    });
-
-    renderBuildChoiceGroups(buildEl, character, baseEntry, async (decisionId, optionId) => {
+    renderBuildChoiceGroups(buildEl, character, baseEntry, variantEntry, async (decisionId, optionId) => {
       setRaceBuildChoice(character, decisionId, optionId, baseEntry, variantEntry);
       applySelection('race', variantEntry ?? baseEntry);
       await syncRaceState(false);
     });
 
     updateDoneHint();
+    if (pickerPhase === 'confirmed') applyChoiceGuide(panel);
   }
 
   async function syncRaceState(updateNotes = true) {
@@ -336,16 +348,10 @@ export async function renderRaceStep(panel, ctx) {
         if (e) powerEntries.push(e);
       }
       syncRaceNotesAndGrants(character, baseEntry, variantEntry, powerEntries);
-      setNotes(character.notes.raceFeatures);
-      notesTextarea.value = character.notes.raceFeatures;
     }
     await refreshBonuses();
     await refreshPreview();
     await onPersist();
-  }
-
-  async function updatePreviewAndNotes() {
-    await refreshPreview();
   }
 
   function updateDoneHint() {
@@ -397,7 +403,9 @@ export async function renderRaceStep(panel, ctx) {
   const baseCombobox = attachComboboxBehavior(baseSearch, baseListbox, refreshBaseList);
   const subraceCombobox = attachComboboxBehavior(subraceSearch, subraceListbox, refreshSubraceList);
 
-  attachSourceCombo(panel, BASE_PICKER_KEY, () => refreshBaseList(baseSearch.value));
+  attachSourceCombo(panel, BASE_PICKER_KEY, () => {
+    refreshBaseList(baseSearch.value);
+  });
   attachSourceCombo(panel, SUBRACE_PICKER_KEY, () => refreshSubraceList(subraceSearch.value));
 
   attachPreviewBonusChoices(preview, async (kind, group, value) => {
@@ -413,23 +421,11 @@ export async function renderRaceStep(panel, ctx) {
     pickerPhase = 'base';
     setPhase(panel, 'base');
     preview.innerHTML = '';
-    grantsEl.innerHTML = '';
     buildEl.innerHTML = '';
     baseSearch.value = '';
     subraceSearch.value = '';
     await refreshBaseList('');
     await onPersist();
-  });
-
-  let notesDebounce = null;
-  notesTextarea.addEventListener('input', (e) => {
-    setNotes(e.target.value);
-    clearTimeout(notesDebounce);
-    notesDebounce = setTimeout(() => {
-      if (linkIndex) renderLinkedTextPreview(notesLinked, e.target.value, linkIndex);
-      else notesLinked.textContent = e.target.value;
-    }, 150);
-    onPersist();
   });
 
   renderTutorHint?.(panel);
@@ -449,7 +445,7 @@ export async function renderRaceStep(panel, ctx) {
       await setComboboxInputFromEntry(baseSearch, compendium, pendingBaseId ?? baseId);
       if (variantId) await setComboboxInputFromEntry(subraceSearch, compendium, variantId);
     }
-    await updatePreviewAndNotes();
+    await refreshPreview();
   }
 }
 

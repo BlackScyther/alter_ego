@@ -19,21 +19,39 @@ function safeGit(cmd) {
 const srcRoot = resolve(projectRoot, 'src');
 const tailwindSnippet = readFileSync(resolve(srcRoot, 'ui/tailwind.html'), 'utf-8');
 
-/** Inject shared Tailwind CDN snippet into app HTML pages (see rules/ui.md). */
-function injectTailwindPlugin() {
+function faviconTagsForPage(htmlPath) {
+  const path = (htmlPath ?? '').replace(/\\/g, '/');
+  const dir = path.replace(/\/[^/]+\.html$/i, '').replace(/^\//, '');
+  const depth = dir ? dir.split('/').filter(Boolean).length : 0;
+  const prefix = depth ? '../'.repeat(depth) : '';
+  const href = `${prefix}assets/favicon.png`;
+  return [
+    `<link rel="icon" type="image/png" sizes="32x32" href="${href}" />`,
+    `<link rel="apple-touch-icon" href="${href}" />`
+  ].join('\n');
+}
+
+/** Inject favicon + shared Tailwind CDN snippet into app HTML pages (see rules/ui.md). */
+function injectHeadAssetsPlugin() {
   return {
-    name: 'alter-ego-inject-tailwind',
+    name: 'alter-ego-inject-head-assets',
     transformIndexHtml(html, ctx) {
       const path = (ctx.path ?? ctx.filename ?? '').replace(/\\/g, '/');
-      if (path.includes('/sheet/') || path.endsWith('tailwind.html')) return html;
-      if (html.includes('cdn.tailwindcss.com')) return html;
-      return html.replace('</head>', `${tailwindSnippet}\n</head>`);
+      if (path.endsWith('tailwind.html')) return html;
+
+      let out = html;
+      if (!out.includes('rel="icon"')) {
+        out = out.replace('</head>', `${faviconTagsForPage(path)}\n</head>`);
+      }
+
+      const skipTailwind = path.includes('/sheet/') || out.includes('cdn.tailwindcss.com');
+      if (!skipTailwind) {
+        out = out.replace('</head>', `${tailwindSnippet}\n</head>`);
+      }
+      return out;
     }
   };
 }
-
-const DEBUG_ENDPOINT = 'http://127.0.0.1:7737/ingest/957dca39-ea8e-420d-92ba-58809ca18a8c';
-const DEBUG_SESSION_ID = '5d39f7';
 
 /** Redirect bare /editor → /editor/ so MPA routes work when index.html is stripped from URLs. */
 function trailingSlashRedirectPlugin() {
@@ -80,59 +98,9 @@ function legacySrcPrefixRedirectPlugin() {
         if (!pathname.startsWith('/src/')) return next();
         const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
         const target = `${pathname.slice(4) || '/'}${query}`;
-        // #region agent log
-        fetch(DEBUG_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': DEBUG_SESSION_ID
-          },
-          body: JSON.stringify({
-            sessionId: DEBUG_SESSION_ID,
-            runId: 'pre-fix',
-            hypothesisId: 'A',
-            location: 'vite.config.js:legacySrcPrefixRedirect',
-            message: 'vite redirect /src/*',
-            data: { from: pathname, to: target },
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion
         res.statusCode = 302;
         res.setHeader('Location', target);
         res.end();
-      });
-    }
-  };
-}
-
-/** Log dev-server requests for 404 / path mismatch debugging. */
-function debugRequestPlugin() {
-  return {
-    name: 'alter-ego-debug-request',
-    configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
-        const url = req.url ?? '';
-        const pathname = url.split('?')[0];
-        // #region agent log
-        fetch(DEBUG_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': DEBUG_SESSION_ID
-          },
-          body: JSON.stringify({
-            sessionId: DEBUG_SESSION_ID,
-            runId: 'pre-fix',
-            hypothesisId: pathname.startsWith('/src/') ? 'A' : pathname.includes('editor') ? 'B' : 'D',
-            location: 'vite.config.js:debugRequestPlugin',
-            message: 'vite request',
-            data: { method: req.method, url, pathname, viteRoot: 'src' },
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion
-        next();
       });
     }
   };
@@ -206,7 +174,7 @@ export default defineConfig({
     'import.meta.env.VITE_GIT_SHA': JSON.stringify(safeGit('git rev-parse --short HEAD'))
   },
   root: srcRoot,
-  plugins: [injectTailwindPlugin(), trailingSlashRedirectPlugin(), legacySrcPrefixRedirectPlugin(), debugRequestPlugin(), parentStaticPlugin()],
+  plugins: [injectHeadAssetsPlugin(), trailingSlashRedirectPlugin(), legacySrcPrefixRedirectPlugin(), parentStaticPlugin()],
   server: {
     port: 5173,
     fs: { allow: [projectRoot] },

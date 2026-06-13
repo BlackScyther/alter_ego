@@ -48,6 +48,18 @@
   color: var(--editor-text);
 }
 
+.hub-title--logo {
+  margin: 0;
+  line-height: 0;
+}
+
+.hub-logo {
+  display: block;
+  width: min(100%, 16rem);
+  height: auto;
+  margin: 0 auto;
+}
+
 .hub-lead {
   margin: 0.75rem 0 0;
   font-size: 1rem;

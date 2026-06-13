@@ -316,7 +316,16 @@ export function extractFeatIdsFromRaceHtml(html) {
 }
 
 function stripPowerBlocks(html) {
-  return String(html ?? '').replace(/<span[^>]*class\s*=\s*power[^>]*>[\s\S]*?<\/span>/gi, '');
+  return (
+    String(html ?? '')
+      // Full embedded power cards: <h1 class=encounterpower>… up to the next
+      // heading (or end). Their stat lines must never leak into benefit rows.
+      .replace(
+        /<h1[^>]*class\s*=\s*["']?[^"'>\s]*power[^"'>\s]*["']?[^>]*>[\s\S]*?(?=<h1\b|<h2\b|<h3\b|$)/gi,
+        ''
+      )
+      .replace(/<span[^>]*class\s*=\s*power[^>]*>[\s\S]*?<\/span>/gi, '')
+  );
 }
 
 function truncateFlavor(text, max = 80) {
@@ -633,8 +642,9 @@ export function extractFlavorFolds(html, previewTerms = []) {
  * @param {string} picked
  */
 function renderInlineChoiceButtons(decision, picked) {
+  const anchorId = `choice-guide-race-bonus-${decision.kind}-${decision.choiceGroup}`;
   const parts = [
-    `<div class="race-inline-choices" data-kind="${esc(decision.kind)}" data-choice-group="${esc(decision.choiceGroup)}">`
+    `<div class="race-inline-choices" data-choice-guide="race-bonus" id="${esc(anchorId)}" data-kind="${esc(decision.kind)}" data-choice-group="${esc(decision.choiceGroup)}">`
   ];
   const anyOpt = decision.options.find((o) => o.ability === 'any');
   if (anyOpt) {

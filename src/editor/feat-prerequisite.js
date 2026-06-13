@@ -51,6 +51,27 @@ export function featMatchesSlotTier(listingTier, slotTier) {
 }
 
 /**
+ * @param {string} listingTier
+ * @param {string} slotTier
+ */
+function featTierRank(listingTier) {
+  const t = (listingTier ?? 'Heroic').toLowerCase();
+  if (t.includes('epic')) return 3;
+  if (t.includes('paragon')) return 2;
+  return 1;
+}
+
+/**
+ * Retrain: allow same tier or lower than the slot tier.
+ * @param {string} listingTier
+ * @param {string} slotTier
+ */
+export function featMatchesSlotTierRetrain(listingTier, slotTier) {
+  const slotRank = featTierRank(slotTier);
+  return featTierRank(listingTier) <= slotRank;
+}
+
+/**
  * @param {string} prereq
  * @param {number} characterLevel
  * @param {number} slotLevel
@@ -245,12 +266,17 @@ export function prereqPassesFeatChain(prereq, ownedFeatNames) {
  * @param {object} ctx
  * @param {{ tier: string, slotLevel: number }} slot
  */
-export function featPassesDefaultFilter(entry, ctx, slot) {
+export function featPassesDefaultFilter(entry, ctx, slot, opts = {}) {
   const fields = entry.listing_fields ?? {};
   const prereq = normalizePrerequisiteText(fields.Prerequisite);
   const tier = fields.Tier ?? 'Heroic';
+  const retrain = !!opts.retrain;
 
-  if (!featMatchesSlotTier(tier, slot.tier)) return false;
+  if (retrain) {
+    if (!featMatchesSlotTierRetrain(tier, slot.tier)) return false;
+  } else if (!featMatchesSlotTier(tier, slot.tier)) {
+    return false;
+  }
   if (!prereqPassesLevelGate(prereq, ctx.level, slot.slotLevel)) return false;
 
   if (isEmptyPrerequisite(prereq)) return true;
@@ -275,6 +301,27 @@ export function featPassesDefaultFilter(entry, ctx, slot) {
     }
   }
 
+  return true;
+}
+
+/**
+ * Tier and level gate only (no race/class/skill prerequisite checks).
+ * @param {{ listing_fields?: Record<string, string> }} entry
+ * @param {object} ctx
+ * @param {{ tier: string, slotLevel: number }} slot
+ */
+export function featPassesTierFilter(entry, ctx, slot, opts = {}) {
+  const fields = entry.listing_fields ?? {};
+  const prereq = normalizePrerequisiteText(fields.Prerequisite);
+  const tier = fields.Tier ?? 'Heroic';
+  const retrain = !!opts.retrain;
+
+  if (retrain) {
+    if (!featMatchesSlotTierRetrain(tier, slot.tier)) return false;
+  } else if (!featMatchesSlotTier(tier, slot.tier)) {
+    return false;
+  }
+  if (!prereqPassesLevelGate(prereq, ctx.level, slot.slotLevel)) return false;
   return true;
 }
 
@@ -340,19 +387,26 @@ export async function buildFeatEligibilityContext(character, compendium, current
  * @param {Array<{ id: string, listing_fields?: Record<string, string> }>} entries
  * @param {object} ctx
  * @param {{ id: string, slotLevel: number, tier: string }} slot
- * @param {{ showAll?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
+ * @param {{ showAll?: boolean, enforcePrerequisites?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
  */
 export function filterFeatEntries(entries, ctx, slot, opts = {}) {
   const showAll = !!opts.showAll;
+  const retrain = !!opts.retrain;
+  const enforcePrerequisites = opts.enforcePrerequisites !== false && !showAll;
   const exclude = opts.excludeIds instanceof Set ? opts.excludeIds : new Set(opts.excludeIds ?? []);
   const q = (opts.query ?? '').trim();
 
   let list = entries.filter((e) => {
     if (exclude.has(e.id)) return false;
     if (showAll) {
-      return featMatchesSlotTier(e.listing_fields?.Tier, slot.tier);
+      return retrain
+        ? featMatchesSlotTierRetrain(e.listing_fields?.Tier, slot.tier)
+        : featMatchesSlotTier(e.listing_fields?.Tier, slot.tier);
     }
-    return featPassesDefaultFilter(e, ctx, slot);
+    if (enforcePrerequisites) {
+      return featPassesDefaultFilter(e, ctx, slot, { retrain });
+    }
+    return featPassesTierFilter(e, ctx, slot, { retrain });
   });
 
   if (q.length > 0 && q.length < COMPENDIUM_SEARCH_MIN) {

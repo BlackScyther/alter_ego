@@ -8,8 +8,8 @@
           "prompt": "Choose your Dragonborn racial encounter power.",
           "previewTerms": ["Dragon Breath", "Dragonfear"],
           "options": [
-            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448" },
-            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577" }
+            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448", "sourceBook": "PHB, HotFK" },
+            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577", "sourceBook": "Dra388" }
           ]
         }
       ]
@@ -20,13 +20,35 @@
           "id": "manifestation",
           "label": "Elemental Manifestation",
           "prompt": "Choose your Genasi elemental manifestation.",
-          "previewTerms": ["Firepulse", "Earthshock", "Promise of Storm", "Swiftcurrent", "Windwalker"],
+          "previewTerms": [
+            "Firepulse",
+            "Earthshock",
+            "Promise of Storm",
+            "Swiftcurrent",
+            "Windwalker",
+            "Acid Surge",
+            "Firedeath",
+            "Plaguebearer",
+            "Void Assumption",
+            "Ashfall Evasion",
+            "Flowing Magma",
+            "Sandslide",
+            "Sun Flare"
+          ],
           "options": [
-            { "id": "earthsoul", "label": "Earthsoul", "powerId": "power1767" },
-            { "id": "firesoul", "label": "Firesoul", "powerId": "power1766" },
-            { "id": "stormsoul", "label": "Stormsoul", "powerId": "power1769" },
-            { "id": "watersoul", "label": "Watersoul", "powerId": "power1770" },
-            { "id": "windsoul", "label": "Windsoul", "powerId": "power1828" }
+            { "id": "earthsoul", "label": "Earthsoul", "powerId": "power1767", "sourceBook": "FRPG" },
+            { "id": "firesoul", "label": "Firesoul", "powerId": "power1766", "sourceBook": "FRPG" },
+            { "id": "stormsoul", "label": "Stormsoul", "powerId": "power1769", "sourceBook": "FRPG" },
+            { "id": "watersoul", "label": "Watersoul", "powerId": "power1770", "sourceBook": "FRPG" },
+            { "id": "windsoul", "label": "Windsoul", "powerId": "power1828", "sourceBook": "FRPG" },
+            { "id": "causticsoul", "label": "Causticsoul", "powerId": "power10043", "sourceBook": "Dra380" },
+            { "id": "cindersoul", "label": "Cindersoul", "powerId": "power10044", "sourceBook": "Dra380" },
+            { "id": "plaguesoul", "label": "Plaguesoul", "powerId": "power10045", "sourceBook": "Dra380" },
+            { "id": "voidsoul", "label": "Voidsoul", "powerId": "power10046", "sourceBook": "Dra380" },
+            { "id": "embersoul", "label": "Embersoul", "powerId": "power14073", "sourceBook": "Dra396" },
+            { "id": "magmasoul", "label": "Magmasoul", "powerId": "power14074", "sourceBook": "Dra396" },
+            { "id": "sandsoul", "label": "Sandsoul", "powerId": "power14075", "sourceBook": "Dra396" },
+            { "id": "sunsoul", "label": "Sunsoul", "powerId": "power14076", "sourceBook": "Dra396" }
           ]
         }
       ]
@@ -41,8 +63,8 @@
           "prompt": "Choose your Dragonborn racial encounter power.",
           "previewTerms": ["Dragon Breath", "Dragonfear"],
           "options": [
-            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448" },
-            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577" }
+            { "id": "dragon-breath", "label": "Dragon Breath", "powerId": "power1448", "sourceBook": "PHB, HotFK" },
+            { "id": "dragonfear", "label": "Dragonfear", "powerId": "power12577", "sourceBook": "Dra388" }
           ]
         }
       ]
