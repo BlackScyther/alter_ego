@@ -1,0 +1,8 @@
+{
+  "class8": [
+    { "type": "initiative-misc", "amount": 2, "feature": "Combat Leader" }
+  ],
+  "Warlord (Marshal)": [
+    { "type": "initiative-misc", "amount": 2, "feature": "Combat Leader" }
+  ]
+}

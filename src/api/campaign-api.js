@@ -2,6 +2,8 @@
  * Browser client for /api/campaigns (online campaign flow).
  */
 
+import { addGmCampaign, getGmCampaign } from './gm-campaign-registry.js';
+
 const KEYS = {
   id: 'dnd4e.campaign.id',
   name: 'dnd4e.campaign.name',
@@ -83,6 +85,15 @@ export async function createCampaign(name = 'Our campaign') {
     method: 'POST',
     body: JSON.stringify({ name })
   });
+  const createdAt = new Date().toISOString();
+  addGmCampaign({
+    campaignId: data.campaignId,
+    name: data.name,
+    gmToken: data.gmToken,
+    playerToken: data.playerToken,
+    inviteUrl: data.inviteUrl,
+    createdAt
+  });
   setSessionCampaign({
     campaignId: data.campaignId,
     name: data.name,
@@ -91,6 +102,28 @@ export async function createCampaign(name = 'Our campaign') {
     inviteUrl: data.inviteUrl
   });
   return data;
+}
+
+/**
+ * Set an existing registry campaign as the active GM session (Encounters, Workshop writes).
+ * @param {string} campaignId
+ */
+export function activateGmCampaign(campaignId) {
+  const campaign = getGmCampaign(campaignId);
+  if (!campaign) {
+    throw new Error('Campaign not found in this browser. Create it again or restore from backup.');
+  }
+  if (!campaign.gmToken) {
+    throw new Error('GM token missing for this campaign. Create a new campaign instead.');
+  }
+  setSessionCampaign({
+    campaignId: campaign.campaignId,
+    name: campaign.name,
+    role: 'gm',
+    token: campaign.gmToken,
+    inviteUrl: campaign.inviteUrl || ''
+  });
+  return campaign;
 }
 
 export function joinCampaign(campaignId, playerToken, name = 'Campaign') {

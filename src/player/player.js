@@ -7,10 +7,10 @@ syncPlayerModeFromUrl();
 enablePlayerMode();
 
 const genLink = document.getElementById('link-character-generator');
-if (genLink) genLink.href = withPlayerMode('/editor/');
+if (genLink) genLink.href = withPlayerMode('../editor/index.html');
 
 const sheetLink = document.getElementById('link-character-sheet');
-if (sheetLink) sheetLink.href = withPlayerMode('/sheet/');
+if (sheetLink) sheetLink.href = withPlayerMode('../sheet/index.html');
 
 const status = document.getElementById('player-campaign-status');
 const session = getSessionCampaign();

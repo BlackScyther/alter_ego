@@ -100,3 +100,48 @@
 .game-dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
 }
+
+.game-compendium-toolbar .picker-source-combo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.game-compendium-toolbar .picker-source-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.game-compendium-toolbar .picker-source-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.game-compendium-toolbar .picker-source-select-caption {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--editor-muted);
+  white-space: nowrap;
+}
+
+.game-compendium-toolbar .picker-source-select-label select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+  background: var(--editor-bg, #1e293b);
+  color: var(--editor-text);
+  font: inherit;
+}

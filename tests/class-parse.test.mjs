@@ -9,6 +9,8 @@ import {
   buildClassNotesText,
   extractPowerIdsFromClassHtml,
   parseBuildSuggestedSkills,
+  parseBuildSuggestedPowerNames,
+  parseBuildSuggestedFeatNames,
   getSuggestedTrainedSkillsForBuild
 } from '../src/character/class-parse.js';
 
@@ -130,4 +132,44 @@ test('buildClassNotesText compacts traits and choices', () => {
 test('extractPowerIdsFromClassHtml finds power ids', () => {
   const html = '<a href="power1234">Strike</a> and power5678';
   assert.deepEqual(extractPowerIdsFromClassHtml(html), ['power1234', 'power5678']);
+});
+
+test('parseBuildSuggestedPowerNames reads italic starter picks per build', () => {
+  const entry = {
+    id: 'class4',
+    listing_fields: { Name: 'Paladin' },
+    body_html: `<blockquote><b>Build Options: </b>Protecting Paladin, Virtuous Paladin.</blockquote>
+<h3>PROTECTING PALADIN</h3>
+<b>Suggested At-Will Powers</b>: <i>bolstering strike, enfeebling strike</i><br>
+<b>Suggested Encounter Power</b>: <i>shielding smite</i><br>
+<b>Suggested Daily Power</b>: <i>radiant delirium</i><br>
+<h3>VIRTUOUS PALADIN</h3>
+<b>Suggested At-Will Powers</b>: <i>bolstering strike, virtuous strike</i><br>
+<b>Suggested Encounter Power</b>: <i>valorous smite</i><br>
+<b>Suggested Daily Power</b>: <i>majestic halo</i><br>`
+  };
+  const parsed = parseClassEntry(entry);
+  const byBuild = parseBuildSuggestedPowerNames(entry.body_html, parsed.buildOptions);
+  assert.deepEqual(byBuild['protecting-paladin'], {
+    atWill: ['bolstering strike', 'enfeebling strike'],
+    encounter: ['shielding smite'],
+    daily: ['radiant delirium']
+  });
+  assert.deepEqual(byBuild['virtuous-paladin'].atWill, ['bolstering strike', 'virtuous strike']);
+});
+
+test('parseBuildSuggestedFeatNames reads suggested feat per build', () => {
+  const entry = {
+    id: 'class4',
+    listing_fields: { Name: 'Paladin' },
+    body_html: `<blockquote><b>Build Options: </b>Protecting Paladin, Virtuous Paladin.</blockquote>
+<h3>PROTECTING PALADIN</h3>
+<b>Suggested Feat</b>: Healing Hands (Human feat: Action Surge)<br>
+<h3>VIRTUOUS PALADIN</h3>
+<b>Suggested Feat</b>: Virtuous Recovery<br>`
+  };
+  const parsed = parseClassEntry(entry);
+  const byBuild = parseBuildSuggestedFeatNames(entry.body_html, parsed.buildOptions);
+  assert.equal(byBuild['protecting-paladin'], 'Healing Hands');
+  assert.equal(byBuild['virtuous-paladin'], 'Virtuous Recovery');
 });

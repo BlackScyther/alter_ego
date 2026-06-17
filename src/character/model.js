@@ -2,6 +2,7 @@
  * Character document — aligned with PROJECT.md party model + sheet page 1.
  */
 
+import { validateEquipmentStep } from './equipment-selections.js';
 import { validateFeatsStep } from './feat-selections.js';
 import { validatePowersStep } from './power-selections.js';
 import { validateRaceStep } from './race-selections.js';
@@ -76,6 +77,7 @@ export function createCharacter(partial = {}) {
       ritualSelections: {},
       ritualIds: [],
       equipmentIds: [],
+      equipmentItems: [],
       ...partial.selections
     },
     builderFlags: {
@@ -101,7 +103,8 @@ export function createCharacter(partial = {}) {
         hpSubstituteScore: null
       },
       milestones: 0,
-      armorPenaltyGlobal: 0
+      armorPenaltyGlobal: 0,
+      treasure: { goldGp: 0 }
     },
     notes: {
       raceFeatures: '',
@@ -203,6 +206,9 @@ export function validateStep(stepId, character, editorMeta) {
       break;
     case 'powers':
       errors.push(...validatePowersStep(character));
+      break;
+    case 'equipment':
+      errors.push(...validateEquipmentStep(character));
       break;
     default:
       break;

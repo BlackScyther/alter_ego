@@ -5,6 +5,7 @@
 import initSqlJs from 'sql.js/dist/sql-wasm.js';
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import { classNameMatches, classNameLikePatterns, normalizePowerType, powerTypeLikePatterns } from '../editor/power-filter.js';
+import { apiBase } from '../api/campaign-api.js';
 
 const SEARCH_MIN = 3;
 
@@ -89,6 +90,48 @@ export function rankSearchResults(entries, query, limit = 100) {
   });
 
   return { kind: 'results', entries: scored.slice(0, limit).map((s) => s.row) };
+}
+
+function sortEntriesByName(entries) {
+  return [...entries].sort((a, b) => {
+    const an = a.listing_fields?.Name ?? a.id;
+    const bn = b.listing_fields?.Name ?? b.id;
+    return an.localeCompare(bn, undefined, { sensitivity: 'base' });
+  });
+}
+
+function mergeEntryLists(official, homebrew, limit) {
+  const seen = new Set();
+  const merged = [];
+  for (const row of [...official, ...homebrew]) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    merged.push(row);
+  }
+  return sortEntriesByName(merged).slice(0, limit);
+}
+
+async function fetchHomebrewFromApi(opts = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (opts.category) params.set('category', opts.category);
+    if (opts.search) params.set('search', opts.search);
+    if (opts.sourceBook) params.set('sourceBook', opts.sourceBook);
+    if (opts.limit != null) params.set('limit', String(opts.limit));
+    const qs = params.toString();
+    const res = await fetch(`${apiBase()}/api/homebrew${qs ? `?${qs}` : ''}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.entries ?? []).map((e) => ({
+      id: e.id,
+      category_slug: e.category_slug,
+      listing_fields: e.listing_fields ?? {},
+      body_html: e.body_html ?? '',
+      index_text: e.index_text ?? ''
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export class CompendiumProvider {
@@ -225,7 +268,7 @@ export class CompendiumProvider {
 
   /**
    * @param {string} categorySlug
-   * @param {{ search?: string, limit?: number, sourceBooks?: string[], className?: string, level?: number, powerType?: import('../editor/power-filter.js').PowerType }} opts
+   * @param {{ search?: string, limit?: number, sourceBooks?: string[], className?: string, level?: number, powerType?: import('../editor/power-filter.js').PowerType, includeHomebrew?: boolean }} opts
    * @returns {Promise<CompendiumEntry[]>}
    */
   async listEntries(categorySlug, opts = {}) {
@@ -238,11 +281,32 @@ export class CompendiumProvider {
     const level = opts.level ?? null;
     const powerType = opts.powerType ?? null;
     const powerFilters = className != null || level != null || powerType != null;
+    const includeHomebrew = opts.includeHomebrew !== false;
+    const homebrewOnly =
+      bookSet && [...bookSet].every((b) => String(b).startsWith('hbrw_'));
 
     const passesSource = (entry) => {
       if (!bookSet) return true;
       return splitSourceBooks(entry.listing_fields?.SourceBook).some((b) => bookSet.has(b));
     };
+
+    async function attachHomebrew(officialRows) {
+      if (!includeHomebrew) return officialRows;
+      const hbSourceBook =
+        bookSet && bookSet.size === 1 ? [...bookSet][0] : undefined;
+      const homebrewRows = await fetchHomebrewFromApi({
+        category: categorySlug,
+        search: q.length >= SEARCH_MIN ? q : undefined,
+        sourceBook: hbSourceBook,
+        limit: limit
+      });
+      const filteredHb = homebrewRows.filter((e) => {
+        if (!passesSource(e)) return false;
+        return passesPowerFilters(e.listing_fields);
+      });
+      if (homebrewOnly) return sortEntriesByName(filteredHb).slice(0, limit);
+      return mergeEntryLists(officialRows, filteredHb, limit);
+    }
 
     const passesPowerFilters = (listing_fields) =>
       !powerFilters ||
@@ -261,9 +325,9 @@ export class CompendiumProvider {
           index_text: e.index_text ?? ''
         }));
         const { entries } = rankSearchResults(mapped, q, limit);
-        return entries;
+        return attachHomebrew(entries);
       }
-      return rows.slice(0, limit).map((e) => ({
+      const official = rows.slice(0, limit).map((e) => ({
         id: e.id,
         category_slug: categorySlug,
         listing_fields: e.listing_fields,
@@ -272,6 +336,7 @@ export class CompendiumProvider {
         ability_bonuses: e.ability_bonuses,
         skill_bonuses: e.skill_bonuses
       }));
+      return attachHomebrew(official);
     }
 
     if (this._usesSqlite()) {
@@ -332,7 +397,7 @@ export class CompendiumProvider {
         );
         const mapped = rawRows.map(rowToEntry);
         const { entries } = rankSearchResults(mapped, q, limit);
-        return entries;
+        return attachHomebrew(entries);
       }
 
       const fetchLimit =
@@ -345,7 +410,16 @@ export class CompendiumProvider {
          LIMIT ?`,
         [categorySlug, ...bookParams, ...powerParams, fetchLimit]
       );
-      return rawRows.map(rowToEntry).slice(0, limit);
+      return attachHomebrew(rawRows.map(rowToEntry).slice(0, limit));
+    }
+
+    if (includeHomebrew) {
+      const homebrewRows = await fetchHomebrewFromApi({
+        category: categorySlug,
+        search: q.length >= SEARCH_MIN ? q : undefined,
+        limit
+      });
+      return sortEntriesByName(homebrewRows).slice(0, limit);
     }
 
     return [];
@@ -353,9 +427,11 @@ export class CompendiumProvider {
 
   /**
    * @param {string} categorySlug
+   * @param {{ includeHomebrew?: boolean }} [opts]
    */
-  async distinctSourceBooks(categorySlug) {
+  async distinctSourceBooks(categorySlug, opts = {}) {
     await this.ready();
+    const includeHomebrew = opts.includeHomebrew !== false;
     const collect = (values) => {
       const set = new Set();
       for (const v of values) {
@@ -366,7 +442,10 @@ export class CompendiumProvider {
 
     if (this._usesStubData()) {
       const rows = this._stub.categories[categorySlug]?.entries ?? [];
-      return collect(rows.map((e) => e.listing_fields?.SourceBook));
+      const official = collect(rows.map((e) => e.listing_fields?.SourceBook));
+      if (!includeHomebrew) return official;
+      const hb = await fetchHomebrewFromApi({ category: categorySlug, limit: 500 });
+      return collect([...official, ...hb.map((e) => e.listing_fields?.SourceBook)]);
     }
 
     if (this._usesSqlite()) {
@@ -378,7 +457,15 @@ export class CompendiumProvider {
            AND json_extract(listing_fields, '$.SourceBook') != ''`,
         [categorySlug]
       );
-      return collect(rows.map((r) => r.sb));
+      const official = collect(rows.map((r) => r.sb));
+      if (!includeHomebrew) return official;
+      const hb = await fetchHomebrewFromApi({ category: categorySlug, limit: 500 });
+      return collect([...official, ...hb.map((e) => e.listing_fields?.SourceBook)]);
+    }
+
+    if (includeHomebrew) {
+      const hb = await fetchHomebrewFromApi({ category: categorySlug, limit: 500 });
+      return collect(hb.map((e) => e.listing_fields?.SourceBook));
     }
 
     return [];
@@ -386,6 +473,23 @@ export class CompendiumProvider {
 
   async getEntry(id) {
     await this.ready();
+    if (String(id).startsWith('hb_')) {
+      try {
+        const res = await fetch(`${apiBase()}/api/homebrew/${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const e = await res.json();
+          return {
+            id: e.id,
+            category_slug: e.category_slug,
+            listing_fields: e.listing_fields ?? {},
+            body_html: e.body_html ?? '',
+            index_text: e.index_text ?? ''
+          };
+        }
+      } catch {
+        /* fall through */
+      }
+    }
     if (this._usesStubData()) {
       for (const [slug, cat] of Object.entries(this._stub.categories)) {
         const hit = cat.entries?.find((e) => e.id === id);

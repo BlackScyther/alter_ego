@@ -4,36 +4,69 @@
   min-height: 100vh;
 }
 
-.gm-nav-hint {
-  margin-top: auto;
-  font-size: 11px;
-  color: var(--editor-muted);
-  line-height: 1.4;
-}
-
-.gm-nav-hint code {
-  font-size: 10px;
-}
-
-.gm-main .editor-header h2 {
-  margin: 0;
-}
-
-.gm-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.gm-file-label {
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-
 .gm-campaign-panel h2 {
   margin: 0;
+}
+
+.gm-campaigns-root-summary {
+  list-style: none;
+}
+
+.gm-campaigns-root-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gm-campaign-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gm-campaign-item {
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+  padding: 0 12px 12px;
+}
+
+.gm-campaign-item--active {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.gm-campaign-item-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-weight: 600;
+  color: var(--editor-accent);
+  list-style: none;
+}
+
+.gm-campaign-item-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gm-campaign-item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.gm-campaign-active-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(251, 191, 36);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.gm-campaign-body {
+  padding-top: 4px;
 }
 
 .gm-quick-build-grid {
@@ -44,53 +77,4 @@
 
 .gm-qb-field--wide {
   grid-column: 1 / -1;
-}
-
-.gm-party-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.gm-card {
-  background: var(--editor-surface);
-  border: 1px solid var(--editor-border);
-  border-radius: 6px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.gm-card h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--editor-accent);
-}
-
-.gm-card-meta {
-  font-size: 12px;
-  color: var(--editor-muted);
-  margin: 0;
-}
-
-.gm-card-file {
-  font-size: 11px;
-  color: var(--editor-muted);
-  font-family: ui-monospace, monospace;
-  word-break: break-all;
-}
-
-.gm-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 8px;
-}
-
-.gm-empty {
-  color: var(--editor-muted);
-  font-size: 14px;
-  line-height: 1.5;
 }

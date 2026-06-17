@@ -1,0 +1,68 @@
+{
+  "armor5": {
+    "kind": "armor",
+    "acBonus": 8,
+    "checkPenalty": -1,
+    "speedPenalty": -1,
+    "armorCategory": "scale"
+  },
+  "armor8": {
+    "kind": "shield",
+    "acBonus": 2,
+    "refBonus": 1,
+    "checkPenalty": -2
+  },
+  "armor1": {
+    "kind": "armor",
+    "acBonus": 7,
+    "checkPenalty": -1,
+    "speedPenalty": -1,
+    "armorCategory": "chainmail"
+  },
+  "weapon3612": {
+    "kind": "weapon",
+    "proficiencyBonus": 3,
+    "damageDice": "1d12",
+    "weaponGroup": "axe",
+    "hand": "two-handed",
+    "range": "melee",
+    "attackAbility": "str"
+  },
+  "weapon3610": {
+    "kind": "weapon",
+    "proficiencyBonus": 3,
+    "damageDice": "1d8",
+    "weaponGroup": "heavy blade",
+    "hand": "one-handed",
+    "range": "melee",
+    "attackAbility": "str"
+  },
+  "weapon3595": {
+    "kind": "weapon",
+    "proficiencyBonus": 3,
+    "damageDice": "1d6",
+    "weaponGroup": "spear",
+    "hand": "one-handed",
+    "range": "both",
+    "attackAbility": "str",
+    "rangedAttackAbility": "dex"
+  },
+  "weapon3628": {
+    "kind": "weapon",
+    "proficiencyBonus": 3,
+    "damageDice": "1d4",
+    "weaponGroup": "sling",
+    "hand": "one-handed",
+    "range": "ranged",
+    "attackAbility": "dex"
+  },
+  "weapon1": {
+    "kind": "weapon",
+    "proficiencyBonus": 3,
+    "damageDice": "1d8",
+    "weaponGroup": "heavy blade",
+    "hand": "one-handed",
+    "range": "melee",
+    "attackAbility": "str"
+  }
+}

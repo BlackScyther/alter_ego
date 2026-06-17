@@ -28,6 +28,16 @@ Open **http://localhost:5173/src/launcher/** — Player / GM, version stamp, ful
 
 To edit Git source (not production parity): `npm run dev:src`.
 
+## Deploy to live
+
+Requires `.env.deploy.local` (SSH host, user, key — gitignored).
+
+```bash
+npm run deploy:live
+```
+
+Builds `dist/app/` with the full `data/alter_eger.db`, then uploads to https://www.braincell.online/ via SFTP.
+
 ## Repo structure (short)
 
 | Path | What |

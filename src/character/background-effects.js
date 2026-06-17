@@ -208,7 +208,10 @@ export function applyBackgroundEffects(character, effects, context = {}) {
   const initiativeTotal = effects
     .filter((e) => e.type === 'initiative-misc')
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  character.sheet.derivedBonuses.initiative = initiativeTotal;
+  const derived = character.sheet.derivedBonuses;
+  derived.initiativeBackground = initiativeTotal;
+  derived.initiative =
+    (Number(derived.initiativeBackground) || 0) + (Number(derived.initiativeClass) || 0);
 
   const hpEffect = effects.find((e) => e.type === 'hp-con-substitute');
   const choices = character.selections?.backgroundEffectChoices ?? {};

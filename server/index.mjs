@@ -3,7 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import campaignsRouter from './routes/campaigns.mjs';
+import homebrewRouter from './routes/homebrew.mjs';
 import { getDb } from './db.mjs';
+import { compendiumUsesSqlite } from './compendium.mjs';
 
 const PORT = Number(process.env.PORT) || 3000;
 const app = express();
@@ -32,10 +34,15 @@ app.use(
 );
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'alter-ego-campaign-api' });
+  res.json({
+    ok: true,
+    service: 'alter-ego-campaign-api',
+    compendium: compendiumUsesSqlite() ? 'sqlite' : 'stub'
+  });
 });
 
 app.use('/api/campaigns', campaignsRouter);
+app.use('/api/homebrew', homebrewRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

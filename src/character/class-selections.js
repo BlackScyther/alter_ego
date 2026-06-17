@@ -12,9 +12,17 @@ import {
   buildClassNotesText,
   extractPowerIdsFromClassHtml,
   parseBuildSuggestedSkills,
+  parseBuildSuggestedPowerNames,
+  parseBuildSuggestedFeatNames,
   getSuggestedTrainedSkillsForBuild
 } from './class-parse.js';
+import { detectClassEffects, applyClassEffects, formatClassEffectNotes } from './class-effects.js';
 import { ensurePowerSelectionsShape, syncPowerIdsFromSelections, getPowerSlotsForLevel } from './power-selections.js';
+import {
+  ensureFeatSelectionsShape,
+  syncFeatIdsFromSelections,
+  getFeatSlotsForLevel
+} from './feat-selections.js';
 
 const BUILD_BY_ID = buildOptionsMeta.byClassId ?? {};
 const BUILD_BY_NAME = buildOptionsMeta.byClassName ?? {};
@@ -70,7 +78,8 @@ export function getClassBuildDecisions(classId, className, parsed = null) {
         label: o.label,
         previewTerms: [o.label.split(/\s/)[0]],
         powerIds: [],
-        powerSlotSeeds: {}
+        powerSlotSeeds: {},
+        featSlotSeeds: {}
       }))
     }
   ];
@@ -237,6 +246,8 @@ export function syncClassTraitsToSheet(character, classEntry) {
     character.sheet.hp.surgesPerDay = Math.floor(parsed.surgesBase + conMod);
   }
 
+  applyClassEffects(character, detectClassEffects(classEntry));
+
   return character;
 }
 
@@ -279,11 +290,236 @@ export function getRecommendedPowerSeeds(character, classEntry) {
 }
 
 /**
+ * Starter feat picks from the selected class build (`featSlotSeeds` in metadata).
+ *
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ * @returns {{ seeds: Record<string, string>, buildLabel: string | null, decisionId: string | null, buildOptionId: string | null }}
+ */
+export function getRecommendedFeatSeeds(character, classEntry) {
+  if (!classEntry) {
+    return { seeds: {}, buildLabel: null, decisionId: null, buildOptionId: null };
+  }
+
+  const parsed = parseClassEntry(classEntry);
+  const decisions = getClassBuildDecisions(
+    classEntry.id ?? character.selections?.classId,
+    classEntry.listing_fields?.Name,
+    parsed
+  );
+  const choices = character.selections?.classBuildChoices ?? {};
+
+  for (const d of decisions) {
+    const picked = choices[d.id];
+    if (!picked) continue;
+    const opt = d.options?.find((o) => o.id === picked);
+    const seeds = opt?.featSlotSeeds ?? {};
+    if (Object.keys(seeds).length) {
+      return {
+        seeds,
+        buildLabel: opt?.label ?? picked,
+        decisionId: d.id,
+        buildOptionId: picked
+      };
+    }
+  }
+
+  return { seeds: {}, buildLabel: null, decisionId: null, buildOptionId: null };
+}
+
+/**
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ */
+export function hasRecommendedClassFeats(character, classEntry) {
+  return Object.keys(getRecommendedFeatSeeds(character, classEntry).seeds).length > 0;
+}
+
+/**
+ * Map a level-1 heroic feat id onto the first open feat slot for the character level.
+ *
+ * @param {string | null | undefined} featId
+ * @param {number} characterLevel
+ * @returns {Record<string, string>}
+ */
+export function buildStarterFeatSlotSeeds(featId, characterLevel) {
+  if (!featId) return {};
+  const slots = getFeatSlotsForLevel(characterLevel);
+  const level1Slot = slots.find((s) => s.slotLevel === 1);
+  if (!level1Slot) return {};
+  return { [level1Slot.id]: String(featId).toLowerCase() };
+}
+
+/**
  * @param {object} character
  * @param {object | null | undefined} classEntry
  */
 export function hasRecommendedClassPowers(character, classEntry) {
   return Object.keys(getRecommendedPowerSeeds(character, classEntry).seeds).length > 0;
+}
+
+/**
+ * Map resolved level-1 starter power ids onto open class power slots.
+ *
+ * @param {{ atWill: string[], encounter: string[], daily: string[] }} resolved
+ * @param {number} characterLevel
+ * @returns {Record<string, string>}
+ */
+export function buildStarterPowerSlotSeeds(resolved, characterLevel) {
+  const slots = getPowerSlotsForLevel(characterLevel);
+  const seeds = {};
+  const atWillSlots = slots.filter((s) => s.powerType === 'At-Will');
+  const encounterSlots = slots.filter((s) => s.powerType === 'Encounter');
+  const dailySlots = slots.filter((s) => s.powerType === 'Daily');
+
+  resolved.atWill.forEach((powerId, index) => {
+    if (atWillSlots[index]) seeds[atWillSlots[index].id] = powerId;
+  });
+  if (encounterSlots[0] && resolved.encounter[0]) {
+    seeds[encounterSlots[0].id] = resolved.encounter[0];
+  }
+  if (dailySlots[0] && resolved.daily[0]) {
+    seeds[dailySlots[0].id] = resolved.daily[0];
+  }
+  return seeds;
+}
+
+/**
+ * @param {import('../data/compendium.js').CompendiumProvider} compendium
+ * @param {string} name
+ * @param {string | null | undefined} className
+ * @param {number} level
+ * @param {import('../editor/power-filter.js').PowerType} powerType
+ */
+async function lookupPowerIdByName(compendium, name, className, level, powerType) {
+  const entries = await compendium.listEntries('power', {
+    search: name,
+    limit: 30,
+    className: className ?? undefined,
+    level,
+    powerType
+  });
+  const norm = name.toLowerCase();
+  const exact = entries.find((e) => (e.listing_fields?.Name ?? '').toLowerCase() === norm);
+  if (exact) return String(exact.id).toLowerCase();
+  const partial = entries.find((e) => (e.listing_fields?.Name ?? '').toLowerCase().includes(norm));
+  return partial ? String(partial.id).toLowerCase() : null;
+}
+
+/**
+ * Resolve starter power slot seeds from metadata or compendium build-section names.
+ *
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ * @param {import('../data/compendium.js').CompendiumProvider | null | undefined} compendium
+ */
+export async function resolveRecommendedPowerSeeds(character, classEntry, compendium) {
+  const sync = getRecommendedPowerSeeds(character, classEntry);
+  if (Object.keys(sync.seeds).length) return sync;
+  if (!classEntry || !compendium) return sync;
+
+  const parsed = parseClassEntry(classEntry);
+  const buildId = character.selections?.classBuildChoices?.build;
+  if (!buildId) return sync;
+
+  const suggested = parseBuildSuggestedPowerNames(classEntry.body_html ?? '', parsed.buildOptions)[buildId];
+  if (!suggested) return sync;
+
+  const className = classEntry.listing_fields?.Name ?? character.identity?.class;
+  const level = Number(character.identity?.level) || 1;
+  /** @type {{ atWill: string[], encounter: string[], daily: string[] }} */
+  const resolved = { atWill: [], encounter: [], daily: [] };
+
+  for (const name of suggested.atWill) {
+    const id = await lookupPowerIdByName(compendium, name, className, 1, 'At-Will');
+    if (id) resolved.atWill.push(id);
+  }
+  for (const name of suggested.encounter) {
+    const id = await lookupPowerIdByName(compendium, name, className, 1, 'Encounter');
+    if (id) resolved.encounter.push(id);
+  }
+  for (const name of suggested.daily) {
+    const id = await lookupPowerIdByName(compendium, name, className, 1, 'Daily');
+    if (id) resolved.daily.push(id);
+  }
+
+  const seeds = buildStarterPowerSlotSeeds(resolved, level);
+  if (!Object.keys(seeds).length) return sync;
+
+  const buildLabel = parsed.buildOptions.find((o) => o.id === buildId)?.label ?? buildId;
+  return {
+    seeds,
+    buildLabel,
+    decisionId: 'build',
+    buildOptionId: buildId
+  };
+}
+
+/**
+ * @param {import('../data/compendium.js').CompendiumProvider} compendium
+ * @param {string} name
+ * @param {string} slotTier
+ */
+async function lookupFeatIdByName(compendium, name, slotTier) {
+  const entries = await compendium.listEntries('feat', {
+    search: name,
+    limit: 30
+  });
+  const norm = name.toLowerCase();
+  const tierMatches = entries.filter((e) => featEntryMatchesTier(e.listing_fields?.Tier, slotTier));
+  const exact = tierMatches.find((e) => (e.listing_fields?.Name ?? '').toLowerCase() === norm);
+  if (exact) return String(exact.id).toLowerCase();
+  const partial = tierMatches.find((e) => (e.listing_fields?.Name ?? '').toLowerCase().includes(norm));
+  return partial ? String(partial.id).toLowerCase() : null;
+}
+
+/**
+ * @param {string | null | undefined} listingTier
+ * @param {string} slotTier
+ */
+function featEntryMatchesTier(listingTier, slotTier) {
+  const t = (listingTier ?? 'Heroic').toLowerCase();
+  const slot = slotTier.toLowerCase();
+  if (t === slot) return true;
+  if (slot === 'heroic' && !t.includes('paragon') && !t.includes('epic')) return true;
+  return false;
+}
+
+/**
+ * Resolve starter feat slot seeds from metadata or compendium build-section names.
+ *
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ * @param {import('../data/compendium.js').CompendiumProvider | null | undefined} compendium
+ */
+export async function resolveRecommendedFeatSeeds(character, classEntry, compendium) {
+  const sync = getRecommendedFeatSeeds(character, classEntry);
+  if (Object.keys(sync.seeds).length) return sync;
+  if (!classEntry || !compendium) return sync;
+
+  const parsed = parseClassEntry(classEntry);
+  const buildId = character.selections?.classBuildChoices?.build;
+  if (!buildId) return sync;
+
+  const featName = parseBuildSuggestedFeatNames(classEntry.body_html ?? '', parsed.buildOptions)[buildId];
+  if (!featName) return sync;
+
+  const level = Number(character.identity?.level) || 1;
+  const slots = getFeatSlotsForLevel(level);
+  const level1Slot = slots.find((s) => s.slotLevel === 1);
+  if (!level1Slot) return sync;
+
+  const featId = await lookupFeatIdByName(compendium, featName, level1Slot.tier);
+  const seeds = buildStarterFeatSlotSeeds(featId, level);
+  if (!Object.keys(seeds).length) return sync;
+
+  const buildLabel = parsed.buildOptions.find((o) => o.id === buildId)?.label ?? buildId;
+  return {
+    seeds,
+    buildLabel,
+    decisionId: 'build',
+    buildOptionId: buildId
+  };
 }
 
 /**
@@ -298,7 +534,9 @@ export function applyRecommendedClassPowers(character, classEntry, opts = {}) {
   if (!classEntry) return character;
 
   ensurePowerSelectionsShape(character);
-  const { seeds } = getRecommendedPowerSeeds(character, classEntry);
+  const { seeds } = opts.seeds
+    ? { seeds: opts.seeds }
+    : getRecommendedPowerSeeds(character, classEntry);
   const validSlots = new Set(getPowerSlotsForLevel(character.identity?.level ?? 1).map((s) => s.id));
   const map = character.selections.powerSelections ?? {};
 
@@ -310,6 +548,35 @@ export function applyRecommendedClassPowers(character, classEntry, opts = {}) {
   }
 
   syncPowerIdsFromSelections(character);
+  return character;
+}
+
+/**
+ * Fill feat slots from the selected build's recommended picks.
+ *
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ * @param {{ force?: boolean, seeds?: Record<string, string> }} [opts]
+ */
+export function applyRecommendedClassFeats(character, classEntry, opts = {}) {
+  const force = opts.force !== false;
+  if (!classEntry) return character;
+
+  ensureFeatSelectionsShape(character);
+  const { seeds } = opts.seeds
+    ? { seeds: opts.seeds }
+    : getRecommendedFeatSeeds(character, classEntry);
+  const validSlots = new Set(getFeatSlotsForLevel(character.identity?.level ?? 1).map((s) => s.id));
+  const map = character.selections.featSelections ?? {};
+
+  for (const [slotId, featId] of Object.entries(seeds)) {
+    if (!validSlots.has(slotId)) continue;
+    if (force || !map[slotId]) {
+      map[slotId] = String(featId).toLowerCase();
+    }
+  }
+
+  syncFeatIdsFromSelections(character);
   return character;
 }
 
@@ -347,11 +614,16 @@ export function syncClassNotesAndGrants(character, classEntry, powerEntries = []
   character.selections.classPowerIds = classPowerIds;
 
   const buildSummary = buildBuildChoiceSummary(character, classEntry);
-  character.notes.classFeatures = buildClassNotesText(classEntry, parsed, {
+  let notes = buildClassNotesText(classEntry, parsed, {
     buildChoices: character.selections.classBuildChoices,
     trainedSkillChoices: character.selections.classTrainedSkillChoices,
     buildSummary
   });
+  const effectNotes = formatClassEffectNotes(detectClassEffects(classEntry));
+  if (effectNotes.length) {
+    notes = [notes, effectNotes.join('\n')].filter(Boolean).join('\n');
+  }
+  character.notes.classFeatures = notes;
 
   seedClassPowerSelections(character, classEntry);
   seedClassTrainedSkillChoices(character, classEntry);

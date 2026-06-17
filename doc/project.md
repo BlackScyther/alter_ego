@@ -1,6 +1,6 @@
 # Project description — Alter Ego
 
-**Last updated:** 2026-06-07
+**Last updated:** 2026-06-17
 
 ## What this is
 
@@ -11,7 +11,7 @@
 | Audience | Value |
 |----------|--------|
 | **Players** | Open invite link → generator → **Save** (no JSON via chat/USB) |
-| **DM** | Create campaign → share link → live party list (polling) |
+| **DM** | Create campaign → share link → game editor party picker (polling) |
 | **Developer / host** | App + API on VPS ([deploy-online.md](deploy-online.md)) or locally `npm run dev:all` |
 
 **Primary:** Online campaign (browser + small Node/SQLite API).  
@@ -37,7 +37,7 @@
     ▼         ▼
 ┌─────────┐  ┌──────────────────────────────────┐
 │ Join    │  │ GM console                        │
-│ ?c=&t=  │  │ Create campaign · live party      │
+│ ?c=&t=  │  │ Create campaign · quick-build · game editor │
 └────┬────┘  └──────────────────────────────────┘
      ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -61,18 +61,21 @@ Details: [architecture.md](architecture.md).
 
 ## What already works
 
-- Online campaign: create, invite, save sync, GM party (polling)
-- Game editor: encounters, spawn monsters/party, editor bridge, combat tab
+- **Campaigns** (`/src/gm/campaigns/`): create campaigns; **Use this campaign** sets the active GM session for Encounters and Workshop
+- **Workshop** (`/src/gm/workshop/`): GMs create shared homebrew compendium entries (`SourceBook = hbrw_{GM}`); visible in Character Generator and Encounters pickers
+- Game editor (`/src/game/`): legacy encounter UI; primary surface is Encounters under Campaigns
 - Character generator, sheet, formulas, JSON export
 - **Race step:** core/subrace pickers, ability “or” choices on race step, racial power/feat grant tiles, compendium hover links in preview and notes
-- Vite build, launcher, player hub, GM JSON backup import
+- **Class step:** static initiative bonuses from class features apply to the character's own initiative (curated `data/class-effect-overrides.json`, seeded with Warlord (Marshal) Combat Leader +2; composes with background initiative; conditional initiative effects intentionally ignored)
+- **Equipment step:** inventory list, body-slot equip UI (armor, weapons, implement, worn items), compendium picker with category tabs and source filter, manual gold (gp) field. On **new level-1 character creation** (not edit), auto-applies curated starting kits (Fighter Great Weapon / Guardian), sets leftover gold, and syncs AC, armor check, speed, and basic attack lines to the sheet mirror; gear remains editable afterward. Level-1 characters also get a **Recommended equipment for this class** button (same pattern as powers/feats) to force-reapply the build kit and refresh sheet stats.
+- Vite build, launcher, player hub
 - Desktop (Tauri), CI builds Windows/Mac
 - API smoke test: `npm run test:api`
 - Security and input tests: `npm test` (51 tests: SQLi, auth, file import, XSS)
 
-## Game editor
+## Game editor / encounters
 
-The **game editor** (`/src/game/`) combines **player PCs**, **monsters**, and creatures into an **encounter list** with **NPC instances** (multiple per template). The DM opens instances in the **character editor**; linked PCs are read-only, copies are editable. **Combat tab:** initiative and HP.
+The **Encounters** page (`/src/gm/campaigns/encounters/`) is the GM combat-prep surface: roster in **rest mode**, **initiative mode** (d20 + static, sorted turn order), and post-encounter **rewards** (XP, gold, compendium items to linked PCs). Legacy **game editor** (`/src/game/`) remains for compatibility.
 
 Specification: [game-editor.md](game-editor.md).
 

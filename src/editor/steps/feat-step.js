@@ -9,6 +9,10 @@ import {
   FEAT_TIER_ORDER
 } from '../../character/feat-selections.js';
 import {
+  applyRecommendedClassFeats,
+  resolveRecommendedFeatSeeds
+} from '../../character/class-selections.js';
+import {
   buildFeatEligibilityContext,
   filterFeatEntries,
   formatFeatListingMeta
@@ -50,6 +54,23 @@ export async function renderFeatStep(panel, ctx) {
 
   ensureFeatSelectionsShape(character);
   migrateFeatIdsToSelections(character);
+
+  const classId = character.selections?.classId;
+  const classEntry = classId ? await compendium.getEntry(classId) : null;
+  const recommendedMeta = await resolveRecommendedFeatSeeds(character, classEntry, compendium);
+  const recommendedAvailable = Object.keys(recommendedMeta.seeds ?? {}).length > 0;
+
+  if (!classId) {
+    panel.innerHTML = `
+      <section class="power-slots-section" aria-label="Feats">
+        <h3 class="tutor-bonuses-title">Feats</h3>
+        <p class="feat-step-hint">
+          Complete the <strong>Class</strong> step before choosing feats.
+        </p>
+      </section>`;
+    renderTutorHint?.(panel);
+    return;
+  }
 
   const level = character.identity?.level ?? 1;
   const slots = getFeatSlotsForLevel(level);
@@ -107,6 +128,22 @@ export async function renderFeatStep(panel, ctx) {
   panel.innerHTML = `
     <section class="power-slots-section" aria-label="Feats">
       <h3 class="tutor-bonuses-title">Feats</h3>
+      <div class="power-step-recommend-row">
+        <button
+          type="button"
+          id="feat-apply-recommended"
+          class="btn-secondary"
+          ${recommendedAvailable ? '' : 'disabled'}
+          title="${recommendedAvailable ? `Apply starter feat for ${esc(recommendedMeta.buildLabel ?? 'your build')}` : 'Choose a class build with recommended feats on the Class step first.'}"
+        >
+          Recommended feats for this class
+        </button>
+        <p class="power-recommend-hint" id="feat-recommend-hint">
+          ${recommendedAvailable
+            ? `Applies the ${esc(recommendedMeta.buildLabel ?? 'build')} suggested level 1 feat when prerequisites are met.`
+            : 'No class build feat recommendations yet — pick a build on the Class step (when available).'}
+        </p>
+      </div>
       <p class="skill-train-quota">
         Choose <strong>${slots.length}</strong> feat${slots.length === 1 ? '' : 's'} for your level.
         <span class="meta" id="feat-slot-quota">(${filled} / ${slots.length} filled)</span>
@@ -156,6 +193,33 @@ export async function renderFeatStep(panel, ctx) {
   const warnIcon = panel.querySelector('#feat-warn-icon');
   const filterStatus = panel.querySelector('#feat-filter-status');
   const quotaEl = panel.querySelector('#feat-slot-quota');
+  const recommendBtn = panel.querySelector('#feat-apply-recommended');
+
+  async function applyRecommendedFeats() {
+    const meta = await resolveRecommendedFeatSeeds(character, classEntry, compendium);
+    if (!classEntry || !Object.keys(meta.seeds ?? {}).length) return;
+
+    applyRecommendedClassFeats(character, classEntry, { force: true, seeds: meta.seeds });
+
+    const names = {};
+    for (const featId of Object.values(character.selections.featSelections ?? {})) {
+      if (!featId || names[featId]) continue;
+      const entry = await compendium.getEntry(featId);
+      names[featId] = entry?.listing_fields?.Name ?? featId;
+    }
+    syncFeatNotesFromSelections(character, names);
+    if (refreshBonuses) await refreshBonuses();
+    await onPersist();
+
+    updateQuota();
+    updateSlotListUi();
+    await refreshSlotLabels();
+    await syncPickerFromSlot();
+    await refreshPicker('');
+    await onCollectionRefresh?.();
+  }
+
+  recommendBtn?.addEventListener('click', () => applyRecommendedFeats());
 
   const inputId = 'picker-feat-shared';
   const listboxId = 'picker-listbox-feat-shared';

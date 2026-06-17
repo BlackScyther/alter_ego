@@ -15,7 +15,24 @@ async function main() {
   }
 
   await compendium.ready();
-  const entry = await compendium.getEntry(entryId);
+  let entry = await compendium.getEntry(entryId);
+  if (!entry) {
+    try {
+      const res = await fetch(`/api/homebrew/${encodeURIComponent(entryId)}`);
+      if (res.ok) {
+        const hb = await res.json();
+        entry = {
+          id: hb.id,
+          category_slug: hb.category_slug,
+          listing_fields: hb.listing_fields ?? {},
+          body_html: hb.body_html ?? '',
+          index_text: hb.index_text ?? ''
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   if (!entry) {
     titleEl.textContent = entryId;
     bodyEl.innerHTML = '<p class="entry-error">Entry not found in compendium.</p>';

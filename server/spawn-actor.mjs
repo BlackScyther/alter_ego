@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import compendiumStub from '../data/samples/compendium-stub.json' with { type: 'json' };
+import { getCompendiumEntry } from './compendium.mjs';
 import {
   createActorDocument,
   spawnFromCompendiumEntry,
@@ -13,13 +13,6 @@ import {
   getEncounterActor,
   listEncounterActors
 } from './db.mjs';
-
-function getCompendiumEntry(category, entryId) {
-  const cat = compendiumStub.categories?.[category];
-  const hit = cat?.entries?.find((e) => e.id === entryId);
-  if (!hit) return null;
-  return { ...hit, category_slug: category };
-}
 
 function instanceLabelForTemplate(encounterId, templateId) {
   const n = countActorsWithTemplate(encounterId, templateId);

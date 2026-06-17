@@ -6,6 +6,7 @@ import {
   setFeatForSlot,
   tierForFeatLevel
 } from './feat-selections.js';
+import { migrateEquipmentIdsToItems } from './equipment-selections.js';
 import {
   ensureAbilityShape,
   recomputeAbilityScores,
@@ -130,6 +131,8 @@ export async function buildQuickCharacter(opts = {}) {
       anyChoice: {}
     }
   });
+
+  migrateEquipmentIdsToItems(character);
 
   if (character.selections.backgroundId) {
     const bg = await compendium.getEntry(character.selections.backgroundId);

@@ -30,9 +30,9 @@ Order is fixed — do not reorder without updating `metadata/editor.json` → `c
 2. **Background**
 3. **Class**
 4. **Attributes** (ability scores / point-buy tutor, skills table)
-5. **Powers** (class slots by type — At-Will, Encounter, Daily, Utility; **Recommended powers for this class** button when build metadata includes starter picks; source filters; prerequisite filter)
-6. **Feats** (level slots; source filters; prerequisite filter by level and ability scores)
-7. **Equipment**
+5. **Powers** (class slots by type — At-Will, Encounter, Daily, Utility; **Recommended powers for this class** button when build metadata includes starter picks or compendium build sections list suggested powers; source filters; prerequisite filter)
+6. **Feats** (level slots; **Recommended feats for this class** button when build metadata or compendium HTML includes a suggested feat; source filters; prerequisite filter by level and ability scores)
+7. **Equipment** — inventory list, body-slot equip UI (armor, weapons, implement, worn items), compendium picker with category tabs and source filter, manual gold (gp). No auto sheet stat apply or proficiency filter yet.
 
 Optional steps (paragon, epic, review) remain in `builderFlow` for level-up and advanced editing. Themes are omitted in this version.
 
@@ -93,3 +93,4 @@ The script fails if any **benefit-only** race entry is missing from `race-subrac
 | Compendium pickers | `src/editor/editor.js` (`renderCompendiumStep`) |
 | Feats (level slots, eligibility filter) | `src/editor/steps/feat-step.js`, `src/editor/feat-prerequisite.js` |
 | Powers (single picker, prerequisite filter, collection panel) | `src/editor/steps/power-step.js`, `src/editor/steps/power-collection-panel.js`, `src/editor/power-filter.js`, `src/editor/power-prerequisite.js`, `metadata/universal-actions.json`, `src/character/power-selections.js` |
+| Equipment (inventory, body slots, source filter) | `src/editor/steps/equipment-step.js`, `src/character/equipment-selections.js` |

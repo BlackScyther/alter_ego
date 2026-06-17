@@ -154,6 +154,8 @@
   "tutor": {
     "abilityBonuses": "Same bonus type on one ability does not stack (use highest). Different types add (e.g. Racial + Feat). Point-buy is base only; end result is held firm on the sheet.",
     "skillBonuses": "Two Skill bonuses to the same skill do not add. Skill + Feat to the same skill do add. Totals apply to sheet skill Misc.",
+    "featBonuses": "Recommended feats apply the build's level 1 suggested feat when available from class metadata or compendium HTML.",
+    "equipmentKits": "Recommended equipment applies the class build's level-1 starting kit, sets leftover gold, and updates armor, speed, and attack lines on the sheet.",
     "itemBonuses": "Enhancement and item bonuses on the sheet do not stack with each other; use the highest. Some features exclude item bonuses — note those in Misc on the sheet.",
     "sources": ["race", "class", "background"]
   },

@@ -3,10 +3,12 @@ import crypto from 'crypto';
 import {
   insertCampaign,
   upsertCharacter,
-  listCharacters
+  listCharacters,
+  getCharacterDocument
 } from '../db.mjs';
 import { generateToken, hashToken, requireCampaignToken } from '../auth.mjs';
 import { prepareCharacterForCampaign } from '../validate-character.mjs';
+import { applyRewardsPayload } from '../apply-rewards.mjs';
 import encountersRouter from './encounters.mjs';
 
 const router = Router();
@@ -76,6 +78,42 @@ router.put(
         { ...req.body, id: characterId },
         campaignId
       );
+    } catch (err) {
+      res.status(err.status || 400).json({ error: err.message });
+      return;
+    }
+
+    const updatedAt = new Date().toISOString();
+    document.meta.updatedAt = updatedAt;
+
+    upsertCharacter({
+      campaignId,
+      characterId,
+      playerName: String(document.identity?.playerName || '').trim(),
+      documentJson: JSON.stringify(document),
+      updatedAt
+    });
+
+    res.json({ ok: true, character: document, updatedAt });
+  }
+);
+
+router.post(
+  '/:id/characters/:characterId/rewards',
+  requireCampaignToken('gm'),
+  (req, res) => {
+    const { id: campaignId, characterId } = req.params;
+    const existing = getCharacterDocument(campaignId, characterId);
+    if (!existing) {
+      res.status(404).json({ error: 'Character not found.' });
+      return;
+    }
+
+    let document;
+    try {
+      document = structuredClone(existing);
+      applyRewardsPayload(document, req.body ?? {});
+      document = prepareCharacterForCampaign({ ...document, id: characterId }, campaignId);
     } catch (err) {
       res.status(err.status || 400).json({ error: err.message });
       return;

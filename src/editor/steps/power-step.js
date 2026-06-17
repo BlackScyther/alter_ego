@@ -10,8 +10,7 @@ import {
 } from '../../character/power-selections.js';
 import {
   applyRecommendedClassPowers,
-  getRecommendedPowerSeeds,
-  hasRecommendedClassPowers
+  resolveRecommendedPowerSeeds
 } from '../../character/class-selections.js';
 import {
   buildPowerEligibilityContext,
@@ -58,8 +57,8 @@ export async function renderPowerStep(panel, ctx) {
 
   const classId = character.selections?.classId;
   const classEntry = classId ? await compendium.getEntry(classId) : null;
-  const recommendedAvailable = hasRecommendedClassPowers(character, classEntry);
-  const recommendedMeta = getRecommendedPowerSeeds(character, classEntry);
+  const recommendedMeta = await resolveRecommendedPowerSeeds(character, classEntry, compendium);
+  const recommendedAvailable = Object.keys(recommendedMeta.seeds ?? {}).length > 0;
 
   if (!classId) {
     panel.innerHTML = `
@@ -197,9 +196,10 @@ export async function renderPowerStep(panel, ctx) {
   const recommendBtn = panel.querySelector('#power-apply-recommended');
 
   async function applyRecommendedPowers() {
-    if (!classEntry || !hasRecommendedClassPowers(character, classEntry)) return;
+    const meta = await resolveRecommendedPowerSeeds(character, classEntry, compendium);
+    if (!classEntry || !Object.keys(meta.seeds ?? {}).length) return;
 
-    applyRecommendedClassPowers(character, classEntry, { force: true });
+    applyRecommendedClassPowers(character, classEntry, { force: true, seeds: meta.seeds });
 
     const names = {};
     for (const powerId of Object.values(character.selections.powerSelections ?? {})) {

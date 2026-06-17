@@ -2,18 +2,19 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-15
 
 ## Open
 
 | ID | Severity | Summary | Notes |
 |----|----------|---------|-------|
-| B-001 | Medium | Compendium uses stub data only | `CompendiumProvider` falls back to `data/samples/compendium-stub.json` until `data/alter_eger.db` exists |
+| B-001 | Medium | Compendium uses stub data only (client) | Browser `CompendiumProvider` still falls back to stub when `alter_eger.db` missing; **server spawn** now reads SQLite when DB present (`server/compendium.mjs`) |
 | B-002 | Medium | SQLite not wired in browser | `compendium.js` documents sql.js integration as a later phase |
 | B-003 | Low | iws.mx importer not in repo | Pipeline spec in `tools/importer/README.md`; implementation is external |
 | B-006 | Low | GM party uses polling (~4 s) | No SSE/WebSocket yet; see [roadmap.md](roadmap.md) |
 | B-007 | Low | No API DELETE for player campaign characters | GM can remove encounter actors; not party PCs |
-| B-008 | Low | Lost GM invite URL | No recovery flow if `gmToken` not saved; create new campaign |
+| B-008 | Low | Lost GM invite URL | GM-created campaigns persist tokens in `gm-campaign-registry.js` (localStorage). Switch active campaign, import recovery, and regenerate invite still open |
+| B-016 | Low | Real compendium monsters lack listing HP/AC/Init | Spawn uses fallbacks until import extracts stat-block fields; stub entries work for smoke tests |
 
 ## Fixed
 
@@ -30,6 +31,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 | B-015 | 2026-06-13 | Power picker list empty after clearing slots (Essentials classes): SQLite class filter used full name `Warlord (Marshal)` while compendium stores `Warlord`; encounter Type is `Enc. Attack`, not `Encounter`. Fixed: `classNameLikePatterns()` and `%enc.%` type patterns in `power-filter.js` / `compendium.js`; picker refreshes after any slot clear. |
 | B-016 | 2026-06-13 | Character generator sidebar listed Feats before Powers during edit/retrain (`builderFlow`), while new-character flow (`creationFlow`) already had Powers first. Fixed: `builderFlow` order aligned; retraining opens at Powers. |
 | B-017 | 2026-06-13 | Level 2+ utility power slot showed "No eligible powers" despite compendium matches: `Enc. Utility` / `Daily Utility` / `At-Will Utility` were normalized to Encounter/Daily/At-Will before Utility. Fixed: `normalizePowerType()` checks `utility` first. |
+| B-018 | 2026-06-13 | Live server redirect loop Player → Character generator: deployed player page used absolute `/editor/` links; Apache `.htaccess` fallback served launcher instead of editor (launcher auto-redirect back to player when role remembered). Fixed: relative `../editor/index.html` links in player UI; `.htaccess` maps bare `/editor` etc. to `/src/...` before fallback. |
 
 ## How to log a new bug
 

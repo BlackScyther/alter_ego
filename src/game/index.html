@@ -11,10 +11,11 @@
   <div class="game-shell">
     <nav class="editor-nav game-nav" aria-label="Game editor">
       <h1>Game editor</h1>
-      <a href="../gm/index.html">← GM console</a>
+      <a href="../gm/campaigns/encounters/index.html">← Encounters (recommended)</a>
+      <a href="../gm/index.html">GM console</a>
       <a href="../launcher/index.html">Alter Ego home</a>
       <p class="game-nav-hint text-sm text-slate-500">
-        Build encounters: party PCs, monsters, NPCs. Each row is its own instance — open the character editor to customize.
+        This page is legacy. Use <a href="../gm/campaigns/encounters/index.html">Campaigns → Encounters</a> for rest mode, initiative, and rewards.
       </p>
     </nav>
 
@@ -78,6 +79,7 @@
 
   <dialog id="dialog-compendium" class="game-dialog rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
     <h3 class="text-lg font-semibold m-0" id="compendium-dialog-title">Add from compendium</h3>
+    <div id="compendium-source-toolbar" class="game-compendium-toolbar mt-3"></div>
     <input type="search" id="compendium-search" placeholder="Search…" class="mt-3 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
     <div id="compendium-pick-list" class="game-pick-list mt-3 max-h-64 overflow-y-auto"></div>
     <div class="flex gap-2 mt-4 justify-end">

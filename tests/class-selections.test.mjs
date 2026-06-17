@@ -13,8 +13,11 @@ import {
   seedClassTrainedSkillChoices,
   seedClassPowerSelections,
   applyRecommendedClassPowers,
+  applyRecommendedClassFeats,
   getRecommendedPowerSeeds,
   hasRecommendedClassPowers,
+  buildStarterPowerSlotSeeds,
+  buildStarterFeatSlotSeeds,
   validateClassStep
 } from '../src/character/class-selections.js';
 
@@ -214,4 +217,36 @@ test('getRecommendedPowerSeeds returns build label and slot map', () => {
   const rec = getRecommendedPowerSeeds(character, warlordEntry);
   assert.equal(rec.buildLabel, 'Bravura Warlord');
   assert.equal(rec.seeds['power-daily-1'], 'power239');
+});
+
+test('buildStarterPowerSlotSeeds maps resolved ids onto level-1 slots', () => {
+  const seeds = buildStarterPowerSlotSeeds(
+    {
+      atWill: ['power833', 'power836'],
+      encounter: ['power755'],
+      daily: ['power1273']
+    },
+    1
+  );
+  assert.equal(seeds['power-atwill-1-a'], 'power833');
+  assert.equal(seeds['power-atwill-1-b'], 'power836');
+  assert.equal(seeds['power-encounter-1'], 'power755');
+  assert.equal(seeds['power-daily-1'], 'power1273');
+});
+
+test('buildStarterFeatSlotSeeds maps feat id onto level-1 slot', () => {
+  const seeds = buildStarterFeatSlotSeeds('feat290', 1);
+  assert.equal(seeds['feat-1'], 'feat290');
+});
+
+test('applyRecommendedClassFeats overwrites level-1 slot from seeds', () => {
+  const character = createCharacter({ identity: { level: 1 } });
+  character.selections.featSelections = { 'feat-1': 'feat99' };
+
+  applyRecommendedClassFeats(character, warlordEntry, {
+    force: true,
+    seeds: { 'feat-1': 'feat261' }
+  });
+
+  assert.equal(character.selections.featSelections['feat-1'], 'feat261');
 });

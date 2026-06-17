@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Campaigns</title>
+  <link rel="stylesheet" href="../../app.css" />
+  <link rel="stylesheet" href="../gm.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="gm-shell">
+    <nav class="editor-nav gm-nav" aria-label="Campaign management navigation">
+      <h1>Campaigns</h1>
+      <a href="../index.html">← GM Console</a>
+      <a href="encounters/index.html">Encounters</a>
+      <a href="../../launcher/index.html">Alter Ego home</a>
+      <a href="../workshop/index.html">Workshop</a>
+    </nav>
+
+    <main class="editor-main gm-main">
+      <section id="gm-campaigns" class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6" data-gm-section="campaigns">
+        <details class="gm-campaigns-root" open>
+          <summary class="gm-campaigns-root-summary text-lg font-semibold cursor-pointer">Online campaigns</summary>
+          <p class="text-sm text-slate-400 mt-2 mb-3">
+            Create a campaign and send the invite link to your players.
+          </p>
+          <div id="gm-campaign-list" class="gm-campaign-list"></div>
+          <div class="gm-campaign-create mt-4 pt-4 border-t border-slate-700">
+            <label class="block text-sm text-slate-400">Campaign name</label>
+            <input
+              type="text"
+              id="campaign-name"
+              class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-base"
+              value="Our campaign"
+            />
+            <button type="button" class="btn-primary mt-4 min-h-11" id="btn-create-campaign">Create campaign</button>
+          </div>
+        </details>
+      </section>
+
+      <ul class="validation-errors" id="gm-errors" hidden></ul>
+
+      <section id="gm-encounter-cta" class="rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6" hidden>
+        <h2 class="text-lg font-semibold m-0">Encounter</h2>
+        <p class="text-sm text-slate-400 mt-2 mb-0">Build the roster, run initiative, and distribute rewards after combat.</p>
+        <a href="encounters/index.html" class="btn-primary inline-block mt-4 min-h-11 leading-[2.75rem] px-4">Open encounter</a>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="campaigns.js"></script>
+</body>
+</html>

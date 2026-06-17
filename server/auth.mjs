@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getCampaignById } from './db.mjs';
+import { getCampaignById, getDb } from './db.mjs';
 
 export function hashToken(token) {
   const pepper = process.env.TOKEN_PEPPER || 'alter-eger-dev-pepper-change-in-production';
@@ -47,4 +47,22 @@ export function requireCampaignToken(role) {
     req.campaign = campaign;
     next();
   };
+}
+
+/** Validates Bearer token against any campaign GM token (for global homebrew writes). */
+export function requireAnyGmToken(req, res, next) {
+  const token = extractBearer(req);
+  if (!token) {
+    res.status(401).json({ error: 'Missing Authorization: Bearer token.' });
+    return;
+  }
+  const actualHash = hashToken(token);
+  const row = getDb()
+    .prepare(`SELECT id FROM campaigns WHERE gm_token_hash = ? LIMIT 1`)
+    .get(actualHash);
+  if (!row) {
+    res.status(403).json({ error: 'Valid GM token required.' });
+    return;
+  }
+  next();
 }

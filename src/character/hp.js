@@ -21,9 +21,15 @@ export function ensureDerivedBonuses(character) {
   if (!character.sheet.derivedBonuses) {
     character.sheet.derivedBonuses = {
       initiative: 0,
+      initiativeBackground: 0,
+      initiativeClass: 0,
       hpSubstituteAbility: null,
       hpSubstituteScore: null
     };
+  } else {
+    const d = character.sheet.derivedBonuses;
+    if (d.initiativeBackground == null) d.initiativeBackground = 0;
+    if (d.initiativeClass == null) d.initiativeClass = 0;
   }
   return character;
 }

@@ -11,7 +11,7 @@ This folder is the **living documentation** for agents and humans. Keep it in sy
 | [roadmap.md](roadmap.md) | Phases, completed plans, near-term backlog |
 | [todos.md](todos.md) | Host / developer / agent checklists |
 | [architecture.md](architecture.md) | Stack overview, API, data flows (why it stays simple) |
-| [game-editor.md](game-editor.md) | GM encounter roster, NPC instances, editor bridge (planned) |
+| [game-editor.md](game-editor.md) | GM encounters: rest mode, initiative, rewards |
 | [files.md](files.md) | What each project file does and how it connects |
 | [bugs.md](bugs.md) | Known bugs, limitations, and fix backlog |
 | [tests.md](tests.md) | Test strategy, manual checks, and automation status |
@@ -40,4 +40,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-06-13 — Feats step uses the same shared-picker layout, filters, and slot mechanics as the Powers step.
+**Last agent sync:** 2026-06-17 — Class-feature static initiative bonuses (curated overrides; Warlord Combat Leader +2; composes with background initiative).

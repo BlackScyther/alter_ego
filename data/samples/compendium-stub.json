@@ -255,6 +255,104 @@
         }
       ]
     },
+    "weapon": {
+      "displayName": "Weapon",
+      "entries": [
+        {
+          "id": "weapon1",
+          "listing_fields": { "Name": "Longsword", "Type": "Heavy blade", "Level": "1", "Cost": "15 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>A versatile martial weapon.</p>",
+          "index_text": "Longsword heavy blade"
+        },
+        {
+          "id": "weapon2",
+          "listing_fields": { "Name": "Crossbow", "Type": "Crossbow", "Level": "1", "Cost": "25 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>A ranged weapon.</p>",
+          "index_text": "Crossbow"
+        },
+        {
+          "id": "weapon3610",
+          "listing_fields": { "Name": "Longsword", "Type": "Heavy blade", "Level": "1", "Cost": "15 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Martial heavy blade.</p>",
+          "index_text": "Longsword"
+        },
+        {
+          "id": "weapon3612",
+          "listing_fields": { "Name": "Greataxe", "Type": "Axe", "Level": "1", "Cost": "30 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Martial two-handed axe.</p>",
+          "index_text": "Greataxe"
+        },
+        {
+          "id": "weapon3595",
+          "listing_fields": { "Name": "Javelin", "Type": "Spear", "Level": "1", "Cost": "5 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Simple thrown weapon.</p>",
+          "index_text": "Javelin"
+        },
+        {
+          "id": "weapon3628",
+          "listing_fields": { "Name": "Sling", "Type": "Sling", "Level": "1", "Cost": "1 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Simple ranged weapon.</p>",
+          "index_text": "Sling"
+        }
+      ]
+    },
+    "armor": {
+      "displayName": "Armor",
+      "entries": [
+        {
+          "id": "armor1",
+          "listing_fields": { "Name": "Chainmail", "Type": "Heavy armor", "Level": "1", "Cost": "40 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Heavy armor with check penalty.</p>",
+          "index_text": "Chainmail heavy armor"
+        },
+        {
+          "id": "armor5",
+          "listing_fields": { "Name": "Scale Armor", "Type": "Scale", "Level": "1", "Cost": "45 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Scale armor.</p>",
+          "index_text": "Scale Armor"
+        },
+        {
+          "id": "armor8",
+          "listing_fields": { "Name": "Heavy Shield", "Type": "Heavy Shield", "Level": "1", "Cost": "10 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Heavy shield.</p>",
+          "index_text": "Heavy Shield"
+        }
+      ]
+    },
+    "implement": {
+      "displayName": "Implement",
+      "entries": [
+        {
+          "id": "implement1",
+          "listing_fields": { "Name": "Holy Symbol", "Type": "Holy symbol", "Level": "1", "Cost": "5 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Divine implement.</p>",
+          "index_text": "Holy Symbol divine"
+        }
+      ]
+    },
+    "item": {
+      "displayName": "Item",
+      "entries": [
+        {
+          "id": "item1",
+          "listing_fields": { "Name": "Rope, 50 feet", "Category": "Gear", "Type": "Adventuring Gear", "Level": "1", "Cost": "1 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Standard adventuring gear.</p>",
+          "index_text": "Rope adventuring gear"
+        },
+        {
+          "id": "item2",
+          "listing_fields": { "Name": "Cloak of Resistance +1", "Category": "Wondrous Item", "Type": "Neck slot item", "Level": "2", "Cost": "520 gp", "Rarity": "Uncommon", "SourceBook": "PHB" },
+          "body_html": "<p>Neck slot wondrous item.</p>",
+          "index_text": "Cloak of Resistance neck"
+        },
+        {
+          "id": "item166",
+          "listing_fields": { "Name": "Adventurer's Kit", "Category": "Gear", "Type": "Adventuring Gear", "Level": "1", "Cost": "15 gp", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Standard adventuring kit.</p>",
+          "index_text": "Adventurer's Kit"
+        }
+      ]
+    },
     "glossary": {
       "displayName": "Glossary",
       "entries": [

@@ -111,6 +111,22 @@ export async function patchActorInitiative(encounterId, actorId, payload) {
   );
 }
 
+export async function patchActorHp(encounterId, actorId, payload) {
+  const session = getSessionCampaign();
+  return gmFetch(
+    `/api/campaigns/${encodeURIComponent(session.campaignId)}/encounters/${encodeURIComponent(encounterId)}/actors/${encodeURIComponent(actorId)}/hp`,
+    { method: 'PATCH', body: JSON.stringify(payload) }
+  );
+}
+
+export async function patchEncounterPhase(encounterId, phase) {
+  const session = getSessionCampaign();
+  return gmFetch(
+    `/api/campaigns/${encodeURIComponent(session.campaignId)}/encounters/${encodeURIComponent(encounterId)}`,
+    { method: 'PATCH', body: JSON.stringify({ phase }) }
+  );
+}
+
 export async function deleteActor(encounterId, actorId) {
   const session = getSessionCampaign();
   return gmFetch(

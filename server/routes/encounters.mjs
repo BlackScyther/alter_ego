@@ -6,6 +6,7 @@ import {
   getEncounter,
   deleteEncounter,
   touchEncounter,
+  updateEncounterPhase,
   listEncounterActors,
   getEncounterActor,
   upsertEncounterActor,
@@ -26,6 +27,7 @@ router.get('/', (req, res) => {
     encounters: rows.map((r) => ({
       id: r.id,
       name: r.name,
+      phase: r.phase || 'rest',
       createdAt: r.created_at,
       updatedAt: r.updated_at
     }))
@@ -44,7 +46,30 @@ router.post('/', (req, res) => {
     createdAt: now,
     updatedAt: now
   });
-  res.status(201).json({ id, name, createdAt: now, updatedAt: now });
+  res.status(201).json({ id, name, phase: 'rest', createdAt: now, updatedAt: now });
+});
+
+router.patch('/:eid', (req, res) => {
+  const encounter = getEncounter(req.params.eid, req.params.id);
+  if (!encounter) {
+    res.status(404).json({ error: 'Encounter not found.' });
+    return;
+  }
+
+  const phase = String(req.body?.phase || '').trim();
+  if (phase !== 'rest' && phase !== 'initiative') {
+    res.status(400).json({ error: 'phase must be "rest" or "initiative".' });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  updateEncounterPhase(req.params.eid, req.params.id, phase, now);
+  res.json({
+    id: encounter.id,
+    name: encounter.name,
+    phase,
+    updatedAt: now
+  });
 });
 
 router.get('/:eid', (req, res) => {
@@ -58,6 +83,7 @@ router.get('/:eid', (req, res) => {
   res.json({
     id: encounter.id,
     name: encounter.name,
+    phase: encounter.phase || 'rest',
     campaignId: req.params.id,
     createdAt: encounter.created_at,
     updatedAt: encounter.updated_at,
@@ -214,6 +240,45 @@ router.patch('/:eid/actors/:actorId/initiative', (req, res) => {
   const { initiative = null, initiativeRoll = null } = req.body ?? {};
   document.sheet.combat.initiative = initiative;
   document.sheet.combat.initiativeRoll = initiativeRoll;
+
+  const now = new Date().toISOString();
+  document.meta = { ...document.meta, updatedAt: now };
+
+  upsertEncounterActor({
+    encounterId: req.params.eid,
+    actorId: req.params.actorId,
+    sortOrder: existing.sortOrder,
+    templateId: existing.templateId,
+    actorKind: existing.actorKind,
+    linkedCharacterId: existing.linkedCharacterId,
+    documentJson: JSON.stringify(document),
+    updatedAt: now
+  });
+  touchEncounter(req.params.eid, now);
+
+  res.json({ ok: true, character: document, updatedAt: now });
+});
+
+router.patch('/:eid/actors/:actorId/hp', (req, res) => {
+  const encounter = getEncounter(req.params.eid, req.params.id);
+  if (!encounter) {
+    res.status(404).json({ error: 'Encounter not found.' });
+    return;
+  }
+
+  const existing = getEncounterActor(req.params.eid, req.params.actorId);
+  if (!existing) {
+    res.status(404).json({ error: 'Actor not found.' });
+    return;
+  }
+
+  const document = { ...existing.character };
+  document.sheet = document.sheet ?? {};
+  document.sheet.hp = document.sheet.hp ?? {};
+
+  const { current = null, max = null } = req.body ?? {};
+  if (max != null) document.sheet.hp.max = Math.max(1, Number(max) || 1);
+  if (current != null) document.sheet.hp.current = Math.max(0, Number(current) || 0);
 
   const now = new Date().toISOString();
   document.meta = { ...document.meta, updatedAt: now };

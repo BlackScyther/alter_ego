@@ -17,6 +17,10 @@ const SURGES_RE = /healing surges per day:\s*(\d+)\s*\+\s*constitution\s+modifie
 const SPEED_RE = /speed:\s*(\d+)\s*squares?/i;
 const DEFENSE_BONUS_RE = /\+\s*(\d+)\s*(fortitude|reflex|will|ac)\b/gi;
 const SUGGESTED_SKILLS_RE = /<b>\s*Suggested Skills\s*<\/b>\s*:\s*([^<]+)/i;
+const SUGGESTED_AT_WILL_RE = /<b>\s*Suggested At-Will Powers\s*<\/b>\s*:\s*(?:<i>)?\s*([^<]+)/i;
+const SUGGESTED_ENCOUNTER_RE = /<b>\s*Suggested Encounter Power\s*<\/b>\s*:\s*(?:<i>)?\s*([^<]+)/i;
+const SUGGESTED_DAILY_RE = /<b>\s*Suggested Daily Power\s*<\/b>\s*:\s*(?:<i>)?\s*([^<]+)/i;
+const SUGGESTED_FEAT_RE = /<b>\s*Suggested Feat\s*<\/b>\s*:\s*(?:<i>)?\s*([^<]+)/i;
 
 /** @typedef {'fixed' | 'choice' | 'none'} ClassTrainedSkillKind */
 
@@ -81,6 +85,106 @@ export function parseBuildSuggestedSkills(html, buildOptions = []) {
       (o) => normalizeBuildHeadingKey(o.id) === headingKey || normalizeBuildHeadingKey(o.label) === headingKey
     );
     if (build) byBuildId[build.id] = skills;
+  }
+  return byBuildId;
+}
+
+/**
+ * @param {string} raw
+ * @returns {string[]}
+ */
+function parseSuggestedPowerNameList(raw) {
+  return String(raw ?? '')
+    .replace(/<[^>]+>/g, '')
+    .split(/,|\bor\b/i)
+    .map((part) => part.trim().replace(/\.$/, '').toLowerCase())
+    .filter((part) => part.length > 1);
+}
+
+/**
+ * @param {string} section
+ */
+function parseSuggestedPowersFromSection(section) {
+  return {
+    atWill: parseSuggestedPowerNameList(section.match(SUGGESTED_AT_WILL_RE)?.[1]),
+    encounter: parseSuggestedPowerNameList(section.match(SUGGESTED_ENCOUNTER_RE)?.[1]),
+    daily: parseSuggestedPowerNameList(section.match(SUGGESTED_DAILY_RE)?.[1])
+  };
+}
+
+/**
+ * Map each build option id to suggested power names from compendium build sections.
+ *
+ * @param {string} html
+ * @param {Array<{ id: string, label?: string }>} buildOptions
+ * @returns {Record<string, { atWill: string[], encounter: string[], daily: string[] }>}
+ */
+export function parseBuildSuggestedPowerNames(html, buildOptions = []) {
+  /** @type {Record<string, { atWill: string[], encounter: string[], daily: string[] }>} */
+  const byBuildId = {};
+  if (!html || !buildOptions.length) return byBuildId;
+
+  const sections = String(html).split(/(?=<h3\b)/i);
+  for (const section of sections) {
+    const headingMatch = section.match(/^<h3[^>]*>([\s\S]*?)<\/h3>/i);
+    if (!headingMatch) continue;
+    const headingKey = normalizeBuildHeadingKey(stripHtml(headingMatch[1]));
+    const powers = parseSuggestedPowersFromSection(section);
+    if (!powers.atWill.length && !powers.encounter.length && !powers.daily.length) continue;
+    const build = buildOptions.find(
+      (o) => normalizeBuildHeadingKey(o.id) === headingKey || normalizeBuildHeadingKey(o.label) === headingKey
+    );
+    if (build) byBuildId[build.id] = powers;
+  }
+  return byBuildId;
+}
+
+/**
+ * @param {string} raw
+ * @returns {string}
+ */
+function parseSuggestedFeatName(raw) {
+  let text = String(raw ?? '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+  const paren = text.indexOf('(');
+  if (paren >= 0) text = text.slice(0, paren).trim();
+  return text.replace(/\.$/, '').trim();
+}
+
+/**
+ * @param {string} section
+ * @returns {string | null}
+ */
+function parseSuggestedFeatFromSection(section) {
+  const raw = section.match(SUGGESTED_FEAT_RE)?.[1];
+  const name = raw ? parseSuggestedFeatName(raw) : '';
+  return name || null;
+}
+
+/**
+ * Map each build option id to a suggested feat name from compendium build sections.
+ *
+ * @param {string} html
+ * @param {Array<{ id: string, label?: string }>} buildOptions
+ * @returns {Record<string, string>}
+ */
+export function parseBuildSuggestedFeatNames(html, buildOptions = []) {
+  /** @type {Record<string, string>} */
+  const byBuildId = {};
+  if (!html || !buildOptions.length) return byBuildId;
+
+  const sections = String(html).split(/(?=<h3\b)/i);
+  for (const section of sections) {
+    const headingMatch = section.match(/^<h3[^>]*>([\s\S]*?)<\/h3>/i);
+    if (!headingMatch) continue;
+    const headingKey = normalizeBuildHeadingKey(stripHtml(headingMatch[1]));
+    const featName = parseSuggestedFeatFromSection(section);
+    if (!featName) continue;
+    const build = buildOptions.find(
+      (o) => normalizeBuildHeadingKey(o.id) === headingKey || normalizeBuildHeadingKey(o.label) === headingKey
+    );
+    if (build) byBuildId[build.id] = featName;
   }
   return byBuildId;
 }

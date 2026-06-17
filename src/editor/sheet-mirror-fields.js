@@ -53,7 +53,7 @@ function initiativeFields() {
     field('init-dex', 'Initiative — DEX', 'number', { readonly: true }),
     field('init-half', 'Initiative — ½ Lvl', 'number', { readonly: true }),
     field('init-misc', 'Initiative — Misc', 'number'),
-    field('init-misc-derived', 'Initiative — Background', 'number', { readonly: true, wizardReadonly: true }),
+    field('init-misc-derived', 'Initiative — Features', 'number', { readonly: true, wizardReadonly: true }),
     field('init-conditional', 'Conditional Modifiers', 'textarea')
   ];
 }

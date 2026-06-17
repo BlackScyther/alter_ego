@@ -17,6 +17,7 @@ function resolveCompendiumEntryBase(pathname) {
   const p = String(pathname ?? '');
   if (p.includes('/editor/')) return '../compendium/';
   if (p.includes('/sheet/')) return '../compendium/';
+  if (p.includes('/gm/workshop/')) return '../../compendium/';
   if (p.includes('/compendium/')) return './';
   return '../compendium/';
 }

@@ -65,7 +65,26 @@ function migrate(database) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_encounters_campaign ON encounters(campaign_id);
+
+    CREATE TABLE IF NOT EXISTS homebrew_entries (
+      id TEXT PRIMARY KEY,
+      category_slug TEXT NOT NULL,
+      listing_fields TEXT NOT NULL,
+      body_html TEXT,
+      index_text TEXT,
+      gm_slug TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_homebrew_category ON homebrew_entries(category_slug);
+    CREATE INDEX IF NOT EXISTS idx_homebrew_gm_slug ON homebrew_entries(gm_slug);
   `);
+
+  const encounterCols = database.prepare(`PRAGMA table_info(encounters)`).all();
+  if (!encounterCols.some((c) => c.name === 'phase')) {
+    database.exec(`ALTER TABLE encounters ADD COLUMN phase TEXT NOT NULL DEFAULT 'rest'`);
+  }
 }
 
 export function insertCampaign({ id, name, gmTokenHash, playerTokenHash, createdAt }) {
@@ -103,22 +122,32 @@ export function getCharacterDocument(campaignId, characterId) {
   return row ? JSON.parse(row.document_json) : null;
 }
 
-export function insertEncounter({ id, campaignId, name, createdAt, updatedAt }) {
+export function insertEncounter({ id, campaignId, name, createdAt, updatedAt, phase = 'rest' }) {
   getDb()
     .prepare(
-      `INSERT INTO encounters (id, campaign_id, name, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO encounters (id, campaign_id, name, created_at, updated_at, phase)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .run(id, campaignId, name, createdAt, updatedAt);
+    .run(id, campaignId, name, createdAt, updatedAt, phase);
 }
 
 export function listEncounters(campaignId) {
   return getDb()
     .prepare(
-      `SELECT id, name, created_at, updated_at FROM encounters
+      `SELECT id, name, created_at, updated_at, phase FROM encounters
        WHERE campaign_id = ? ORDER BY updated_at DESC`
     )
     .all(campaignId);
+}
+
+export function updateEncounterPhase(encounterId, campaignId, phase, updatedAt) {
+  const info = getDb()
+    .prepare(
+      `UPDATE encounters SET phase = ?, updated_at = ?
+       WHERE id = ? AND campaign_id = ?`
+    )
+    .run(phase, updatedAt, encounterId, campaignId);
+  return info.changes > 0;
 }
 
 export function getEncounter(encounterId, campaignId) {

@@ -12,34 +12,18 @@
     <nav class="editor-nav gm-nav" aria-label="GM navigation">
       <h1>GM Console</h1>
       <a href="../launcher/index.html">← Alter Ego home</a>
-      <a href="../sheet/index.html">Character sheet</a>
-      <a href="../editor/index.html">Character generator</a>
-      <a href="../game/index.html">Game editor</a>
-      <p class="gm-nav-hint text-sm text-slate-500">
-        Online campaign: players <strong>Save</strong> in the editor — you see them here automatically.
-      </p>
-      <p class="gm-nav-hint text-sm text-slate-500">
-        Backup: import JSON files or dev <code>src/party/</code> folder.
-      </p>
+      <a href="workshop/index.html">Workshop</a>
+      <a href="campaigns/index.html">Campaigns</a>
+      <a href="campaigns/encounters/index.html">Encounters</a>
     </nav>
 
     <main class="editor-main gm-main">
-      <section id="campaign-setup" class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
-        <h2 class="text-lg font-semibold m-0">Online campaign</h2>
-        <p class="text-sm text-slate-400 mt-2">Create a campaign and send the invite link to your players.</p>
-        <label class="block mt-3 text-sm text-slate-400">Campaign name</label>
-        <input type="text" id="campaign-name" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-base" value="Our campaign" />
-        <button type="button" class="btn-primary mt-4 min-h-11" id="btn-create-campaign">Create campaign</button>
-      </section>
-
-      <section id="campaign-active" class="gm-campaign-panel rounded-xl border border-amber-500/40 bg-slate-900/80 p-4 mb-6" hidden>
-        <h2 class="text-lg font-semibold m-0" id="campaign-title">Campaign</h2>
-        <p class="text-sm text-slate-400 mt-2">Share this link with players (WhatsApp, email, …):</p>
-        <div class="flex flex-wrap gap-2 mt-2">
-          <input type="text" id="invite-url" readonly class="flex-1 min-w-0 rounded border border-slate-600 bg-slate-800 px-3 py-2 text-sm" />
-          <button type="button" class="btn-secondary min-h-11" id="btn-copy-invite">Copy link</button>
-        </div>
-        <button type="button" class="btn-secondary mt-3 text-sm" id="btn-leave-campaign">Leave campaign (local)</button>
+      <section id="gm-campaign-stats" class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
+        <h2 class="text-lg font-semibold m-0">Online campaigns</h2>
+        <p id="gm-campaign-stats-text" class="text-sm text-slate-400 mt-2 mb-0">Loading…</p>
+        <a href="campaigns/index.html" class="btn-secondary inline-block mt-4 min-h-11 leading-[2.75rem] px-4">
+          Manage campaigns
+        </a>
       </section>
 
       <section id="gm-quick-build" class="gm-quick-build rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
@@ -73,25 +57,7 @@
         <button type="button" class="btn-primary mt-4 min-h-11" id="btn-quick-build">Quick-create character</button>
       </section>
 
-      <header class="editor-header">
-        <h2>Party</h2>
-        <p id="party-status">Create or join a campaign to see player characters.</p>
-      </header>
-
       <ul class="validation-errors" id="gm-errors" hidden></ul>
-
-      <details class="gm-backup-import text-sm text-slate-400 mb-4">
-        <summary class="cursor-pointer text-slate-300">Backup: import JSON files</summary>
-        <div class="gm-toolbar mt-3">
-          <label class="btn-secondary gm-file-label cursor-pointer">
-            Add character files
-            <input type="file" id="file-picker" accept=".json,application/json" multiple hidden />
-          </label>
-          <button type="button" class="btn-secondary" id="btn-reload-dev">Reload dev folder</button>
-        </div>
-      </details>
-
-      <div class="gm-party-grid" id="party-grid"></div>
     </main>
   </div>
 

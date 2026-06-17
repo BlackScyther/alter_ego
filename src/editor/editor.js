@@ -52,6 +52,7 @@ import {
 import { renderBackgroundStep } from './steps/background-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
 import { renderPowerStep } from './steps/power-step.js';
+import { renderEquipmentStep } from './steps/equipment-step.js';
 import { renderRaceStep } from './steps/race-step.js';
 import { renderClassStep } from './steps/class-step.js';
 import { ensureRaceSelectionsShape } from '../character/race-selections.js';
@@ -71,6 +72,10 @@ import {
   migratePowerIdsToSelections,
   prunePowerSelections
 } from '../character/power-selections.js';
+import {
+  ensureEquipmentSelectionsShape,
+  migrateEquipmentIdsToItems
+} from '../character/equipment-selections.js';
 import {
   applySheetValueToCharacter,
   buildMirrorPayload,
@@ -540,7 +545,16 @@ async function renderStepPanel() {
       });
       break;
     case 'equipment':
-      renderPlaceholder(panel, stepId);
+      ensureEquipmentSelectionsShape(character);
+      migrateEquipmentIdsToItems(character);
+      await renderEquipmentStep(panel, {
+        character,
+        compendium,
+        def,
+        builderMode,
+        onPersist: async () => persist(),
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'equipment')
+      });
       break;
     case 'review':
       renderReview(panel);
@@ -831,7 +845,7 @@ function renderSelectionTutorHint(panel, stepId) {
   if (stepId === 'background') {
     hint.textContent = meta.skillBonuses ?? meta.abilityBonuses;
   } else if (stepId === 'feats') {
-    hint.textContent = meta.skillBonuses ?? meta.abilityBonuses;
+    hint.textContent = meta.featBonuses ?? meta.skillBonuses ?? meta.abilityBonuses;
   } else if (['race', 'class'].includes(stepId)) {
     hint.textContent = meta.abilityBonuses;
   }

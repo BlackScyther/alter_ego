@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Workshop</title>
+  <link rel="stylesheet" href="../../app.css" />
+  <link rel="stylesheet" href="../../editor/editor.css" />
+  <link rel="stylesheet" href="../gm.css" />
+  <link rel="stylesheet" href="workshop.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="gm-shell">
+    <nav class="editor-nav gm-nav" aria-label="Workshop navigation">
+      <h1>Workshop</h1>
+      <a href="../index.html">← GM Console</a>
+      <a href="../campaigns/index.html">Campaigns</a>
+      <a href="../campaigns/encounters/index.html">Encounters</a>
+      <a href="../../launcher/index.html">Alter Ego home</a>
+      <p class="text-sm text-slate-500 mt-2">
+        Create shared homebrew compendium entries for your table.
+      </p>
+    </nav>
+
+    <main class="editor-main gm-main">
+      <section id="ws-no-session" class="rounded-xl border border-slate-700 bg-slate-900/80 p-6" hidden>
+        <h2 class="text-lg font-semibold m-0">GM session required</h2>
+        <p class="text-sm text-slate-400 mt-2">
+          Create or open a campaign as GM to author homebrew entries.
+        </p>
+        <a href="../campaigns/index.html" class="btn-primary inline-flex mt-4 min-h-11 items-center">Go to Campaigns</a>
+      </section>
+
+      <div id="ws-workspace" hidden>
+        <section class="ws-gm-slug-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4">
+          <h2 class="text-lg font-semibold m-0">GM author slug</h2>
+          <p id="ws-source-hint" class="text-sm text-slate-400 mt-2 mb-0"></p>
+          <div class="ws-gm-slug-row">
+            <label class="flex-1 min-w-[160px]">
+              <span class="sr-only">GM author slug</span>
+              <input type="text" id="ws-gm-slug" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="e.g. marcus" autocomplete="off" />
+            </label>
+            <button type="button" class="btn-secondary min-h-11" id="btn-save-gm-slug">Save slug</button>
+          </div>
+        </section>
+
+        <section id="ws-dashboard" class="ws-dashboard rounded-xl border border-slate-700 bg-slate-900/80 p-4">
+          <h2>Choose entry type</h2>
+          <p class="text-sm text-slate-400 m-0">Pick a compendium category to view or create homebrew entries.</p>
+          <div id="ws-category-grid" class="ws-category-grid" role="list"></div>
+        </section>
+
+        <section id="ws-category-workspace" class="ws-category-workspace rounded-xl border border-slate-700 bg-slate-900/80 p-4 mt-6" hidden>
+          <button type="button" class="btn-secondary text-sm min-h-9 mb-3" id="btn-back-dashboard">← All categories</button>
+          <h2 id="ws-category-title">Category</h2>
+          <p id="ws-list-status" class="text-sm text-slate-400 m-0"></p>
+          <div class="ws-toolbar">
+            <button type="button" class="btn-primary min-h-11" id="btn-new-entry">New entry</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-dup-compendium">Duplicate from compendium…</button>
+          </div>
+          <label class="block text-sm text-slate-400 mt-2">
+            Search entries
+            <input type="search" id="ws-entry-search" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="At least 3 characters…" />
+          </label>
+          <div id="ws-entry-list" class="ws-entry-list mt-4"></div>
+        </section>
+
+        <ul class="validation-errors mt-4" id="ws-errors" hidden></ul>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="dialog-entry-editor" class="ws-dialog">
+    <div class="ws-dialog-inner">
+      <h2 class="text-lg font-semibold m-0" id="ws-editor-title">Edit entry</h2>
+      <p class="text-sm text-slate-400 mt-1 mb-0">
+        Source book: <span id="ws-editor-source-book"></span> (set automatically from your GM slug)
+      </p>
+      <div class="ws-editor-layout">
+        <div>
+          <form id="ws-editor-form" onsubmit="return false">
+            <div id="ws-editor-fields" class="ws-editor-fields"></div>
+            <label class="block mt-3">
+              <span class="ws-field-label">Body HTML</span>
+              <textarea id="ws-editor-body" class="ws-body-input" rows="10" aria-label="Entry body HTML"></textarea>
+            </label>
+          </form>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold m-0 text-slate-300">Preview</h3>
+          <div id="ws-editor-preview" class="ws-preview-panel mt-2"></div>
+        </div>
+      </div>
+      <div class="ws-dialog-actions">
+        <button type="button" class="btn-secondary" data-close-dialog>Cancel</button>
+        <button type="button" class="btn-secondary text-red-300" data-ws-delete>Delete</button>
+        <button type="button" class="btn-primary" data-ws-save>Save entry</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-duplicate" class="ws-dialog">
+    <div class="ws-dialog-inner">
+      <h2 class="text-lg font-semibold m-0">Duplicate from compendium</h2>
+      <p class="text-sm text-slate-400 mt-1">Pick an official entry to copy into a new homebrew draft.</p>
+      <div id="ws-dup-source-toolbar"></div>
+      <input type="search" id="ws-dup-search" class="mt-3 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="Search compendium…" />
+      <div id="ws-dup-list" class="ws-dup-list"></div>
+      <div class="ws-dialog-actions">
+        <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="module" src="workshop.js"></script>
+</body>
+</html>

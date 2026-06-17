@@ -1,0 +1,82 @@
+{
+  "startingGoldGp": 100,
+  "byClassId": {
+    "class3": {
+      "byBuildOption": {
+        "great-weapon-fighter": {
+          "label": "Great Weapon Fighter",
+          "remainingGoldGp": 3,
+          "equipped": [
+            { "compendiumId": "armor5", "slotId": "armor" },
+            { "compendiumId": "weapon3612", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 },
+            { "compendiumId": "weapon3628", "quantity": 1 }
+          ]
+        },
+        "guardian-fighter": {
+          "label": "Guardian Fighter",
+          "remainingGoldGp": 3,
+          "equipped": [
+            { "compendiumId": "armor5", "slotId": "armor" },
+            { "compendiumId": "armor8", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 },
+            { "compendiumId": "weapon3628", "quantity": 1 }
+          ]
+        }
+      },
+      "defaultBuildOption": "great-weapon-fighter"
+    },
+    "class1": {
+      "default": {
+        "label": "Fighter starter kit (stub)",
+        "remainingGoldGp": 45,
+        "equipped": [
+          { "compendiumId": "armor1", "slotId": "armor" },
+          { "compendiumId": "weapon1", "slotId": "mainHand" }
+        ],
+        "inventory": [{ "compendiumId": "item1", "quantity": 1 }]
+      }
+    }
+  },
+  "byClassName": {
+    "Fighter (Weaponmaster)": {
+      "byBuildOption": {
+        "great-weapon-fighter": {
+          "label": "Great Weapon Fighter",
+          "remainingGoldGp": 3,
+          "equipped": [
+            { "compendiumId": "armor5", "slotId": "armor" },
+            { "compendiumId": "weapon3612", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 },
+            { "compendiumId": "weapon3628", "quantity": 1 }
+          ]
+        },
+        "guardian-fighter": {
+          "label": "Guardian Fighter",
+          "remainingGoldGp": 3,
+          "equipped": [
+            { "compendiumId": "armor5", "slotId": "armor" },
+            { "compendiumId": "armor8", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 },
+            { "compendiumId": "weapon3628", "quantity": 1 }
+          ]
+        }
+      },
+      "defaultBuildOption": "great-weapon-fighter"
+    }
+  }
+}

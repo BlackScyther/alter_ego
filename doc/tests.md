@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-06-11
+**Last updated:** 2026-06-17
 
 ## Automation status
 
@@ -25,6 +25,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/validate-character.test.mjs` | Server + client validation, API requires `id` |
 | `tests/character-io.test.mjs` | Export filename sanitization, import validation |
 | `tests/party-loader.test.mjs` | GM **file picker** and **folder/text import**: bad JSON, malicious filenames, XSS in fields, `__proto__` |
+| `tests/gm-campaign-registry.test.mjs` | GM localStorage campaign registry: add, list, dedupe, corrupt storage |
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
 | `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text |
@@ -36,7 +37,15 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
+| `tests/class-effects.test.mjs` | Class-feature static initiative (Warlord +2), additive class+background composition, conditional exclusion |
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
+| `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
+| `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
+| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; armor/shield/weapon → defenses and attacks |
+| `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
+| `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
+| `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
+| `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
 
 ## Manual test checklist — background step (editor)
 
@@ -82,18 +91,18 @@ Requires GM campaign session (`npm run dev:all`).
 
 Requires `npm run dev:all` or `dev:api` + `dev`.
 
-- [ ] GM: **Create campaign** → invite URL shown → copy works
+- [ ] GM console shows campaign stats (created / active) and **Manage campaigns** link
+- [ ] **Campaigns** page (`/src/gm/campaigns/`): create several; names persist; active row shows invite + **Copy link**
+- [ ] GM: **Create campaign** → invite URL shown → copy works; character count updates after player **Save**
 - [ ] Player: open invite link → lands on player hub → editor shows campaign in status
-- [ ] Player: **Save** → no error; GM party list shows character within ~5 s
-- [ ] GM: **Open sheet** / **Open in editor** on a party card
+- [ ] Player: **Save** → no error; GM campaign panel shows character count within ~5 s
+- [ ] GM: **Quick-create character** opens the editor
 - [ ] `npm test` and `node scripts/test-campaign-api.mjs` pass
 
-## Manual test checklist — GM file / folder import
+## Manual test checklist — character JSON import (editor)
 
-- [ ] **Add character files** (browser): valid `.json` loads; broken file shows error (not a crash)
-- [ ] Import JSON with odd character names (unicode, quotes) — party card shows escaped text, no script execution
-- [ ] Desktop: **Choose party folder** loads only `*.json` from selected folder
-- [ ] Dev: **Reload dev folder** loads `src/party/` when `party:index` was run
+- [ ] Editor: import valid `.json`; broken file shows error (not a crash)
+- [ ] Import JSON with odd character names (unicode, quotes) — no script execution in UI
 
 ## Manual test checklist — desktop app (optional)
 
@@ -114,10 +123,8 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 ### GM flow
 
-- [ ] Empty state explains JSON from players (no npm / party:index in main text)
-- [ ] **Add character files** loads multiple JSONs into party grid
-- [ ] **Choose party folder** (desktop) loads all `*.json` from folder
-- [ ] **Open sheet** / **Open in editor** work for a loaded character
+- [ ] Campaign create/invite and quick-build work
+- [ ] Game editor **Add from party** lists saved campaign characters
 
 ### Release build
 
@@ -139,7 +146,8 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 - [ ] Post-load: **Edit character** opens full builder at current level (feats onward)
 - [ ] Post-load: **Level up** disabled until sheet Total XP meets next-level threshold; tooltip on hover when disabled
-- [ ] Creation flow: Race → Background → Class → Attributes → Equipment
+- [ ] Creation flow: Race → Background → Class → Attributes → Powers → Feats → Equipment
+- [ ] **Equipment step** — add item from compendium to inventory; equip to body slot; unequip (×); swap via occupied slot; gold (gp) field persists
 - [ ] Export downloads `.json`
 
 ### Character sheet (`/src/sheet/`)
@@ -148,8 +156,13 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 ### GM console (`/src/gm/`)
 
-- [ ] **Add character files** (file input) loads exports
-- [ ] **Reload dev folder** loads `src/party/` when `party:index` was run (dev only)
+- [ ] Campaign stats line (e.g. `2 campaigns created · 1 active`)
+- [ ] **Manage campaigns** opens `/src/gm/campaigns/`
+- [ ] **Quick-create character** opens editor
+
+### Campaigns (`/src/gm/campaigns/`)
+
+- [ ] **Online campaigns** — expand list; create multiple; active campaign shows invite and character count
 
 ### Legacy (developers only)
 

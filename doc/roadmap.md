@@ -34,7 +34,7 @@ Details: [deploy-hosting.md](deploy-hosting.md) (SSH/SFTP/Git), [deploy-online.m
 | **3a** | **Game editor** (encounter roster, NPC instances, editor bridge) | Yes | **Done** — [game-editor.md](game-editor.md) |
 | **4** | Compendium browser (SL) | Yes | Open |
 | **5** | Builder polish + `.dnd4e` import | Partial | **In progress** — player UX gate + guided wizard done (2026-05-24) |
-| **6** | SL homebrew editor | Yes | Open |
+| **6** | SL homebrew editor | Yes | **Partial** — GM Workshop (`/src/gm/workshop/`) |
 
 ---
 

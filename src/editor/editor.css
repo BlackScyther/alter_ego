@@ -1713,6 +1713,111 @@ body.player-editor #gate-lead {
   flex-wrap: wrap;
 }
 
+/* Equipment step */
+.equipment-gold-row {
+  margin: 12px 0 8px;
+}
+
+.equipment-gold-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--editor-muted);
+  max-width: 160px;
+}
+
+.equipment-gold-input {
+  padding: 8px 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+  color: var(--editor-text);
+  font-size: 14px;
+}
+
+.equipment-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.equipment-category-tab {
+  padding: 4px 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+  color: var(--editor-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.equipment-category-tab--active {
+  border-color: var(--editor-accent);
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 12%, transparent);
+}
+
+.equipment-inventory-toolbar {
+  border-top: 1px solid var(--editor-border);
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.equipment-inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.equipment-inventory-empty {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--editor-muted);
+}
+
+.equipment-inventory-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.equipment-inventory-row {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 8px 10px;
+}
+
+.equipment-inventory-equip {
+  padding: 4px 8px;
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+  background: var(--editor-surface);
+  color: var(--editor-accent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.equipment-inventory-remove,
+.equipment-inventory-open {
+  flex-shrink: 0;
+}
+
+.equipment-slot-row--eligible {
+  outline: 2px dashed color-mix(in srgb, var(--editor-accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
 .power-filter-warning {
   color: #ef4444;
   font-weight: 700;

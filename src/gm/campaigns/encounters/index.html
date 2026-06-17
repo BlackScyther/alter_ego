@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Encounters</title>
+  <link rel="stylesheet" href="../../../app.css" />
+  <link rel="stylesheet" href="../../gm.css" />
+  <link rel="stylesheet" href="encounters.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="gm-shell enc-shell">
+    <nav class="editor-nav gm-nav" aria-label="Encounter navigation">
+      <h1>Encounters</h1>
+      <a href="../index.html">← Campaigns</a>
+      <a href="../../index.html">GM Console</a>
+      <a href="../../../launcher/index.html">Alter Ego home</a>
+      <a href="../../workshop/index.html">Workshop</a>
+      <p class="enc-nav-hint text-sm text-slate-500">
+        Build the roster in rest mode, then start initiative when combat begins.
+      </p>
+    </nav>
+
+    <main class="editor-main gm-main">
+      <section id="enc-no-campaign" class="rounded-xl border border-slate-700 bg-slate-900/80 p-6" hidden>
+        <h2 class="text-lg font-semibold m-0">Campaign required</h2>
+        <p class="text-sm text-slate-400 mt-2">Create or select an active campaign first.</p>
+        <a href="../index.html" class="btn-primary inline-flex mt-4 min-h-11 items-center">Go to Campaigns</a>
+      </section>
+
+      <div id="enc-workspace" hidden>
+        <header class="enc-header">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[200px]">
+              <label class="text-sm text-slate-400" for="encounter-select">Encounter</label>
+              <select id="encounter-select" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-base"></select>
+            </div>
+            <button type="button" class="btn-secondary min-h-11" id="btn-new-encounter">New encounter</button>
+            <button type="button" class="btn-secondary min-h-11 text-sm" id="btn-delete-encounter">Delete</button>
+          </div>
+          <p id="enc-status" class="text-sm text-slate-400 mt-2"></p>
+        </header>
+
+        <div id="enc-phase-banner" class="enc-phase-banner mt-4" role="status"></div>
+
+        <div class="enc-phase-toolbar mt-4 flex flex-wrap gap-2">
+          <button type="button" class="btn-primary min-h-11" id="btn-start-initiative" hidden>Start initiative</button>
+          <button type="button" class="btn-secondary min-h-11" id="btn-back-rest" hidden>Back to rest</button>
+          <button type="button" class="btn-secondary min-h-11" id="btn-reset-initiative" hidden>Reset initiative</button>
+          <button type="button" class="btn-secondary min-h-11" id="btn-end-encounter" hidden>End encounter — rewards</button>
+        </div>
+
+        <ul class="validation-errors mt-3" id="enc-errors" hidden></ul>
+
+        <section id="enc-rest-panel" class="enc-panel">
+          <div class="enc-toolbar">
+            <button type="button" class="btn-primary min-h-11" id="btn-add-party">Add from party…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-monster">Add monster…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-npc">Add NPC…</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-add-blank">Blank NPC</button>
+          </div>
+          <div class="enc-roster" id="enc-roster"></div>
+        </section>
+
+        <section id="enc-initiative-panel" class="enc-panel hidden">
+          <p class="text-sm text-slate-400 m-0">
+            Enter each participant's d20 roll. Total = roll + static initiative (from the character sheet or monster stat block).
+            Ties go to the higher static value.
+          </p>
+          <ol class="enc-initiative-list mt-4" id="enc-initiative-list"></ol>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="dialog-party" class="enc-dialog rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
+    <h3 class="text-lg font-semibold m-0">Add from party</h3>
+    <p class="text-sm text-slate-400 mt-1">Link updates when the player saves. Copy is a frozen snapshot.</p>
+    <div id="party-pick-list" class="enc-pick-list mt-3"></div>
+    <div class="flex gap-2 mt-4 justify-end">
+      <button type="button" class="btn-secondary" data-close-dialog>Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-compendium" class="enc-dialog rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
+    <h3 class="text-lg font-semibold m-0" id="compendium-dialog-title">Add from compendium</h3>
+    <div id="compendium-source-toolbar" class="enc-compendium-toolbar mt-3"></div>
+    <input type="search" id="compendium-search" placeholder="Search…" class="mt-3 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
+    <div id="compendium-pick-list" class="enc-pick-list mt-3 max-h-64 overflow-y-auto"></div>
+    <div class="flex gap-2 mt-4 justify-end">
+      <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-rewards" class="enc-dialog enc-dialog-wide rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-100">
+    <h3 class="text-lg font-semibold m-0">Distribute rewards</h3>
+    <p class="text-sm text-slate-400 mt-1">Rewards apply to linked campaign characters only.</p>
+    <label class="block text-sm text-slate-400 mt-3">
+      Outcome
+      <select id="reward-outcome" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2">
+        <option value="victory">Victory</option>
+        <option value="fled">Opponents fled</option>
+        <option value="defeated">Party defeated</option>
+        <option value="other">Other</option>
+      </select>
+    </label>
+    <fieldset class="enc-reward-fieldset mt-4">
+      <legend class="text-sm font-semibold">Experience points</legend>
+      <label class="block text-sm text-slate-400 mt-2">
+        XP amount
+        <input type="number" id="reward-xp" min="0" step="1" value="0" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
+      </label>
+      <div id="reward-xp-targets" class="enc-target-list mt-2"></div>
+    </fieldset>
+    <fieldset class="enc-reward-fieldset mt-4">
+      <legend class="text-sm font-semibold">Gold</legend>
+      <label class="block text-sm text-slate-400 mt-2">
+        Gold (gp) — split equally among selected
+        <input type="number" id="reward-gold" min="0" step="1" value="0" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
+      </label>
+      <div id="reward-gold-targets" class="enc-target-list mt-2"></div>
+    </fieldset>
+    <fieldset class="enc-reward-fieldset mt-4">
+      <legend class="text-sm font-semibold">Items from compendium</legend>
+      <input type="search" id="reward-item-search" placeholder="Search items…" class="mt-2 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" />
+      <div id="reward-item-picks" class="enc-pick-list mt-2 max-h-40 overflow-y-auto"></div>
+      <p id="reward-selected-items" class="text-sm text-slate-400 mt-2 m-0"></p>
+      <div id="reward-item-targets" class="enc-target-list mt-2"></div>
+    </fieldset>
+    <div class="flex gap-2 mt-4 justify-end">
+      <button type="button" class="btn-secondary" data-close-dialog>Cancel</button>
+      <button type="button" class="btn-primary" id="btn-apply-rewards">Apply rewards</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="encounters.js"></script>
+</body>
+</html>

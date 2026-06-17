@@ -16,6 +16,14 @@ import {
 import { importCharacterDocument } from '../character/store.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
 import { initiative as calcInitiative } from '../formulas.js';
+import { totalInitiative, sortCombatants } from '../encounter/combat-helpers.js';
+import {
+  renderSourceComboHtml,
+  attachSourceCombo,
+  getActiveSourceBooksFromCombo
+} from '../editor/picker/picker-source-combo.js';
+
+const COMPENDIUM_PICKER_KEY = 'game-compendium';
 
 initBuildStamp();
 
@@ -50,8 +58,7 @@ function combatBlock(character) {
 }
 
 function initiativeValue(character) {
-  const combat = combatBlock(character);
-  return combat.initiative == null ? null : Number(combat.initiative);
+  return totalInitiative(character);
 }
 
 async function refreshEncounter(encounterId) {
@@ -122,8 +129,7 @@ function renderRoster() {
 
 function renderCombat() {
   const list = $('#combat-list');
-  const actors = [...(encounter?.actors ?? [])];
-  actors.sort((a, b) => (initiativeValue(b.character) ?? -Infinity) - (initiativeValue(a.character) ?? -Infinity));
+  const actors = sortCombatants(encounter?.actors ?? []);
 
   if (!actors.length) {
     list.innerHTML = '<p class="text-slate-400 p-4">No combatants yet.</p>';
@@ -226,16 +232,37 @@ async function openPartyDialog() {
   $('#dialog-party').showModal();
 }
 
+async function mountCompendiumSourceFilter() {
+  const toolbar = $('#compendium-source-toolbar');
+  if (!toolbar) return;
+  const sourceBooks = await compendium.distinctSourceBooks(compendiumCategory);
+  const label = compendiumCategory === 'monster' ? 'Monster source' : 'Source';
+  toolbar.innerHTML = renderSourceComboHtml({
+    pickerKey: COMPENDIUM_PICKER_KEY,
+    sourceBooks,
+    groupLabel: label
+  });
+  attachSourceCombo(toolbar, COMPENDIUM_PICKER_KEY, () => {
+    renderCompendiumPicks($('#compendium-search')?.value ?? '');
+  });
+}
+
 async function openCompendiumDialog(category, title) {
   compendiumCategory = category;
   $('#compendium-dialog-title').textContent = title;
   await compendium.ready();
+  await mountCompendiumSourceFilter();
   await renderCompendiumPicks('');
   $('#dialog-compendium').showModal();
 }
 
 async function renderCompendiumPicks(query) {
-  const entries = await compendium.listEntries(compendiumCategory, { search: query, limit: 50 });
+  const sourceBooks = getActiveSourceBooksFromCombo(COMPENDIUM_PICKER_KEY);
+  const entries = await compendium.listEntries(compendiumCategory, {
+    search: query,
+    limit: 50,
+    sourceBooks: sourceBooks ?? undefined
+  });
   const list = $('#compendium-pick-list');
   if (!entries.length) {
     list.innerHTML = '<p class="text-slate-400">No entries found.</p>';
