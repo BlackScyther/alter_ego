@@ -161,7 +161,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `index.html` | Home hub: logo header, Character generator vs Top of playlist (Tailwind, centered) |
 | `assets/alter-ego-logo.png` | Placeholder homepage logo (4E Alter Ego wordmark, transparent background) |
 | `assets/favicon.png` | Browser tab icon (4E Alter Ego mark, transparent background) |
-| `app.css` | Shared hub/launcher shell styles (imports editor.css) |
+| `app.css` | Shared hub/launcher shell styles (imports editor.css); includes `.nav-github` icon link |
 | `launcher/` | Role picker (Player / GM) — desktop app entry; logo header |
 | `player/index.html` | Player hub: generator + sheet only |
 | `desktop/tauri-bridge.js` | Native save/open dialogs and party folder (Tauri) |
