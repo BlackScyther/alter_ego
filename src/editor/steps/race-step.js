@@ -69,6 +69,16 @@ function attachPreviewBonusChoices(previewEl, onChange) {
     const value = btn.dataset.value;
     if (kind && group && value) onChange(kind, group, value);
   });
+  previewEl.addEventListener('change', (e) => {
+    const select = e.target.closest('.race-choice-combo');
+    if (!select) return;
+    const wrap = select.closest('.race-inline-choices');
+    if (!wrap) return;
+    const kind = wrap.dataset.kind;
+    const group = wrap.dataset.choiceGroup;
+    const value = select.value;
+    if (kind && group && value) onChange(kind, group, value);
+  });
 }
 
 function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, onChange) {

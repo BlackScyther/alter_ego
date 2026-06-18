@@ -81,7 +81,9 @@ function describeIdForTarget(el) {
 function firstFocusableInTarget(el) {
   return (
     el.querySelector('button.race-choice-btn:not([disabled])') ??
+    el.querySelector('select.race-choice-combo:not([disabled])') ??
     el.querySelector('input[type="radio"]:not([disabled])') ??
+    el.querySelector('select:not([disabled])') ??
     el.querySelector('button:not([disabled])') ??
     el.querySelector('input:not([disabled])')
   );

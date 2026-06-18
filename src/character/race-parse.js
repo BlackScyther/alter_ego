@@ -643,27 +643,38 @@ export function extractFlavorFolds(html, previewTerms = []) {
  */
 function renderInlineChoiceButtons(decision, picked) {
   const anchorId = `choice-guide-race-bonus-${decision.kind}-${decision.choiceGroup}`;
+  const anyOpt = decision.options.find((o) => o.ability === 'any');
+
+  // "Any one ability" decisions offer all six scores. A grid of six buttons is
+  // bulky, so collapse it into a compact combo picker. Limited choices (a small
+  // set of specific abilities) stay as buttons for at-a-glance visibility.
+  if (anyOpt) {
+    const selectId = `${anchorId}-select`;
+    const parts = [
+      `<div class="race-inline-choices race-inline-choices--combo" data-choice-guide="race-bonus" id="${esc(anchorId)}" data-kind="${esc(decision.kind)}" data-choice-group="${esc(decision.choiceGroup)}">`,
+      `<select class="race-choice-combo" id="${esc(selectId)}" aria-label="Choose ability bonus (+${anyOpt.amount})">`,
+      `<option value="">Choose ability… (+${anyOpt.amount})</option>`
+    ];
+    for (const key of ABILITY_KEYS) {
+      const selected = picked === key ? ' selected' : '';
+      const label = ABILITY_DISPLAY[key] ?? key.toUpperCase();
+      parts.push(`<option value="${esc(key)}"${selected}>${esc(label)} +${anyOpt.amount}</option>`);
+    }
+    parts.push('</select>', '</div>');
+    return parts.join('');
+  }
+
   const parts = [
     `<div class="race-inline-choices" data-choice-guide="race-bonus" id="${esc(anchorId)}" data-kind="${esc(decision.kind)}" data-choice-group="${esc(decision.choiceGroup)}">`
   ];
-  const anyOpt = decision.options.find((o) => o.ability === 'any');
-  if (anyOpt) {
-    for (const key of ABILITY_KEYS) {
-      const selected = picked === key ? ' race-choice-btn--selected' : '';
-      parts.push(
-        `<button type="button" class="race-choice-btn${selected}" data-value="${esc(key)}">${esc(key.toUpperCase())} +${anyOpt.amount}</button>`
-      );
-    }
-  } else {
-    const seen = new Set();
-    for (const opt of decision.options) {
-      if (!opt.ability || opt.ability === 'any' || seen.has(opt.ability)) continue;
-      seen.add(opt.ability);
-      const selected = picked === opt.ability ? ' race-choice-btn--selected' : '';
-      parts.push(
-        `<button type="button" class="race-choice-btn${selected}" data-value="${esc(opt.ability)}">${esc(String(opt.ability).toUpperCase())} +${opt.amount}</button>`
-      );
-    }
+  const seen = new Set();
+  for (const opt of decision.options) {
+    if (!opt.ability || opt.ability === 'any' || seen.has(opt.ability)) continue;
+    seen.add(opt.ability);
+    const selected = picked === opt.ability ? ' race-choice-btn--selected' : '';
+    parts.push(
+      `<button type="button" class="race-choice-btn${selected}" data-value="${esc(opt.ability)}">${esc(String(opt.ability).toUpperCase())} +${opt.amount}</button>`
+    );
   }
   parts.push('</div>');
   return parts.join('');

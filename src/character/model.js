@@ -158,6 +158,42 @@ export function countScoresBelowTen(scores) {
   return Object.values(scores).filter((v) => Number(v) < 10).length;
 }
 
+/** Ability keys used by the point-buy allocator. */
+export const POINT_BUY_ABILITIES = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
+
+/**
+ * Auto-distribute base ability scores within the point-buy budget, favoring the
+ * given priority abilities first. Respects the one-dump-stat rule and the 8-18
+ * range. Shared by quick-build and the Attributes step "Recommended" button.
+ * @param {string[]} [priority] Ability keys to maximize first (e.g. ['str','con']).
+ * @param {number} [budget]
+ * @returns {Record<string, number>}
+ */
+export function autoPointBuy(priority = ['str', 'con'], budget = 22) {
+  const scores = Object.fromEntries(POINT_BUY_ABILITIES.map((k) => [k, 10]));
+  const wanted = priority.filter((k) => POINT_BUY_ABILITIES.includes(k));
+  const order = [...wanted, ...POINT_BUY_ABILITIES.filter((k) => !wanted.includes(k))];
+  let guard = 200;
+  while (guard-- > 0) {
+    const { remaining } = pointBuySpent(scores, budget);
+    if (remaining <= 0) break;
+    let bumped = false;
+    for (const key of order) {
+      if (scores[key] >= 18) continue;
+      const next = { ...scores, [key]: scores[key] + 1 };
+      if (countScoresBelowTen(next) > 1) continue;
+      const trial = pointBuySpent(next, budget);
+      if (trial.remaining >= 0) {
+        scores[key] = next[key];
+        bumped = true;
+        break;
+      }
+    }
+    if (!bumped) break;
+  }
+  return scores;
+}
+
 export function validateStep(stepId, character, editorMeta) {
   const errors = [];
   const lvl = character.identity.level;

@@ -67,6 +67,7 @@ Details: [architecture.md](architecture.md).
 - Character generator, sheet, formulas, JSON export
 - **Race step:** core/subrace pickers, ability “or” choices on race step, racial power/feat grant tiles, compendium hover links in preview and notes
 - **Class step:** static initiative bonuses from class features apply to the character's own initiative (curated `data/class-effect-overrides.json`, seeded with Warlord (Marshal) Combat Leader +2; composes with background initiative; conditional initiative effects intentionally ignored)
+- **Attributes step:** live 22-point point-buy status, plus a **Recommended ability scores for this class** button (same pattern as powers/feats/equipment) that auto-distributes the budget toward the class's Key Abilities; shares the `autoPointBuy` allocator with quick-build
 - **Equipment step:** inventory list, body-slot equip UI (armor, weapons, implement, worn items), compendium picker with category tabs and source filter, manual gold (gp) field. On **new level-1 character creation** (not edit), auto-applies curated starting kits (Fighter Great Weapon / Guardian), sets leftover gold, and syncs AC, armor check, speed, and basic attack lines to the sheet mirror; gear remains editable afterward. Level-1 characters also get a **Recommended equipment for this class** button (same pattern as powers/feats) to force-reapply the build kit and refresh sheet stats.
 - Vite build, launcher, player hub
 - Desktop (Tauri), CI builds Windows/Mac

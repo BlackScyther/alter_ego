@@ -35,6 +35,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .editor-nav h1 {
@@ -191,6 +192,7 @@ body.player-editor #gate-lead {
 .editor-main {
   padding: 24px 32px 48px;
   max-width: 900px;
+  min-width: 0;
 }
 
 .editor-main.editor-main--wizard {
@@ -1962,6 +1964,28 @@ body.player-editor #gate-lead {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.race-inline-choices--combo {
+  display: block;
+}
+
+.race-choice-combo {
+  width: 100%;
+  max-width: 240px;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+  color: var(--editor-text);
+  cursor: pointer;
+}
+
+.race-choice-combo:hover,
+.race-choice-combo:focus {
+  border-color: var(--editor-accent);
+  outline: none;
 }
 
 .choice-guide--active {

@@ -171,6 +171,8 @@ export async function renderCharacterCollectionPanel(root, ctx) {
   }
 }
 
+const COLLECTION_COLLAPSE_KEY = 'editor.characterCollection.collapsed';
+
 /**
  * @param {HTMLElement} panelRoot
  */
@@ -185,22 +187,40 @@ export function initCharacterCollectionPanel(panelRoot) {
     toggle.insertAdjacentHTML('afterbegin', COLLAPSIBLE_CHEVRON_SVG);
   }
 
-  const updateToggleLabel = (collapsed) => {
-    if (!toggle) return;
-    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    toggle.setAttribute(
-      'aria-label',
-      collapsed ? 'Expand character collection' : 'Collapse character collection'
-    );
+  const applyCollapsedState = (collapsed) => {
+    panelRoot.classList.toggle('character-collection-panel--collapsed', collapsed);
+    body?.classList.toggle('character-collection-body--collapsed', collapsed);
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      toggle.setAttribute(
+        'aria-label',
+        collapsed ? 'Expand character collection' : 'Collapse character collection'
+      );
+    }
   };
 
+  const setCollapsedState = (collapsed) => {
+    try {
+      sessionStorage.setItem(COLLECTION_COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+    applyCollapsedState(collapsed);
+  };
+
+  let collapsed;
+  try {
+    const stored = sessionStorage.getItem(COLLECTION_COLLAPSE_KEY);
+    collapsed = stored === null ? true : stored === '1';
+  } catch {
+    collapsed = true;
+  }
+
   toggle?.addEventListener('click', () => {
-    const collapsed = panelRoot.classList.toggle('character-collection-panel--collapsed');
-    body?.classList.toggle('character-collection-body--collapsed', collapsed);
-    updateToggleLabel(collapsed);
+    setCollapsedState(!panelRoot.classList.contains('character-collection-panel--collapsed'));
   });
 
-  updateToggleLabel(panelRoot.classList.contains('character-collection-panel--collapsed'));
+  applyCollapsedState(collapsed);
 
   return panelRoot;
 }

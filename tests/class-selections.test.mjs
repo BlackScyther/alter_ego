@@ -18,7 +18,9 @@ import {
   hasRecommendedClassPowers,
   buildStarterPowerSlotSeeds,
   buildStarterFeatSlotSeeds,
-  validateClassStep
+  validateClassStep,
+  parseKeyAbilitiesToKeys,
+  getRecommendedAbilityPriorities
 } from '../src/character/class-selections.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -41,6 +43,34 @@ const ardentEntry = {
   listing_fields: { Name: 'Ardent', RoleName: 'Leader' },
   body_html: `<blockquote><b>CLASS TRAITS</b><br><br><b>Trained Skills</b>: From the class skills list below, choose 4 trained skills at 1st level.<br><i>Class Skills</i>: Arcana (Int), Athletics (Str), Bluff (Cha), Diplomacy (Cha), Endurance (Con), Heal (Wis), Insight (Wis), Intimidate (Cha), Streetwise (Cha).<br><br><b>Build Options: </b>Enlightened Ardent, Euphoric Ardent, Impetuous Ardent.<br></blockquote><h3>ENLIGHTENED ARDENT</h3><b>Suggested Skills</b>: Bluff, Diplomacy, Heal, Insight<br><h3>EUPHORIC ARDENT</h3><b>Suggested Skills</b>: Athletics, Endurance, Intimidate, Streetwise<br>`
 };
+
+test('parseKeyAbilitiesToKeys returns ordered, de-duplicated ability keys', () => {
+  assert.deepEqual(parseKeyAbilitiesToKeys('Strength, Intelligence'), ['str', 'int']);
+  assert.deepEqual(parseKeyAbilitiesToKeys('Wisdom, Strength'), ['wis', 'str']);
+  assert.deepEqual(parseKeyAbilitiesToKeys('Strength, and Constitution'), ['str', 'con']);
+  assert.deepEqual(parseKeyAbilitiesToKeys('Charisma or Constitution, Charisma'), ['cha', 'con']);
+  assert.deepEqual(parseKeyAbilitiesToKeys(''), []);
+  assert.deepEqual(parseKeyAbilitiesToKeys(undefined), []);
+});
+
+test('parseKeyAbilitiesToKeys handles compendium abbreviations (Str, Wis)', () => {
+  assert.deepEqual(parseKeyAbilitiesToKeys('Str, Wis'), ['str', 'wis']);
+  assert.deepEqual(parseKeyAbilitiesToKeys('Int, Con'), ['int', 'con']);
+  assert.deepEqual(parseKeyAbilitiesToKeys('Dex, Str, Wis'), ['dex', 'str', 'wis']);
+  // mixed full names and abbreviations
+  assert.deepEqual(parseKeyAbilitiesToKeys('Charisma, Dex'), ['cha', 'dex']);
+});
+
+test('getRecommendedAbilityPriorities reads class key abilities', () => {
+  const rec = getRecommendedAbilityPriorities(warlordEntry);
+  assert.deepEqual(rec.priority, ['str', 'int']);
+  assert.match(rec.keyAbilitiesText, /Strength/);
+  assert.equal(rec.classLabel, 'Warlord (Marshal)');
+
+  const none = getRecommendedAbilityPriorities(null);
+  assert.deepEqual(none.priority, []);
+  assert.equal(none.classLabel, null);
+});
 
 test('syncClassTraitsToSheet applies defenses, HP, surges, and trained skills', () => {
   const character = createCharacter({

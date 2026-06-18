@@ -1,4 +1,4 @@
-import { createCharacter, pointBuySpent, countScoresBelowTen } from './model.js';
+import { createCharacter, autoPointBuy } from './model.js';
 import { compendium } from '../data/compendium.js';
 import { xpForLevel } from '../formulas.js';
 import {
@@ -15,8 +15,6 @@ import {
 } from './tutor.js';
 import presets from '../../metadata/quick-build-presets.json';
 
-const ABILITIES = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
-
 function pickRandom(items, rng = Math.random) {
   return items[Math.floor(rng() * items.length)];
 }
@@ -31,30 +29,6 @@ function randomName(raceName, rng = Math.random) {
   const given = pickRandom(pool.given, rng);
   const family = pickRandom(pool.family, rng);
   return `${given} ${family}`;
-}
-
-function autoPointBuy(primary = ['str', 'con']) {
-  const scores = Object.fromEntries(ABILITIES.map((k) => [k, 10]));
-  const order = [...primary, ...ABILITIES.filter((k) => !primary.includes(k))];
-  let guard = 200;
-  while (guard-- > 0) {
-    const { remaining } = pointBuySpent(scores);
-    if (remaining <= 0) break;
-    let bumped = false;
-    for (const key of order) {
-      if (scores[key] >= 18) continue;
-      const next = { ...scores, [key]: scores[key] + 1 };
-      if (countScoresBelowTen(next) > 1) continue;
-      const trial = pointBuySpent(next);
-      if (trial.remaining >= 0) {
-        scores[key] = next[key];
-        bumped = true;
-        break;
-      }
-    }
-    if (!bumped) break;
-  }
-  return scores;
 }
 
 async function resolveEntryByName(category, name) {

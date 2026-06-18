@@ -46,6 +46,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
 | `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
+| `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback |
 
 ## Manual test checklist — background step (editor)
 

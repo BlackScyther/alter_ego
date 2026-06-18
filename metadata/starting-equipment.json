@@ -43,9 +43,107 @@
         ],
         "inventory": [{ "compendiumId": "item1", "quantity": 1 }]
       }
+    },
+    "class8": {
+      "byBuildOption": {
+        "tactical-warlord": {
+          "label": "Tactical Warlord",
+          "remainingGoldGp": 5,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "armor7", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
+        "inspiring-warlord": {
+          "label": "Inspiring Warlord",
+          "remainingGoldGp": 5,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "armor7", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
+        "resourceful-warlord": {
+          "label": "Resourceful Warlord",
+          "remainingGoldGp": 5,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "armor7", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
+        "bravura-warlord": {
+          "label": "Bravura Warlord",
+          "remainingGoldGp": 10,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
+        "skirmishing-warlord": {
+          "label": "Skirmishing Warlord",
+          "remainingGoldGp": 25,
+          "equipped": [
+            { "compendiumId": "armor3", "slotId": "armor" },
+            { "compendiumId": "weapon3611", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        }
+      },
+      "defaultBuildOption": "tactical-warlord"
     }
   },
   "byClassName": {
+    "Warlord (Marshal)": {
+      "byBuildOption": {
+        "tactical-warlord": {
+          "label": "Tactical Warlord",
+          "remainingGoldGp": 5,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "armor7", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
+        "bravura-warlord": {
+          "label": "Bravura Warlord",
+          "remainingGoldGp": 10,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        }
+      },
+      "defaultBuildOption": "tactical-warlord"
+    },
     "Fighter (Weaponmaster)": {
       "byBuildOption": {
         "great-weapon-fighter": {

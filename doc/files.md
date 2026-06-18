@@ -184,13 +184,13 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `model.js` | `createCharacter`, schema version, identity/sheet/selections |
+| `model.js` | `createCharacter`, schema version, identity/sheet/selections; point-buy cost model and `autoPointBuy` budget allocator (shared by quick-build and Attributes step) |
 | `store.js` | `localStorage` multi-character list |
 | `io.js` | Export/import `{Name}_{level}.json` filenames and parsing |
 | `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
 | `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking |
 | `race-subraces.js` | Core/subrace map helpers and base-race filtering |
-| `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants |
+| `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices) |
 | `race-selections.js` | Race step validation, build/bonus choices, grant sync |
 | `background-parse.js` | Parse background HTML (iws.mx inline skills + raw narrative), preview fold, skill picker, compact notes |
 | `background-selections.js` | Background associated-skill +2/+1 choices and step validation |
@@ -198,7 +198,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `background-effect-selections.js` | Persist HP-substitute ability choice on character |
 | `class-effects.js` | Static initiative bonuses from class features (curated override-first, conditional phrasing skipped); composes with background initiative |
 | `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names) |
-| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), grants, sheet sync |
+| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync |
 | `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; shields equip to off hand |
 | `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof |
 | `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines |

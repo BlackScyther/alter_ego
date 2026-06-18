@@ -3,7 +3,8 @@ import {
   touchCharacter,
   validateStep,
   isStepEnabled,
-  pointBuySpent
+  pointBuySpent,
+  autoPointBuy
 } from '../character/model.js';
 import { focusPendingChoice } from './choice-guide.js';
 import {
@@ -104,7 +105,8 @@ import {
 import {
   getClassTrainedSkillCheckboxState,
   syncClassNotesAndGrants,
-  toggleClassTrainedSkill
+  toggleClassTrainedSkill,
+  getRecommendedAbilityPriorities
 } from '../character/class-selections.js';
 import {
   renderComboboxHtml,
@@ -645,11 +647,29 @@ function renderAbilities(panel) {
   const warnings = tutorWarnings(character);
   const bonuses = character.abilities.bonuses ?? [];
   const hpHint = getHpSubstituteTutorHint(character);
+  const abilityRec = getRecommendedAbilityPriorities(cachedClassEntry);
+  const abilityRecAvailable = abilityRec.priority.length > 0;
 
   panel.innerHTML = `
     <div class="point-buy-status ${over ? 'over' : ''}">
       Point-buy (base): <strong>${spent}</strong> / 22 spent
       ${remaining >= 0 ? `(${remaining} remaining)` : `(${-remaining} over budget)`}
+    </div>
+    <div class="power-step-recommend-row">
+      <button
+        type="button"
+        id="ability-apply-recommended"
+        class="btn-secondary"
+        ${abilityRecAvailable ? '' : 'disabled'}
+        title="${abilityRecAvailable ? `Auto-distribute the 22 points toward ${esc(abilityRec.keyAbilitiesText)}` : 'Select a class with key abilities on the Class step first.'}"
+      >
+        Recommended ability scores for this class
+      </button>
+      <p class="power-recommend-hint" id="ability-recommend-hint">
+        ${abilityRecAvailable
+          ? `Distributes your point-buy budget toward ${esc(abilityRec.keyAbilitiesText)} (key abilities for ${esc(abilityRec.classLabel ?? 'your class')}).`
+          : 'No ability recommendation yet — pick a class with listed key abilities on the Class step.'}
+      </p>
     </div>
     <p class="tutor-summary">${esc(formatBonusSummary(character))}</p>
     ${hpHint ? `<p class="tutor-hp-hint">${esc(hpHint)}</p>` : ''}
@@ -726,6 +746,15 @@ function renderAbilities(panel) {
       renderAbilities(panel);
     });
   }
+
+  const abilityRecBtn = panel.querySelector('#ability-apply-recommended');
+  abilityRecBtn?.addEventListener('click', () => {
+    if (!abilityRecAvailable) return;
+    const scores = autoPointBuy(abilityRec.priority);
+    for (const a of ABILITY_KEYS) setBaseScore(character, a, scores[a]);
+    persist();
+    renderAbilities(panel);
+  });
 
   const skillsHost = panel.querySelector('#abilities-skills-table');
   if (skillsHost) {

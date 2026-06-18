@@ -290,6 +290,66 @@ export function getRecommendedPowerSeeds(character, classEntry) {
 }
 
 /**
+ * Ability matchers accepting both full names ("Strength") and the abbreviations
+ * the live compendium uses ("Str"). Word boundaries avoid false hits inside
+ * unrelated words.
+ */
+const ABILITY_PATTERNS = [
+  { key: 'str', re: /\b(?:str|strength)\b/g },
+  { key: 'con', re: /\b(?:con|constitution)\b/g },
+  { key: 'dex', re: /\b(?:dex|dexterity)\b/g },
+  { key: 'int', re: /\b(?:int|intelligence)\b/g },
+  { key: 'wis', re: /\b(?:wis|wisdom)\b/g },
+  { key: 'cha', re: /\b(?:cha|charisma)\b/g }
+];
+
+/**
+ * Parse a class "Key Abilities" string (e.g. "Strength, Constitution" or
+ * "Str, Wis") into an ordered, de-duplicated list of ability keys, preserving
+ * order of appearance.
+ * @param {string} keyAbilities
+ * @returns {string[]}
+ */
+export function parseKeyAbilitiesToKeys(keyAbilities) {
+  const text = String(keyAbilities ?? '').toLowerCase();
+  if (!text) return [];
+  /** @type {Array<{ idx: number, key: string }>} */
+  const matches = [];
+  for (const { key, re } of ABILITY_PATTERNS) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      matches.push({ idx: m.index, key });
+    }
+  }
+  matches.sort((a, b) => a.idx - b.idx);
+  /** @type {string[]} */
+  const ordered = [];
+  for (const m of matches) {
+    if (!ordered.includes(m.key)) ordered.push(m.key);
+  }
+  return ordered;
+}
+
+/**
+ * Recommended ability-score priority for a class, read from the class entry's
+ * "Key Abilities" field. Drives the Attributes step auto-distribute button.
+ * @param {object | null | undefined} classEntry
+ * @returns {{ priority: string[], keyAbilitiesText: string, classLabel: string | null }}
+ */
+export function getRecommendedAbilityPriorities(classEntry) {
+  if (!classEntry) return { priority: [], keyAbilitiesText: '', classLabel: null };
+  const parsed = parseClassEntry(classEntry);
+  const keyAbilitiesText = parsed.keyAbilities ?? '';
+  const priority = parseKeyAbilitiesToKeys(keyAbilitiesText);
+  return {
+    priority,
+    keyAbilitiesText,
+    classLabel: classEntry.listing_fields?.Name ?? parsed.title ?? null
+  };
+}
+
+/**
  * Starter feat picks from the selected class build (`featSlotSeeds` in metadata).
  *
  * @param {object} character

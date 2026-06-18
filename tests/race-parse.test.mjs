@@ -308,6 +308,25 @@ test('renderCombinedRacePreviewHtml shows inline choice buttons when unresolved'
   assert.match(html, /<li class="race-benefit-item"><span class="race-benefit-label">Size:<\/span> Medium<\/li>/);
 });
 
+test('renderCombinedRacePreviewHtml renders a combo select for any-ability choices', () => {
+  const humanComboEntry = {
+    id: 'race1',
+    listing_fields: { Name: 'Human', Size: 'Medium' },
+    body_html:
+      '<blockquote><b>Ability scores:</b> +2 to one ability score of your choice<br><b>Size:</b> Medium</blockquote>',
+    ability_bonuses: [{ ability: 'any', amount: 2, choiceGroup: 'human-ability' }]
+  };
+  const html = renderCombinedRacePreviewHtml(humanComboEntry, null, {
+    raceBonusChoices: { ability: {}, skill: {} }
+  });
+  assert.match(html, /race-inline-choices--combo/);
+  assert.match(html, /<select class="race-choice-combo"/);
+  assert.match(html, /data-choice-group="human-ability"/);
+  assert.match(html, /Strength \+2/);
+  assert.match(html, /Charisma \+2/);
+  assert.doesNotMatch(html, /race-choice-btn/);
+});
+
 test('renderCombinedRacePreviewHtml shows chosen ability without buttons', () => {
   const html = renderCombinedRacePreviewHtml(dwarfEntry, null, {
     raceBonusChoices: { ability: { 'dwarf-second': 'wis' }, skill: {} }

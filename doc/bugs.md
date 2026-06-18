@@ -20,6 +20,8 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-020 | 2026-06-18 | Editor overflowed horizontally at high zoom / narrow viewports, pushing right-side action controls off-screen (e.g. the equipment slot/inventory "open in compendium" ↗ link and ✕ clear button were unreachable without horizontal scroll). Root cause: `.editor-shell` grid items defaulted to `min-width:auto`, so the `1fr` track grew to content min-content (464px at a 312px viewport). Fixed: added `min-width: 0` to `.editor-nav` and `.editor-main` so the column shrinks to the viewport. |
+| B-019 | 2026-06-18 | Equipment step "Recommended equipment for this class" button stayed disabled for Warlord (Marshal): `metadata/starting-equipment.json` only defined kits for `class3`/`class1`/`Fighter (Weaponmaster)`, so `resolveStartingKit` returned `null`. Fixed: added `class8` and `Warlord (Marshal)` kits covering all five build options using verified compendium IDs (Chainmail, Light Shield, Longsword, Adventurer's Kit, Javelins; Hide + Short sword for Skirmishing). |
 | B-005 | 2026-05-22 | Sheet live calculations broken on clean URLs (`/src/sheet`): relative `../app.js` resolved to `/app.js` (404). Fixed with root-absolute `/src/app.js`, `/src/formulas.js`, `/src/sheet.css`; `initSheet()` runs after inline DOM build. |
 | B-004 | 2026-05-23 | No automated test suite → `npm test` (51 security/input tests). See [tests.md](tests.md). |
 | B-009 | 2026-05-23 | Editor `showErrors` did not escape imported filenames (XSS via malicious `.json` name). Fixed: errors use `esc()`. |
