@@ -44,6 +44,7 @@
               <input type="text" id="ws-gm-slug" class="mt-1 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="e.g. marcus" autocomplete="off" />
             </label>
             <button type="button" class="btn-secondary min-h-11" id="btn-save-gm-slug">Save slug</button>
+            <button type="button" class="btn-secondary min-h-11" id="btn-source-dates">Source dates…</button>
           </div>
         </section>
 
@@ -109,6 +110,20 @@
       <div id="ws-dup-source-toolbar"></div>
       <input type="search" id="ws-dup-search" class="mt-3 w-full rounded border border-slate-600 bg-slate-800 px-3 py-2" placeholder="Search compendium…" />
       <div id="ws-dup-list" class="ws-dup-list"></div>
+      <div class="ws-dialog-actions">
+        <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-source-dates" class="ws-dialog">
+    <div class="ws-dialog-inner">
+      <h2 class="text-lg font-semibold m-0">Source book release dates</h2>
+      <p class="text-sm text-slate-400 mt-1">
+        Set each book's release date so the compendium pickers can filter by publication date. Books without a date are listed first.
+      </p>
+      <p id="ws-source-dates-status" class="text-sm text-slate-400 m-0" aria-live="polite"></p>
+      <div id="ws-source-dates-list" class="ws-source-dates-list mt-3"></div>
       <div class="ws-dialog-actions">
         <button type="button" class="btn-secondary" data-close-dialog>Close</button>
       </div>

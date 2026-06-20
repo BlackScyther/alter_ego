@@ -236,3 +236,53 @@
   color: #94a3b8;
   margin-top: 2px;
 }
+
+.ws-source-dates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ws-source-dates-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.ws-source-dates-row--missing {
+  border-color: #b45309;
+}
+
+.ws-source-dates-name {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-source-dates-code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ws-source-dates-title {
+  font-size: 14px;
+}
+
+.ws-source-dates-field input,
+.ws-source-dates-field select {
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 6px 8px;
+  font-size: 13px;
+}

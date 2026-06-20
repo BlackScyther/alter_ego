@@ -10,6 +10,7 @@ import {
 import { getEditableColumns } from './category-columns.js';
 import { renderEntryPreviewHtml } from './render-entry-preview.js';
 import { renderSourceComboHtml, attachSourceCombo, getActiveSourceBooksFromCombo } from '../../editor/picker/picker-source-combo.js';
+import { getSourceBookDates } from '../../api/source-books-api.js';
 
 const SLUG_RE = /^[a-zA-Z0-9_]+$/;
 
@@ -42,6 +43,8 @@ export function initEntryEditorDialog({
   /** @type {{ mode: 'create' | 'edit', category: string, entryId: string | null, listing_fields: Record<string, string>, body_html: string } | null} */
   let draft = null;
   let dupCategory = '';
+  /** @type {Record<string, { release_date?: string|null }> | null} */
+  let dupDateMap = null;
 
   function readDraftFromForm() {
     if (!draft || !fieldsEl) return;
@@ -199,7 +202,7 @@ export function initEntryEditorDialog({
   async function renderDuplicateList() {
     if (!dupListEl || !dupCategory) return;
     const q = dupSearchEl?.value?.trim() ?? '';
-    const sourceBooks = getActiveSourceBooksFromCombo('ws-dup');
+    const sourceBooks = getActiveSourceBooksFromCombo('ws-dup', dupDateMap);
     const entries = await compendium.listEntries(dupCategory, {
       search: q.length >= 3 ? q : undefined,
       limit: 80,
@@ -240,12 +243,16 @@ export function initEntryEditorDialog({
     if (dupSearchEl) dupSearchEl.value = '';
     duplicateDialog.showModal();
     compendium.ready().then(async () => {
-      const books = await compendium.distinctSourceBooks(category, { includeHomebrew: false });
+      const [books] = await Promise.all([
+        compendium.distinctSourceBooks(category, { includeHomebrew: false }),
+        getSourceBookDates().then((map) => { dupDateMap = map; }).catch(() => { dupDateMap = null; })
+      ]);
       if (dupToolbarEl) {
         dupToolbarEl.innerHTML = renderSourceComboHtml({
           pickerKey: 'ws-dup',
           sourceBooks: books,
-          groupLabel: 'Source'
+          groupLabel: 'Source',
+          showDate: true
         });
         attachSourceCombo(duplicateDialog, 'ws-dup', renderDuplicateList);
       }

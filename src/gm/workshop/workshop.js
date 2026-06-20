@@ -11,6 +11,7 @@ import {
 import { listWorkshopCategories, WORKSHOP_CATEGORIES } from './category-columns.js';
 import { initEntryEditorDialog } from './entry-editor-dialog.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
+import { getSourceBookDates, saveSourceBook } from '../../api/source-books-api.js';
 
 initBuildStamp();
 
@@ -162,6 +163,93 @@ async function renderEntryList(categorySlug, search = '') {
   }
 }
 
+const SOURCE_ERAS = ['core', 'heroic', 'paragon', 'epic', 'setting', 'dragon', 'other'];
+
+function setSourceDatesStatus(message) {
+  const el = $('#ws-source-dates-status');
+  if (el) el.textContent = message;
+}
+
+async function renderSourceDatesList() {
+  const listEl = $('#ws-source-dates-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="text-sm text-slate-400">Loading…</p>';
+  let books;
+  try {
+    books = await getSourceBookDates();
+  } catch (err) {
+    listEl.innerHTML = '';
+    setSourceDatesStatus(err.message ?? String(err));
+    return;
+  }
+
+  const rows = Object.entries(books).sort((a, b) => {
+    const da = a[1]?.release_date ?? '';
+    const db = b[1]?.release_date ?? '';
+    if (!da && db) return -1;
+    if (da && !db) return 1;
+    if (da !== db) return da < db ? -1 : 1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  const missing = rows.filter(([, meta]) => !meta?.release_date).length;
+  setSourceDatesStatus(
+    `${rows.length} source books${missing ? ` · ${missing} missing a date` : ' · all dated'}`
+  );
+
+  listEl.innerHTML = rows
+    .map(([code, meta]) => {
+      const title = escapeHtml(meta?.title ?? code);
+      const date = escapeHtml(meta?.release_date ?? '');
+      const era = meta?.edition_era ?? '';
+      const eraOptions = ['', ...SOURCE_ERAS]
+        .map((e) => `<option value="${e}"${e === era ? ' selected' : ''}>${e || '—'}</option>`)
+        .join('');
+      return `<div class="ws-source-dates-row${meta?.release_date ? '' : ' ws-source-dates-row--missing'}" data-code="${escapeHtml(code)}">
+        <div class="ws-source-dates-name">
+          <span class="ws-source-dates-code">${escapeHtml(code)}</span>
+          <span class="ws-source-dates-title">${title}</span>
+        </div>
+        <label class="ws-source-dates-field">
+          <span class="sr-only">Release date for ${escapeHtml(code)}</span>
+          <input type="date" data-source-date-input value="${date}" />
+        </label>
+        <label class="ws-source-dates-field">
+          <span class="sr-only">Edition era for ${escapeHtml(code)}</span>
+          <select data-source-era-input aria-label="Edition era for ${escapeHtml(code)}">${eraOptions}</select>
+        </label>
+      </div>`;
+    })
+    .join('');
+
+  listEl.querySelectorAll('.ws-source-dates-row').forEach((row) => {
+    const code = row.getAttribute('data-code');
+    if (!code) return;
+    const dateInput = row.querySelector('[data-source-date-input]');
+    const eraInput = row.querySelector('[data-source-era-input]');
+
+    const persist = async (patch) => {
+      try {
+        await saveSourceBook(code, patch);
+        row.classList.toggle('ws-source-dates-row--missing', !dateInput?.value);
+        setSourceDatesStatus(`Saved ${code}.`);
+      } catch (err) {
+        setSourceDatesStatus(err.message ?? String(err));
+      }
+    };
+
+    dateInput?.addEventListener('change', () => persist({ release_date: dateInput.value || null }));
+    eraInput?.addEventListener('change', () => persist({ edition_era: eraInput.value || null }));
+  });
+}
+
+function openSourceDatesDialog() {
+  const dialog = /** @type {HTMLDialogElement} */ ($('#dialog-source-dates'));
+  if (!dialog) return;
+  dialog.showModal();
+  renderSourceDatesList();
+}
+
 function init() {
   if (!isGmSession()) {
     $('#ws-no-session').hidden = false;
@@ -181,6 +269,11 @@ function init() {
     setGmSlug(slug);
     renderGmSlugPanel();
     showErrors(['GM slug saved.']);
+  });
+
+  $('#btn-source-dates')?.addEventListener('click', openSourceDatesDialog);
+  $('#dialog-source-dates')?.querySelectorAll('[data-close-dialog]').forEach((btn) => {
+    btn.addEventListener('click', () => $('#dialog-source-dates')?.close());
   });
 
   $('#btn-back-dashboard')?.addEventListener('click', showDashboard);
