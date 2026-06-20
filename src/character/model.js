@@ -8,6 +8,7 @@ import { validatePowersStep } from './power-selections.js';
 import { validateRaceStep } from './race-selections.js';
 import { validateBackgroundStep } from './background-selections.js';
 import { validateClassStep } from './class-selections.js';
+import { pendingAbilityIncreaseLevels } from './tutor.js';
 
 export const CHARACTER_VERSION = 1;
 
@@ -49,6 +50,7 @@ export function createCharacter(partial = {}) {
       scores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
       bonuses: [],
       anyChoice: {},
+      levelIncreases: {},
       ...partial.abilities
     },
     selections: {
@@ -224,6 +226,9 @@ export function validateStep(stepId, character, editorMeta) {
       }
       for (const [key, val] of Object.entries(base)) {
         if (val < 8 || val > 18) errors.push(`${key.toUpperCase()} must be 8–18 before racial bonuses.`);
+      }
+      for (const pending of pendingAbilityIncreaseLevels(character)) {
+        errors.push(`Choose two different abilities for the level ${pending} ability score increase.`);
       }
       break;
     }

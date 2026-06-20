@@ -34,6 +34,27 @@ export function defenseTotal(level, components) {
   return sum(defenseTenPlusHalf(level), abil, cls, feat, enh, misc, misc2, armor);
 }
 
+/** Two relevant ability scores per defense (4e: defense uses the higher modifier). */
+export const DEFENSE_ABILITIES = {
+  ac: ['dex', 'int'],
+  ref: ['dex', 'int'],
+  fort: ['str', 'con'],
+  will: ['wis', 'cha']
+};
+
+/**
+ * Ability-modifier component of a defense: the higher modifier of the two
+ * relevant ability scores (e.g. Fortitude = max(STR mod, CON mod)).
+ * @param {Record<string, number>} scores - ability scores by key (str, con, …)
+ * @param {'ac'|'fort'|'ref'|'will'} defense
+ */
+export function defenseAbilityMod(scores, defense) {
+  const pair = DEFENSE_ABILITIES[defense];
+  if (!pair) return 0;
+  const mods = pair.map((ab) => abilityModifier(scores?.[ab] ?? 10));
+  return Math.max(...mods);
+}
+
 export function attackBonus(level, components) {
   const { abil = 0, class: cls = 0, prof = 0, feat = 0, enh = 0, misc = 0 } = components;
   return sum(halfLevel(level), abil, cls, prof, feat, enh, misc);

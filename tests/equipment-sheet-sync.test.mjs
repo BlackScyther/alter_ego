@@ -29,6 +29,19 @@ describe('equipment-sheet-sync', () => {
     assert.equal(stats?.checkPenalty, -1);
   });
 
+  it('infers AC bonus by armor name when no override or inline text', () => {
+    const plainChain = {
+      id: 'armor999',
+      category_slug: 'armor',
+      listing_fields: { Name: 'Chainmail', Type: 'Heavy armor' },
+      body_html: '<p>Heavy armor with check penalty.</p>'
+    };
+    const stats = getEquipmentStats(plainChain);
+    assert.equal(stats?.kind, 'armor');
+    assert.equal(stats?.acBonus, 6);
+    assert.equal(stats?.armorCategory, 'chainmail');
+  });
+
   it('applies armor, shield, and weapon to sheet mirror fields', async () => {
     const c = createCharacter({
       selections: { classId: 'class3' },

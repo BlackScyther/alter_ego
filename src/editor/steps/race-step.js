@@ -81,6 +81,74 @@ function attachPreviewBonusChoices(previewEl, onChange) {
   });
 }
 
+// Decisions with more options than this are rendered as a compact combo
+// picker instead of a vertical radio list, which keeps the wizard tidy for
+// large option sets (e.g. the 13 Genasi elemental manifestations).
+const BUILD_COMBO_OPTION_THRESHOLD = 6;
+
+/**
+ * Render a build decision as a compact combo picker plus an open-in-compendium
+ * link that tracks the selected option.
+ * @param {HTMLFieldSetElement} fieldset
+ * @param {{ id: string, prompt?: string, label?: string }} decision
+ * @param {Array<{ id: string, label: string, powerId?: string }>} options
+ * @param {string} picked
+ * @param {(decisionId: string, optionId: string) => void} onChange
+ */
+function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange) {
+  const row = document.createElement('div');
+  row.className = 'race-build-combo-row';
+
+  const select = document.createElement('select');
+  select.className = 'race-choice-combo race-build-combo';
+  select.id = `race-build-${decision.id}-select`;
+  select.setAttribute('aria-label', decision.prompt || decision.label || 'Choose an option');
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Choose…';
+  select.appendChild(placeholder);
+
+  for (const opt of options) {
+    const option = document.createElement('option');
+    option.value = opt.id;
+    option.textContent = opt.label;
+    if (picked === opt.id) option.selected = true;
+    select.appendChild(option);
+  }
+  row.appendChild(select);
+
+  const openLink = document.createElement('a');
+  openLink.className = 'character-collection-open race-build-open';
+  openLink.target = '_blank';
+  openLink.rel = 'noopener noreferrer';
+  openLink.textContent = '↗';
+  openLink.addEventListener('click', (e) => e.stopPropagation());
+  row.appendChild(openLink);
+
+  function updateOpenLink(optionId) {
+    const opt = options.find((o) => o.id === optionId);
+    if (opt?.powerId) {
+      openLink.href = compendiumEntryPageUrl(opt.powerId, location.pathname);
+      openLink.title = 'Open compendium entry in new window';
+      openLink.setAttribute('aria-label', `Open ${opt.label} in compendium`);
+      openLink.hidden = false;
+    } else {
+      openLink.removeAttribute('href');
+      openLink.hidden = true;
+    }
+  }
+  updateOpenLink(picked);
+
+  select.addEventListener('change', (e) => {
+    const value = e.target.value;
+    updateOpenLink(value);
+    if (value) onChange(decision.id, value);
+  });
+
+  fieldset.appendChild(row);
+}
+
 function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, onChange) {
   const raceId = character.selections?.raceId ?? pendingBaseId;
   const { baseId } = resolveRacePair(raceId);
@@ -116,6 +184,12 @@ function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, 
       choicesHost.appendChild(fieldset);
       continue;
     }
+    if (options.length > BUILD_COMBO_OPTION_THRESHOLD) {
+      renderBuildDecisionCombo(fieldset, d, options, picked, onChange);
+      choicesHost.appendChild(fieldset);
+      continue;
+    }
+
     for (const opt of options) {
       const inputId = `race-build-${d.id}-${opt.id}`;
       const row = document.createElement('div');

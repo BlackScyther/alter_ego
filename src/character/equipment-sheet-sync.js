@@ -58,6 +58,7 @@ function clearEquipmentDerivedSheet(character) {
   character.sheet.defenses.ref.armor = 0;
   character.sheet.armorPenaltyGlobal = 0;
   character.sheet.speed.armor = 0;
+  character.sheet.armorIsHeavy = false;
 
   const keysToClear = [
     'melee-name',
@@ -108,6 +109,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   let refArmor = 0;
   let checkPenalty = 0;
   let speedPenalty = 0;
+  let armorIsHeavy = false;
 
   /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats> }>} */
   const weapons = [];
@@ -123,6 +125,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     if (stats.kind === 'armor') {
       acArmor += Number(stats.acBonus) || 0;
       checkPenalty += Number(stats.checkPenalty) || 0;
+      if (/chain|scale|plate/i.test(stats.armorCategory ?? '')) armorIsHeavy = true;
       const proficient = isProficientInArmor(
         classEntry?.body_html ?? traitsText,
         stats.armorCategory ?? entry.listing_fields?.Type ?? ''
@@ -143,6 +146,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   character.sheet.defenses.ref.armor = refArmor;
   character.sheet.armorPenaltyGlobal = checkPenalty;
   character.sheet.speed.armor = speedPenalty;
+  character.sheet.armorIsHeavy = armorIsHeavy;
 
   const scores = getFinalScores(character);
   const mainWeapon = weapons.find((w) => w.slotId === 'mainHand') ?? weapons[0];

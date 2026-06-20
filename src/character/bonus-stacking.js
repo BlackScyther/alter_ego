@@ -13,6 +13,7 @@ export const BONUS_TYPE_LABELS = {
   item: 'Item',
   enhancement: 'Enhancement',
   power: 'Power',
+  level: 'Level',
   other: 'Other'
 };
 

@@ -48,7 +48,11 @@ import {
   skillBonusBreakdown,
   formatBreakdownLine,
   formatSkillBreakdownLine,
-  syncRaceBonusChoicesToBonuses
+  syncRaceBonusChoicesToBonuses,
+  ASI_PAIR_LEVELS,
+  ASI_ALL_LEVELS,
+  setLevelIncrease,
+  pendingAbilityIncreaseLevels
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
@@ -77,6 +81,7 @@ import {
   ensureEquipmentSelectionsShape,
   migrateEquipmentIdsToItems
 } from '../character/equipment-selections.js';
+import { syncEquipmentToSheet } from '../character/equipment-sheet-sync.js';
 import {
   applySheetValueToCharacter,
   buildMirrorPayload,
@@ -356,7 +361,6 @@ function enterRetrainingFlow({ incrementLevel = false } = {}) {
       return;
     }
     character.identity.level += 1;
-    character.identity.totalXp = xpForLevel(character.identity.level);
   }
   character.builderFlags = character.builderFlags ?? {};
   character.builderFlags.retraining = true;
@@ -371,13 +375,24 @@ function enterRetrainingFlow({ incrementLevel = false } = {}) {
   completedSteps = new Set(completed);
   builderMode = 'full';
   currentStepIndex = startStepIndex;
+  const abilitiesIndex = flow().indexOf('abilities');
+  if (abilitiesIndex >= 0 && pendingAbilityIncreaseLevels(character).length > 0) {
+    completedSteps.delete('abilities');
+    currentStepIndex = abilitiesIndex;
+  }
   setUiPhase('full');
   persist();
   renderNav();
   renderStepPanel();
-  const msg = incrementLevel
-    ? `Level increased to ${character.identity.level}. Continue with powers, feats, and later steps.`
-    : 'Editing character at current level. Continue with powers, feats, and later steps.';
+  const asiPending = pendingAbilityIncreaseLevels(character).length > 0;
+  let msg;
+  if (incrementLevel) {
+    msg = asiPending
+      ? `Level increased to ${character.identity.level}. Choose your ability score increase, then continue with powers, feats, and later steps.`
+      : `Level increased to ${character.identity.level}. Continue with powers, feats, and later steps.`;
+  } else {
+    msg = 'Editing character at current level. Continue with powers, feats, and later steps.';
+  }
   showErrors([msg]);
 }
 
@@ -629,6 +644,11 @@ async function refreshBonusesFromSelections() {
   syncRaceBonusChoicesToBonuses(character);
   if (entries.class) syncGrantedRitualIds(character, entries.class);
   cachedClassEntry = entries.class ?? null;
+  try {
+    await syncEquipmentToSheet(character, compendium, { classEntry: cachedClassEntry });
+  } catch {
+    /* equipment sync is best-effort; never block bonus refresh */
+  }
   await syncCollectionNotes(character, compendium);
   renderSheetMirror(character);
   await refreshCharacterCollection();
@@ -649,6 +669,11 @@ function renderAbilities(panel) {
   const hpHint = getHpSubstituteTutorHint(character);
   const abilityRec = getRecommendedAbilityPriorities(cachedClassEntry);
   const abilityRecAvailable = abilityRec.priority.length > 0;
+  const level = character.identity.level;
+  const storedIncreases = character.abilities.levelIncreases ?? {};
+  const asiPairLevels = ASI_PAIR_LEVELS.filter((l) => level >= l);
+  const asiAllLevels = ASI_ALL_LEVELS.filter((l) => level >= l);
+  const showAsi = asiPairLevels.length > 0 || asiAllLevels.length > 0;
 
   panel.innerHTML = `
     <div class="point-buy-status ${over ? 'over' : ''}">
@@ -701,6 +726,39 @@ function renderAbilities(panel) {
         }).join('')}
       </div>
     </section>
+    ${showAsi ? `
+    <section class="ability-asi" aria-label="Ability score increases">
+      <h3 class="tutor-bonuses-title">Ability score increases (level up)</h3>
+      <p class="tutor-footnote">At levels 4, 8, 14, 18, 24, and 28 raise two different abilities by +1. At levels 11 and 21 all six abilities gain +1 automatically. These increases stack and can exceed 18.</p>
+      ${asiPairLevels.map((l) => {
+        const choice = storedIncreases[l] ?? storedIncreases[String(l)] ?? [];
+        const a0 = choice[0] ?? '';
+        const a1 = choice[1] ?? '';
+        const sameWarning = a0 && a1 && a0 === a1;
+        return `
+        <fieldset class="ability-asi-row" data-asi-level="${l}">
+          <legend>Level ${l}: +1 to two different abilities</legend>
+          <div class="ability-asi-selects">
+            <label class="ability-asi-select">
+              <span>First ability</span>
+              <select id="asi-${l}-a" aria-label="Level ${l} first ability increase">
+                <option value="">Choose…</option>
+                ${ABILITY_KEYS.map((k) => `<option value="${k}" ${a0 === k ? 'selected' : ''}>${k.toUpperCase()}</option>`).join('')}
+              </select>
+            </label>
+            <label class="ability-asi-select">
+              <span>Second ability</span>
+              <select id="asi-${l}-b" aria-label="Level ${l} second ability increase">
+                <option value="">Choose…</option>
+                ${ABILITY_KEYS.map((k) => `<option value="${k}" ${a1 === k ? 'selected' : ''}>${k.toUpperCase()}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+          ${sameWarning ? `<p class="ability-asi-warning" role="alert">Pick two different abilities.</p>` : ''}
+        </fieldset>`;
+      }).join('')}
+      ${asiAllLevels.map((l) => `<p class="ability-asi-auto">Level ${l}: +1 to all abilities (applied automatically).</p>`).join('')}
+    </section>` : ''}
     <section class="sheet-mirror-section sheet-mirror-section--skills-table abilities-skills-section" aria-label="Skills">
       <h3 class="tutor-bonuses-title">Skills</h3>
       <p class="tutor-footnote">Use the <strong>Trained</strong> checkboxes to pick class skills (only class-skill rows are clickable). When a build is chosen on the Class step, suggested skills are pre-selected; you can deselect and switch to any other class skill. Fixed class skills stay locked. Totals include ability, half level, training, armor penalty, and bonuses from race, background, and feats.</p>
@@ -745,6 +803,20 @@ function renderAbilities(panel) {
       setBaseScore(character, a, v);
       renderAbilities(panel);
     });
+  }
+
+  for (const l of asiPairLevels) {
+    const selA = panel.querySelector(`#asi-${l}-a`);
+    const selB = panel.querySelector(`#asi-${l}-b`);
+    const onAsiChange = (e) => {
+      const focusId = e?.target?.id;
+      setLevelIncrease(character, l, [selA?.value ?? '', selB?.value ?? '']);
+      persist();
+      renderAbilities(panel);
+      if (focusId) panel.querySelector(`#${focusId}`)?.focus();
+    };
+    selA?.addEventListener('change', onAsiChange);
+    selB?.addEventListener('change', onAsiChange);
   }
 
   const abilityRecBtn = panel.querySelector('#ability-apply-recommended');

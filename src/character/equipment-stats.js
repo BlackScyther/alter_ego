@@ -14,6 +14,34 @@ const DAMAGE_DICE_RE = /(?:Damage|Weapon\s*Damage)\s*[:\s]*(\d+d\d+)/i;
 const SHIELD_RE = /shield/i;
 
 /**
+ * Standard PHB armor AC bonuses keyed by category keyword. Used as a fallback
+ * when an armor entry has no stats override and no parseable "AC Bonus" text in
+ * its body HTML (the compendium stores these in a table, not inline prose), so
+ * equipped armor still contributes to AC instead of resolving to +0.
+ * @type {Array<{ match: RegExp, category: string, acBonus: number, checkPenalty: number, speedPenalty: number }>}
+ */
+const ARMOR_BASE_TABLE = [
+  { match: /plate/i, category: 'plate', acBonus: 8, checkPenalty: -2, speedPenalty: -1 },
+  { match: /scale/i, category: 'scale', acBonus: 7, checkPenalty: 0, speedPenalty: -1 },
+  { match: /chain(?:mail)?/i, category: 'chainmail', acBonus: 6, checkPenalty: -1, speedPenalty: 0 },
+  { match: /hide/i, category: 'hide', acBonus: 3, checkPenalty: -1, speedPenalty: 0 },
+  { match: /leather/i, category: 'leather', acBonus: 2, checkPenalty: 0, speedPenalty: 0 },
+  { match: /cloth/i, category: 'cloth', acBonus: 0, checkPenalty: 0, speedPenalty: 0 }
+];
+
+/**
+ * @param {string} name
+ * @param {string} type
+ */
+function inferArmorBase(name, type) {
+  const haystack = `${name ?? ''} ${type ?? ''}`;
+  for (const row of ARMOR_BASE_TABLE) {
+    if (row.match.test(haystack)) return row;
+  }
+  return null;
+}
+
+/**
  * @param {{ id?: string, category_slug?: string, listing_fields?: Record<string, string>, body_html?: string }} entry
  */
 export function getEquipmentStats(entry) {
@@ -42,13 +70,14 @@ export function getEquipmentStats(entry) {
         checkPenalty: numFrom(html, CHECK_PEN_RE) ?? -2
       };
     }
+    const base = inferArmorBase(name, type);
     return {
       kind: 'armor',
       name,
-      acBonus: numFrom(html, ARMOR_AC_RE) ?? 0,
-      checkPenalty: numFrom(html, CHECK_PEN_RE) ?? 0,
-      speedPenalty: numFrom(html, SPEED_PEN_RE) ?? 0,
-      armorCategory: type
+      acBonus: numFrom(html, ARMOR_AC_RE) ?? base?.acBonus ?? 0,
+      checkPenalty: numFrom(html, CHECK_PEN_RE) ?? base?.checkPenalty ?? 0,
+      speedPenalty: numFrom(html, SPEED_PEN_RE) ?? base?.speedPenalty ?? 0,
+      armorCategory: base?.category ?? type
     };
   }
 

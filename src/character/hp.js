@@ -7,9 +7,14 @@ import { parseClassEntry } from './class-parse.js';
 
 /** @type {Record<string, number>} */
 const classHpAt1ById = {};
+/** @type {Record<string, number>} */
+const classHpPerLevelById = {};
 for (const cls of Object.values(presets.classes ?? {})) {
   if (cls.classId && cls.sheet?.maxHpAt1 != null) {
     classHpAt1ById[cls.classId] = Number(cls.sheet.maxHpAt1);
+  }
+  if (cls.classId && cls.sheet?.hpPerLevel != null) {
+    classHpPerLevelById[cls.classId] = Number(cls.sheet.hpPerLevel);
   }
 }
 
@@ -49,6 +54,20 @@ export function getClassMaxHpAt1(classId, classEntry = null) {
 }
 
 /**
+ * @param {string | null | undefined} classId
+ * @param {object | null | undefined} [classEntry]
+ */
+export function getClassHpPerLevel(classId, classEntry = null) {
+  if (classEntry) {
+    const parsed = parseClassEntry(classEntry);
+    if (parsed.hpPerLevel != null) return parsed.hpPerLevel;
+  }
+  if (!classId) return null;
+  const value = classHpPerLevelById[classId];
+  return value == null ? null : value;
+}
+
+/**
  * Level-1 max HP = class starting HP + Constitution score (or background substitute).
  * @param {object} character
  * @param {object | null | undefined} classEntry
@@ -64,6 +83,42 @@ export function computeLevel1MaxHp(character, classEntry = null) {
   const abilityScore = Number(scores[abilityKey]) || 10;
 
   return classHp + abilityScore;
+}
+
+/**
+ * Max HP at the character's current level:
+ * class starting HP + Constitution (or substitute) + (level - 1) * HP per level.
+ *
+ * Class HP parameters resolve from the class entry or preset map, falling back to
+ * values persisted on `character.sheet.hp` (so the value stays correct when rendered
+ * without a freshly parsed class entry, e.g. compendium classes after reload).
+ *
+ * @param {object} character
+ * @param {object | null | undefined} classEntry
+ * @returns {number | null}
+ */
+export function computeMaxHp(character, classEntry = null) {
+  const classId = classEntry?.id ?? character.selections?.classId;
+  const sheetHp = character.sheet?.hp ?? {};
+
+  let classHp = getClassMaxHpAt1(classId, classEntry);
+  if (classHp == null && Number.isFinite(Number(sheetHp.classBase))) {
+    classHp = Number(sheetHp.classBase);
+  }
+  if (classHp == null) return null;
+
+  let perLevel = getClassHpPerLevel(classId, classEntry);
+  if (perLevel == null && Number.isFinite(Number(sheetHp.perLevel))) {
+    perLevel = Number(sheetHp.perLevel);
+  }
+
+  const scores = character.abilities?.scores ?? {};
+  const substitute = character.sheet?.derivedBonuses?.hpSubstituteAbility;
+  const abilityKey = substitute || 'con';
+  const abilityScore = Number(scores[abilityKey]) || 10;
+
+  const level = Math.max(1, Number(character.identity?.level) || 1);
+  return classHp + abilityScore + (level - 1) * (perLevel ?? 0);
 }
 
 /**

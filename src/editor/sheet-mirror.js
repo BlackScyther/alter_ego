@@ -9,6 +9,7 @@ import {
   attackBonus,
   bloodied,
   damageBonus,
+  defenseAbilityMod,
   defenseTenPlusHalf,
   defenseTotal,
   halfLevel,
@@ -26,7 +27,7 @@ import {
   recomputeAbilityScores,
   recomputeSkillBonuses
 } from '../character/tutor.js';
-import { ensureDerivedBonuses } from '../character/hp.js';
+import { computeMaxHp, ensureDerivedBonuses } from '../character/hp.js';
 import { getSheetMirrorSections, getSheetMirrorTabs } from './sheet-mirror-fields.js';
 import { renderSkillsTableHtml } from './skills-table.js';
 import { COLLAPSIBLE_CHEVRON_SVG } from './collapsible-chevron.js';
@@ -96,6 +97,16 @@ export function buildMirrorPayload(character) {
   const scores = getFinalScores(character);
   const sheet = character.sheet;
   const hp = sheet.hp ?? {};
+  const computedMaxHp = computeMaxHp(character);
+  if (computedMaxHp != null) {
+    const prevMax = Number(hp.max) || 0;
+    const prevCurrent = Number(hp.current) || 0;
+    hp.max = computedMaxHp;
+    if (!(prevCurrent > 0) || prevCurrent >= prevMax) {
+      hp.current = computedMaxHp;
+    }
+    sheet.hp = hp;
+  }
   const defenses = sheet.defenses ?? {};
   const speed = sheet.speed ?? {};
   const skillTotals = getSkillBonusTotals(character);
@@ -135,12 +146,17 @@ export function buildMirrorPayload(character) {
     payload[`${ab}-mod-half`] = modPlusHalfLevel(score, lvl);
   }
 
+  const armorIsHeavy = Boolean(sheet.armorIsHeavy);
   for (const def of ['ac', 'fort', 'ref', 'will']) {
     const parts = defenses[def] ?? {};
+    // 4e: each defense adds the higher modifier of its two abilities. Heavy
+    // armor replaces the Dex/Int bonus to AC, so AC gets no ability bonus then.
+    const abil = def === 'ac' && armorIsHeavy ? 0 : defenseAbilityMod(scores, def);
+    payload[`${def}-abil`] = abil;
     payload[`${def}-ten`] = defenseTenPlusHalf(lvl);
     payload[`${def}-half`] = halfLevel(lvl);
     payload[`${def}-total`] = defenseTotal(lvl, {
-      abil: Number(parts.abil) || 0,
+      abil,
       class: Number(parts.class) || 0,
       feat: Number(parts.feat) || 0,
       enh: Number(parts.enh) || 0,
@@ -389,7 +405,8 @@ function renderFieldHtml(f) {
     </label>`;
   }
   const kind = f.type === 'number' ? 'number' : 'text';
-  return `<label class="sheet-mirror-field sheet-mirror-field--${kind}" for="${inputId}">
+  const totalClass = f.total ? ' sheet-mirror-field--total' : '';
+  return `<label class="sheet-mirror-field sheet-mirror-field--${kind}${totalClass}" for="${inputId}">
     <span class="sheet-mirror-label">${esc(f.label)}</span>
     <input type="${kind}" id="${inputId}" data-field-id="${f.id}" />
   </label>`;

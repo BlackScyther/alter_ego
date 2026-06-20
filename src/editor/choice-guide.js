@@ -26,7 +26,10 @@ function isInlineChoicesComplete(el) {
  * @param {Element} el
  */
 function isBuildFieldsetComplete(el) {
-  return el.querySelector('input[type="radio"]:checked') != null;
+  if (el.querySelector('input[type="radio"]:checked') != null) return true;
+  const combo = el.querySelector('select.race-build-combo');
+  if (combo) return combo.value !== '';
+  return false;
 }
 
 /**

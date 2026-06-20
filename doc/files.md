@@ -82,6 +82,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `test-campaign-api.mjs` | Smoke test: campaign + encounters + spawn actors (port 3099) |
 | `audit-background-parse.mjs` | Dev audit: background HTML patterns vs parser coverage |
 | `audit-race-subraces.mjs` | Dev audit: benefit-only race entries vs `race-subraces.json` (exit 1 if unmapped) |
+| `bump-version.mjs` | Increments the `package.json` patch version by 1 (run by the `pre-commit` hook; skip with `ALTER_EGO_SKIP_BUMP=1`) |
 
 ## `tests/`
 
@@ -132,6 +133,12 @@ One-line role for each tracked file. Update this table when the tree changes.
 |------|------|
 | `index.html`, `join.js` | Player invite link handler (`?c=&t=`) |
 
+## `.githooks/` (tracked git hooks)
+
+| File | Role |
+|------|------|
+| `pre-commit` | Runs `scripts/bump-version.mjs` then stages `package.json`, so every commit auto-bumps the patch version. Enabled via `git config core.hooksPath .githooks` |
+
 ## `.github/workflows/`
 
 | File | Role |
@@ -177,7 +184,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `index.html` | Main sheet DOM + embedded level 1–30 table |
 | `levels.html` | Level reference page only (for `pdf:levels`) |
 | `app.js` | Binds inputs to `formulas.js`; recalculates on change |
-| `formulas.js` | D&D 4e math: ½ level, defenses, skills, attacks, HP, XP table |
+| `formulas.js` | D&D 4e math: ½ level, defenses (incl. `defenseAbilityMod` = higher of the two relevant ability mods), skills, attacks, HP, XP table |
 | `sheet.css` | Print layout; `@page { size: letter }` |
 
 ## `src/character/` — document model & persistence
@@ -188,7 +195,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `store.js` | `localStorage` multi-character list |
 | `io.js` | Export/import `{Name}_{level}.json` filenames and parsing |
 | `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
-| `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking |
+| `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking, and level-up ability score increases (`ASI_PAIR_LEVELS`/`ASI_ALL_LEVELS`, `abilityLevelIncreases`, `setLevelIncrease`, `pendingAbilityIncreaseLevels`) |
 | `race-subraces.js` | Core/subrace map helpers and base-race filtering |
 | `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices) |
 | `race-selections.js` | Race step validation, build/bonus choices, grant sync |
@@ -198,9 +205,10 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `background-effect-selections.js` | Persist HP-substitute ability choice on character |
 | `class-effects.js` | Static initiative bonuses from class features (curated override-first, conditional phrasing skipped); composes with background initiative |
 | `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names) |
-| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync |
+| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync; persists class HP params and recomputes Max HP for the current level |
+| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape, HP-substitute tutor hint |
 | `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; shields equip to off hand |
-| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof |
+| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text |
 | `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines |
 | `starting-equipment.js` | Level-1 kit resolve/apply (`resolveStartingKit`, `applyStartingKit`, `getRecommendedStartingKitMeta`); auto-seed on create; force-apply for recommend button |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
@@ -220,12 +228,13 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `index.html` | Generator: gate (load) → post-load (Edit character, Level up, Create new) → wizard (Tailwind + editor.css) |
 | `editor.js` | Gate modes, `creationFlow` / `builderFlow`, post-load actions, compendium pickers, link index init |
 | `post-load.js` | Level-up XP gate (`canLevelUp`, tooltip text) and retraining builder entry index |
-| `editor.css` | Editor layout, race step, sheet-mirror tabs, compendium hover cards |
+| `editor.css` | Editor layout, race step, sheet-mirror tabs (resizable body: `height: max(40vh, 220px)`, `resize: vertical`), compendium hover cards |
 | `collapsible-chevron.js` | Shared SVG chevron for collapsible editor panels (sheet mirror, character collection) |
-| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state |
-| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …) |
+| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields |
+| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts are readonly (auto-derived from ability scores) |
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
-| `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview |
+| `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link |
+| `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
 | `steps/feat-step.js` | Feat slots grouped by tier + shared combobox; **Recommended feats for this class** button; compendium open link (↗) on filled slots; source combo filter above picker |

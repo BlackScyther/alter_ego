@@ -24,6 +24,7 @@ Spec alignment: [PROJECT.md](PROJECT.md) and `metadata/*.json`.
 - **Stack**: Static HTML/CSS/ES modules; **Tailwind** on app screens (`rules/ui.md`); `npm start` serves the repo root on port 5173 (hub at `/src/`).
 - **Minimize scope**: Match existing style; avoid unrelated refactors.
 - **No commits** unless the user explicitly asks.
+- **Auto version bump**: the tracked `.githooks/pre-commit` hook increments the `package.json` patch version and stages it on every commit (`git config core.hooksPath .githooks`). Skip once with `ALTER_EGO_SKIP_BUMP=1`.
 
 ## Key paths
 

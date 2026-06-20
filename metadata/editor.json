@@ -57,6 +57,8 @@
         "identity.class",
         "identity.role",
         "selections.classId",
+        "selections.classHybrid",
+        "selections.hybridClassIds",
         "selections.classBuildChoices",
         "selections.classTrainedSkillChoices",
         "selections.classPowerIds",

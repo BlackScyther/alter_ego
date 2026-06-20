@@ -6,7 +6,7 @@ import buildOptionsMeta from '../../metadata/class-build-options.json' with { ty
 import classFeaturePowersMeta from '../../metadata/class-feature-powers.json' with { type: 'json' };
 import { abilityModifier } from '../formulas.js';
 import { getFinalScores } from './tutor.js';
-import { computeLevel1MaxHp, getClassMaxHpAt1 } from './hp.js';
+import { computeMaxHp, getClassHpPerLevel, getClassMaxHpAt1 } from './hp.js';
 import {
   parseClassEntry,
   buildClassNotesText,
@@ -37,6 +37,8 @@ export function ensureClassSelectionsShape(character) {
   }
   if (!Array.isArray(character.selections.classPowerIds)) character.selections.classPowerIds = [];
   if (!Array.isArray(character.selections.trainedSkillIds)) character.selections.trainedSkillIds = [];
+  if (typeof character.selections.classHybrid !== 'boolean') character.selections.classHybrid = false;
+  if (!Array.isArray(character.selections.hybridClassIds)) character.selections.hybridClassIds = [];
   character.notes = character.notes ?? {};
   if (typeof character.notes.classFeatures !== 'string') character.notes.classFeatures = '';
   return character;
@@ -227,18 +229,21 @@ export function syncClassTraitsToSheet(character, classEntry) {
     character.sheet.skills[skillId] = { ...(character.sheet.skills[skillId] ?? {}), trained: true };
   }
 
-  const level = Number(character.identity?.level) || 1;
   const scores = getFinalScores(character);
   const conMod = abilityModifier(scores.con ?? 10);
 
-  if (level === 1) {
-    const classHp = getClassMaxHpAt1(classEntry.id, classEntry);
-    if (classHp != null && !(Number(character.sheet.hp.max) > 0)) {
-      const maxHp = computeLevel1MaxHp(character, classEntry);
-      if (maxHp != null) {
-        character.sheet.hp.max = maxHp;
-        character.sheet.hp.current = maxHp;
-      }
+  const classBase = getClassMaxHpAt1(classEntry.id, classEntry);
+  if (classBase != null) character.sheet.hp.classBase = classBase;
+  const perLevel = getClassHpPerLevel(classEntry.id, classEntry);
+  if (perLevel != null) character.sheet.hp.perLevel = perLevel;
+
+  const maxHp = computeMaxHp(character, classEntry);
+  if (maxHp != null) {
+    const prevMax = Number(character.sheet.hp.max) || 0;
+    const prevCurrent = Number(character.sheet.hp.current) || 0;
+    character.sheet.hp.max = maxHp;
+    if (!(prevCurrent > 0) || prevCurrent >= prevMax) {
+      character.sheet.hp.current = maxHp;
     }
   }
 

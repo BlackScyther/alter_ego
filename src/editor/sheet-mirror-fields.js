@@ -22,6 +22,7 @@ function field(id, label, type = 'text', opts = {}) {
     type,
     readonly: Boolean(opts.readonly),
     wizardReadonly: Boolean(opts.wizardReadonly),
+    total: Boolean(opts.total),
     row: opts.row ?? null
   };
 }
@@ -49,7 +50,7 @@ function identityFields() {
 
 function initiativeFields() {
   return [
-    field('init-total', 'Initiative', 'number', { readonly: true }),
+    field('init-total', 'Initiative', 'number', { readonly: true, total: true }),
     field('init-dex', 'Initiative — DEX', 'number', { readonly: true }),
     field('init-half', 'Initiative — ½ Lvl', 'number', { readonly: true }),
     field('init-misc', 'Initiative — Misc', 'number'),
@@ -71,7 +72,7 @@ function abilityFields() {
 
 function hitPointFields() {
   return [
-    field('max-hp', 'Max HP', 'number'),
+    field('max-hp', 'Max HP', 'number', { readonly: true, total: true }),
     field('bloodied', 'Bloodied (½ HP)', 'number', { readonly: true }),
     field('surge-value', 'Surge Value (¼ HP)', 'number', { readonly: true }),
     field('surges-day', 'Healing Surges/Day', 'number'),
@@ -105,12 +106,17 @@ function skillFields() {
 function defenseFields() {
   const out = [];
   for (const def of DEFENSES) {
-    out.push(field(`${def.id}-total`, `${def.label} Total`, 'number', { readonly: true, row: def.id }));
+    out.push(field(`${def.id}-total`, `${def.label} Total`, 'number', { readonly: true, total: true, row: def.id }));
     out.push(field(`${def.id}-ten`, `${def.label} — 10+`, 'number', { readonly: true, row: def.id }));
     out.push(field(`${def.id}-half`, `${def.label} — ½ Lvl`, 'number', { readonly: true, row: def.id }));
     for (const part of def.parts) {
       const partLabel = part === 'abil' ? 'ABIL' : part.toUpperCase();
-      out.push(field(`${def.id}-${part}`, `${def.label} — ${partLabel}`, 'number', { row: def.id }));
+      out.push(
+        field(`${def.id}-${part}`, `${def.label} — ${partLabel}`, 'number', {
+          row: def.id,
+          readonly: part === 'abil'
+        })
+      );
     }
     out.push(field(`${def.id}-conditional`, `${def.label} — Conditional Bonuses`, 'textarea', { row: def.id }));
   }
@@ -119,7 +125,7 @@ function defenseFields() {
 
 function actionPointFields() {
   return [
-    field('action-points-total', 'Action Points', 'number', { readonly: true }),
+    field('action-points-total', 'Action Points', 'number', { readonly: true, total: true }),
     field('milestones', 'Milestones (0–2)', 'number'),
     field('ap-effects', 'Additional Effects for Spending Action Points', 'textarea')
   ];
@@ -145,7 +151,7 @@ function collectionFields() {
 
 function movementFields() {
   return [
-    field('speed-total', 'Speed (Squares)', 'number', { readonly: true }),
+    field('speed-total', 'Speed (Squares)', 'number', { readonly: true, total: true }),
     field('speed-base', 'Speed — Base', 'number'),
     field('speed-armor', 'Speed — Armor', 'number'),
     field('speed-item', 'Speed — Item', 'number'),
@@ -156,8 +162,8 @@ function movementFields() {
 
 function senseFields() {
   return [
-    field('passive-insight', 'Passive Insight', 'number', { readonly: true }),
-    field('passive-perception', 'Passive Perception', 'number', { readonly: true }),
+    field('passive-insight', 'Passive Insight', 'number', { readonly: true, total: true }),
+    field('passive-perception', 'Passive Perception', 'number', { readonly: true, total: true }),
     field('special-senses', 'Special Senses', 'textarea')
   ];
 }
@@ -167,13 +173,13 @@ function attackFields() {
   for (const kind of ATTACK_KINDS) {
     const name = kind === 'melee' ? 'Melee' : 'Ranged';
     out.push(field(`${kind}-name`, `${name} Attack Name`));
-    out.push(field(`${kind}-atk-total`, `${name} — Attack Bonus`, 'number', { readonly: true }));
+    out.push(field(`${kind}-atk-total`, `${name} — Attack Bonus`, 'number', { readonly: true, total: true }));
     out.push(field(`${kind}-atk-half`, `${name} — Attack ½ Lvl`, 'number', { readonly: true }));
     for (const part of ['abil', 'class', 'prof', 'feat', 'enh', 'misc']) {
       out.push(field(`${kind}-atk-${part}`, `${name} — Attack ${part.toUpperCase()}`, 'number'));
     }
     out.push(field(`${kind}-dice`, `${name} — Damage Dice`));
-    out.push(field(`${kind}-dmg-total`, `${name} — Damage Bonus`, 'number', { readonly: true }));
+    out.push(field(`${kind}-dmg-total`, `${name} — Damage Bonus`, 'number', { readonly: true, total: true }));
     for (const part of ['abil', 'feat', 'enh', 'misc', 'misc2']) {
       out.push(field(`${kind}-dmg-${part}`, `${name} — Damage ${part.toUpperCase()}`, 'number'));
     }

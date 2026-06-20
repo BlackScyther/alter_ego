@@ -1,0 +1,9 @@
+#!/bin/sh
+# Auto-increment the patch version before every commit, then stage package.json
+# so the new version is part of the commit. See scripts/bump-version.mjs.
+#
+# To skip the bump for a single commit:
+#   ALTER_EGO_SKIP_BUMP=1 git commit -m "..."
+
+node scripts/bump-version.mjs || exit 1
+git add package.json

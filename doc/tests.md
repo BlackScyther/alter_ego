@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-06-17
+**Last updated:** 2026-06-20
 
 ## Automation status
 
@@ -41,7 +41,8 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
-| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; armor/shield/weapon → defenses and attacks |
+| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks |
+| `tests/defense-formulas.test.mjs` | `defenseAbilityMod` (higher of two ability mods per defense); feeds defense total (FORT level-3 example = 18) |
 | `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |

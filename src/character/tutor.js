@@ -17,6 +17,11 @@ import { syncClassTraitsToSheet } from './class-selections.js';
 export const ABILITY_KEYS = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export const SKILL_IDS = SKILLS.map((s) => s.id);
 
+/** 4e levels where the player raises two different abilities by +1 each. */
+export const ASI_PAIR_LEVELS = [4, 8, 14, 18, 24, 28];
+/** 4e levels where all six abilities gain +1 automatically. */
+export const ASI_ALL_LEVELS = [11, 21];
+
 export { BONUS_TYPE_LABELS };
 
 export const TUTOR_GUIDE = {
@@ -441,7 +446,86 @@ export function ensureAbilityShape(character) {
   if (!Array.isArray(ab.bonuses)) ab.bonuses = [];
   if (!ab.baseScores) ab.baseScores = { ...ab.scores };
   if (!ab.anyChoice) ab.anyChoice = {};
+  if (!ab.levelIncreases || typeof ab.levelIncreases !== 'object') ab.levelIncreases = {};
   if (!Array.isArray(character.skillBonuses)) character.skillBonuses = [];
+  return character;
+}
+
+/**
+ * Whether a stored level-increase choice grants two distinct abilities.
+ * @param {unknown} choice
+ */
+function isCompleteIncreaseChoice(choice) {
+  return (
+    Array.isArray(choice) &&
+    choice.length === 2 &&
+    ABILITY_KEYS.includes(choice[0]) &&
+    ABILITY_KEYS.includes(choice[1]) &&
+    choice[0] !== choice[1]
+  );
+}
+
+/**
+ * Per-ability ability-score increase from leveling, gated by the current level.
+ * Pair levels (4/8/14/18/24/28) add the two stored choices; all-six levels
+ * (11/21) add +1 to every ability. Increases stack with each other.
+ * @param {object} character
+ * @returns {Record<string, number>}
+ */
+export function abilityLevelIncreases(character) {
+  ensureAbilityShape(character);
+  const level = Number(character?.identity?.level) || 1;
+  const stored = character.abilities.levelIncreases ?? {};
+  const out = Object.fromEntries(ABILITY_KEYS.map((k) => [k, 0]));
+  for (const asiLevel of ASI_PAIR_LEVELS) {
+    if (level < asiLevel) continue;
+    const choice = stored[asiLevel] ?? stored[String(asiLevel)];
+    if (!isCompleteIncreaseChoice(choice)) continue;
+    for (const key of choice) out[key] += 1;
+  }
+  for (const asiLevel of ASI_ALL_LEVELS) {
+    if (level < asiLevel) continue;
+    for (const key of ABILITY_KEYS) out[key] += 1;
+  }
+  return out;
+}
+
+/**
+ * Pair-ASI levels at or below the current level that still need two distinct
+ * abilities chosen.
+ * @param {object} character
+ * @returns {number[]}
+ */
+export function pendingAbilityIncreaseLevels(character) {
+  ensureAbilityShape(character);
+  const level = Number(character?.identity?.level) || 1;
+  const stored = character.abilities.levelIncreases ?? {};
+  return ASI_PAIR_LEVELS.filter((asiLevel) => {
+    if (level < asiLevel) return false;
+    const choice = stored[asiLevel] ?? stored[String(asiLevel)];
+    return !isCompleteIncreaseChoice(choice);
+  });
+}
+
+/**
+ * Store the two ability slots chosen for a pair-ASI level, then recompute
+ * totals. Partial or duplicate picks are kept (so the dropdowns retain the
+ * user's selection across re-renders); only a complete, distinct pair counts
+ * toward the totals (`isCompleteIncreaseChoice`).
+ * @param {object} character
+ * @param {number} level
+ * @param {string[]} abilityKeys - two-slot array; each entry an ability key or ''
+ */
+export function setLevelIncrease(character, level, abilityKeys) {
+  ensureAbilityShape(character);
+  const raw = Array.isArray(abilityKeys) ? abilityKeys : [];
+  const slots = [0, 1].map((i) => (ABILITY_KEYS.includes(raw[i]) ? raw[i] : ''));
+  if (slots[0] === '' && slots[1] === '') {
+    delete character.abilities.levelIncreases[level];
+  } else {
+    character.abilities.levelIncreases[level] = slots;
+  }
+  recomputeAbilityScores(character);
   return character;
 }
 
@@ -464,6 +548,7 @@ export function abilityScoreBreakdown(character) {
   }
 
   const rows = resolveBonusRows(character.abilities.bonuses, character.abilities.anyChoice);
+  const levelInc = abilityLevelIncreases(character);
   for (const key of ABILITY_KEYS) {
     const stacked = stackBonusesOnTarget(rows, key);
     out[key].adds = stacked.applied.map((b) => ({
@@ -472,8 +557,17 @@ export function abilityScoreBreakdown(character) {
       type: b.bonusType,
       typeLabel: BONUS_TYPE_LABELS[b.bonusType] ?? b.bonusType
     }));
+    const inc = levelInc[key] || 0;
+    if (inc > 0) {
+      out[key].adds.push({
+        label: 'Level increases',
+        amount: inc,
+        type: 'level',
+        typeLabel: BONUS_TYPE_LABELS.level ?? 'Level'
+      });
+    }
     out[key].suppressed = stacked.suppressed;
-    out[key].total = out[key].base + stacked.total;
+    out[key].total = out[key].base + stacked.total + inc;
   }
   return out;
 }

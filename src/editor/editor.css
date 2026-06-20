@@ -504,7 +504,15 @@ body.player-editor #gate-lead {
 .sheet-mirror-body {
   display: flex;
   flex-direction: column;
-  max-height: 40vh;
+  /* Default height scales with the viewport, but a pixel floor keeps the panel
+     usable at high browser zoom (where 40vh shrinks to only a few pixels).
+     `resize: vertical` lets the user drag the panel taller on demand. The floor
+     uses max() rather than min-height so it never fights the max-height:0
+     collapse animation below. */
+  height: max(40vh, 220px);
+  max-height: 85vh;
+  resize: vertical;
+  overflow: hidden;
   padding: 0;
   opacity: 1;
   transition:
@@ -567,6 +575,7 @@ body.player-editor #gate-lead {
 
 .sheet-mirror-body--collapsed {
   max-height: 0;
+  resize: none;
   opacity: 0;
   padding-top: 0;
   padding-bottom: 0;
@@ -675,6 +684,25 @@ body.player-editor #gate-lead {
   opacity: 0.85;
   background: rgba(0, 0, 0, 0.15);
   cursor: default;
+}
+
+/* Final result / total fields: frame the summed value in a colourful border
+   so it stands out from the individual contributing parts (e.g. AC Total vs
+   the AC — ABIL/CLASS/FEAT components that feed into it). */
+.sheet-mirror-field--total .sheet-mirror-label {
+  color: var(--editor-accent);
+  font-weight: 600;
+}
+
+.sheet-mirror-field--total input {
+  border: 2px solid var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 16%, var(--editor-bg));
+  color: var(--editor-text);
+  font-weight: 700;
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--editor-accent) 35%, transparent),
+    0 0 8px color-mix(in srgb, var(--editor-accent) 30%, transparent);
 }
 
 .sheet-mirror-section--skills-table {
@@ -918,6 +946,28 @@ body.player-editor #gate-lead {
   background: var(--editor-bg);
   color: var(--editor-text);
   font: inherit;
+}
+
+.picker-hybrid-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/*
+ * Both class pickers are full-width rows stacked vertically inside the column
+ * .picker-toolbar, so revealing the second picker never changes the first
+ * picker's width or position (the dropdown is positioned from the input rect).
+ */
+.class-step .picker-combobox-secondary {
+  width: 100%;
+}
+
+.class-step .picker-combobox-secondary[hidden] {
+  display: none;
 }
 
 .picker-race-filter {
@@ -1439,6 +1489,60 @@ body.player-editor #gate-lead {
   color: var(--editor-muted);
 }
 
+.ability-asi {
+  margin: 20px 0;
+  padding: 14px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+}
+
+.ability-asi-row {
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 10px 0 0;
+}
+
+.ability-asi-row legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.ability-asi-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ability-asi-select {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--editor-muted);
+}
+
+.ability-asi-select select {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.ability-asi-auto {
+  font-size: 12px;
+  color: var(--editor-ok);
+  margin: 10px 0 0;
+}
+
+.ability-asi-warning {
+  font-size: 12px;
+  color: var(--editor-danger);
+  margin: 8px 0 0;
+}
+
 .tutor-warnings {
   margin: 12px 0 0;
   padding: 0;
@@ -1898,6 +2002,18 @@ body.player-editor #gate-lead {
 
 .race-build-open {
   flex-shrink: 0;
+}
+
+.race-build-combo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.race-build-combo {
+  flex: 1;
+  max-width: none;
 }
 
 .race-build-empty-hint {
