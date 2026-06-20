@@ -1,0 +1,18 @@
+---
+description: Push to the remote after committing in this project
+alwaysApply: true
+---
+
+# Git: push after commit
+
+The user backs up this project on GitHub (`origin`) and will continue it on
+another machine, so commits must reach the remote, not just local history.
+
+- After creating any commit the user asked for, **also push** it to `origin`
+  on the current branch (e.g. `git push` once upstream is set, otherwise
+  `git push -u origin <branch>`).
+- Treat a commit as incomplete until it is pushed; report the push result.
+- Still follow the git safety protocol: never force-push, never push to
+  `main`/`master` without an explicit request, and only commit when asked.
+- Pushing a normal feature branch is fine without extra confirmation; pause and
+  ask before anything destructive or history-rewriting.
