@@ -2,16 +2,18 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-06-20
+**Last updated:** 2026-06-20 (per-level `item_level` tiers + GM source-date filter/editor added; B-030 fixed)
 
 ## Open
 
 | ID | Severity | Summary | Notes |
 |----|----------|---------|-------|
-| B-024 | Medium | Hybrid class mechanics not merged | Class step now has a **Hybrid** filter + second picker (UI/storage only: `selections.classHybrid`, `selections.hybridClassIds`); the two hybrid classes are not yet combined into HP, defenses, trained skills, powers, feats, build choices, or sheet sync (only the primary `classId` drives derived stats). The two pickers are stacked full-width so revealing/using the second never resizes or repositions the first (earlier resize problem avoided by pre-rendering both and toggling `hidden`). |
+| B-024 | Medium | Hybrid class mechanics not fully merged into the sheet | **Largely addressed.** The PH3 merge lives in `src/character/hybrid-merge.js` (`mergeHybridClasses`, `hybridPairAllowed`, `hybridPowerCoverage`), driven by the normalized `class`/`class_proficiency` tables. `applyHybridClassStats` (in `class-selections.js`, called from the class step) now writes the **merged HP, HP/level, surges, and speed** to the sheet, and `computeMaxHp`/`computeLevel1MaxHp` prefer the persisted `selections.hybridMerged` when hybrid mode is on (non-hybrid unaffected). The class step enforces "not two subclasses of the same class" via `hybrid_parent_class_id`. All guarded to fall back to single-class behavior when the normalized DB is absent. **Remaining:** surface the merged trained-skill pool (train any three) and armor/weapon/implement proficiencies in the skill/equipment UI, and enforce `hybridPowerCoverage` (one power of each type from both) in the power step. Authoritative rules: [Hybrid character rules (PH3)](#hybrid-character-rules-ph3134-135). |
 | B-001 | Medium | Compendium uses stub data only (client) | Browser `CompendiumProvider` still falls back to stub when `alter_eger.db` missing; **server spawn** now reads SQLite when DB present (`server/compendium.mjs`) |
 | B-002 | Medium | SQLite not wired in browser | `compendium.js` documents sql.js integration as a later phase |
-| B-003 | Low | iws.mx importer not in repo | Pipeline spec in `tools/importer/README.md`; implementation is external |
+| B-003 | Low | iws.mx importer not in repo | Pipeline spec in `tools/importer/README.md`; implementation is external. The **normalizer** (`tools/normalize/`, `npm run normalize`) consumes the importer's denormalized `entries` and writes structured tables; see [compendium-schema.md](compendium-schema.md) |
+| B-029 | Fixed | Amulet (and other wondrous items) had no slot/type, so could not be equipped to the correct body part | The source `Type` field is empty for ~1,339 wondrous items; the slot is only in the item body ("Neck Slot"). The normalizer now derives `item.slot` (head/neck/arms/hands/waist/feet/ring) from the body and `getEntry` attaches it; `getEligibleSlotsForEntry` prefers it. Amulets/cloaks/periapts/medallions now resolve to **neck** authoritatively (908 worn items slotted). |
+| B-028 | Low | Live compendium DB not pulled for normalization | No `.env.deploy.local` credentials locally, so the real `alter_eger.db` could not be pulled; the normalizer was built and verified against a stub-seeded dev DB (`npm run normalize:stub`). Run `npm run normalize` once the real DB is present (or pulled via `npm run pull:live-data`). |
 | B-006 | Low | GM party uses polling (~4 s) | No SSE/WebSocket yet; see [roadmap.md](roadmap.md) |
 | B-007 | Low | No API DELETE for player campaign characters | GM can remove encounter actors; not party PCs |
 | B-008 | Low | Lost GM invite URL | GM-created campaigns persist tokens in `gm-campaign-registry.js` (localStorage). Switch active campaign, import recovery, and regenerate invite still open |
@@ -21,6 +23,8 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-030 | 2026-06-20 | Level-scaled items (e.g. Amulet of Protection) packed several level/price tiers into one entry's compound `Level`/`Cost` ("1+,1,16,6,21,11,26" / "360+ gp,360,…"), so the normalized `item.cost_gp` was `null` and the per-level prices were unusable. Fixed: the ETL `parseItemTiers` drops the leading "starting at" summary token (handling its thousands-comma), zips and sorts the positionally-aligned level/cost pairs, and writes one `item_level(item_id, tier, level, cost_gp, enhancement)` row per tier; the parent `item.cost_gp` now holds the lowest tier. Tier-mismatch warnings fell from 1085 to 0. Files: `tools/normalize/schema.sql`, `tools/normalize/normalize.mjs`, `data/samples/compendium-stub.json`, `tests/normalize.test.mjs`. |
+| B-027 | 2026-06-20 | Magic items with no slot in their `Type` field (e.g. Amulet of Protection, whose `Type` is empty and whose `Level`/`Cost` carry the multi-tier values) could not be equipped: `getEligibleSlotsForEntry` only matched the `Type` field against slot patterns/hints, so the item resolved to zero eligible slots and showed no Equip action. Fixed: slot matching for `item`-category entries now also tests the item **Name**, so "Amulet of Protection" → neck (and similarly "Bracers …" → arms, "Ring …" → ring, etc.). Files: `src/character/equipment-selections.js`, `tests/equipment-selections.test.mjs`. |
 | B-026 | 2026-06-20 | Defense totals (FORT/REF/WILL/AC) in the wizard sheet mirror omitted the ability-score modifier, so e.g. a level-3 character showed FORT 13 (10 + ½ level + class only) instead of 18. Root cause: the `${def}-abil` component was a stored field defaulting to 0 and was never derived from ability scores (`flattenDefenses` echoed the stored 0). Fixed: added `defenseAbilityMod(scores, defense)` in `src/formulas.js` (higher of the two relevant ability mods — FORT max(STR,CON), REF/AC max(DEX,INT), WILL max(WIS,CHA)); `buildMirrorPayload` (`src/editor/sheet-mirror.js`) now derives each defense's ability component and feeds it into the total, with heavy armor (chainmail/scale/plate) suppressing the AC ability bonus per 4e rules; `syncEquipmentToSheet` persists `sheet.armorIsHeavy`; the `${def}-abil` mirror fields are now readonly (auto-derived). Verified: level-3, CON 20 (+5), class +2 → FORT 18. Files: `src/formulas.js`, `src/editor/sheet-mirror.js`, `src/editor/sheet-mirror-fields.js`, `src/character/equipment-sheet-sync.js`, `tests/defense-formulas.test.mjs`. |
 | B-025 | 2026-06-20 | AC Total in the wizard sheet mirror ignored equipped armor (e.g. an equipped Chainmail added nothing to AC). Two root causes: (1) equipment-derived defense bonuses (`sheet.defenses.ac.armor`/`ref.armor`) were only refreshed by `syncEquipmentToSheet`, which ran on the Equipment step but never when a character was loaded, switched, or imported — so a loaded/leveled character showed a stale (often 0) armor bonus; and (2) `getEquipmentStats` resolved armor with no stats override and no parseable "AC Bonus" text in `body_html` to `acBonus 0`. Fixed: `refreshBonusesFromSelections` (`src/editor/editor.js`) now re-runs `syncEquipmentToSheet` (best-effort) on every bonus refresh, and `getEquipmentStats` (`src/character/equipment-stats.js`) falls back to a PHB armor table keyed by Name/Type (Plate +8, Scale +7, Chainmail +6, Hide +3, Leather +2, Cloth +0) so standard armor always contributes AC. Files: `src/character/equipment-stats.js`, `src/editor/editor.js`, `tests/equipment-sheet-sync.test.mjs`. |
 | B-023 | 2026-06-19 | Max HP stayed frozen at the level-1 value (e.g. 22 for a level-4 Warlord) and ignored level, class HP-per-level, and Constitution increases. Root cause: HP was a stored value set once under a `level === 1 && !(hp.max > 0)` guard in `syncClassTraitsToSheet`, and `buildMirrorPayload` echoed the stored value instead of deriving it (unlike defenses/skills). Fixed: added `computeMaxHp()` and `getClassHpPerLevel()` in `src/character/hp.js` (`classBase + CON/substitute + (level − 1) × hpPerLevel`); `syncClassTraitsToSheet` now persists `hp.classBase`/`hp.perLevel` and recomputes max/current HP for the actual level; `buildMirrorPayload` derives Max HP live each render; the mirror `max-hp` field is now readonly (derived). Verified at runtime: level-4 Warlord (class base 12, CON 12, 5/level) now computes 12 + 12 + 3×5 = 39. Files: `src/character/hp.js`, `src/character/class-selections.js`, `src/editor/sheet-mirror.js`, `src/editor/sheet-mirror-fields.js`. |
@@ -40,6 +44,25 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 | B-016 | 2026-06-13 | Character generator sidebar listed Feats before Powers during edit/retrain (`builderFlow`), while new-character flow (`creationFlow`) already had Powers first. Fixed: `builderFlow` order aligned; retraining opens at Powers. |
 | B-017 | 2026-06-13 | Level 2+ utility power slot showed "No eligible powers" despite compendium matches: `Enc. Utility` / `Daily Utility` / `At-Will Utility` were normalized to Encounter/Daily/At-Will before Utility. Fixed: `normalizePowerType()` checks `utility` first. |
 | B-018 | 2026-06-13 | Live server redirect loop Player → Character generator: deployed player page used absolute `/editor/` links; Apache `.htaccess` fallback served launcher instead of editor (launcher auto-redirect back to player when role remembered). Fixed: relative `../editor/index.html` links in player UI; `.htaccess` maps bare `/editor` etc. to `/src/...` before fallback. |
+
+## Hybrid character rules (PH3:134-135)
+
+Authoritative reference for the deferred B-024 merge. Source: D&D 4e *Player's Handbook 3* p.134-135. A hybrid mixes **two classes or subclasses**, each contributing a reduced subset.
+
+| Aspect | Rule |
+|--------|------|
+| Class pick | Exactly two classes/subclasses; the two **cannot be subclasses of the same class** |
+| Powers | May come from either class, but you must hold one power of **each type** (at-will, encounter attack, daily attack, utility) from **both** classes before taking a second power of one class |
+| Armor proficiency | Only proficiencies **common to both** classes (intersection) |
+| Weapon + implement proficiency | **Combined** from both classes (union); either class's implement powers work with either implement |
+| HP at level 1 | Average of the two classes' starting HP, rounded down, **plus Constitution score** (added once) |
+| HP per level | Sum of half each class's per-level HP, rounded down (e.g. 2.5 + 2.5 = 5) |
+| Healing surges/day | Average of the two classes' surges, rounded down, **plus Constitution modifier** (added once) |
+| Skills | Class skills of both combine; trained in **any three** of them. Extra trained skills from a hybrid class come from that class's list |
+| Traits/features | Each hybrid version grants a reduced subset; combine both subsets |
+| Hybrid Talent feat | Grants one hybrid talent option from either hybrid class |
+
+Note: many subclasses have no official hybrid rules (e.g. Berserker, Skald, Warpriest, Knight, Slayer, Thief, Bladesinger, Mage), so not every `Hybrid X` pairing exists in the source.
 
 ## How to log a new bug
 

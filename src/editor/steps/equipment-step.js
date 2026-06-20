@@ -12,8 +12,14 @@ import {
   removeInventoryItem,
   getEligibleSlotsForEntry,
   getFirstEmptyEligibleSlot,
-  isEntryEligibleForSlot
+  isEntryEligibleForSlot,
+  setEquipmentItemLevel
 } from '../../character/equipment-selections.js';
+import {
+  enhancementFromLevel,
+  getDefenseEnhancementInfo,
+  levelFromEntry
+} from '../../character/equipment-stats.js';
 import {
   renderComboboxHtml,
   attachComboboxBehavior,
@@ -286,22 +292,78 @@ export async function renderEquipmentStep(panel, ctx) {
           openLink.hidden = true;
           openLink.removeAttribute('href');
         }
-        if (!metaEl) return;
         if (!item) {
-          metaEl.textContent = 'Empty — click to choose';
+          manageSlotLevelControl(wrap, null, null);
+          if (metaEl) metaEl.textContent = 'Empty — click to choose';
           return;
         }
         const entry = await compendium.getEntry(item.compendiumId);
         const name = entry?.listing_fields?.Name ?? 'Selected';
         const meta = formatEquipmentListingMeta(entry?.listing_fields);
-        metaEl.textContent = meta ? `${name} — ${meta}` : name;
+        if (metaEl) metaEl.textContent = meta ? `${name} — ${meta}` : name;
         if (openLink) {
           openLink.hidden = false;
           openLink.href = compendiumEntryPageUrl(item.compendiumId, location.pathname);
           openLink.setAttribute('aria-label', `Open ${name} in compendium`);
         }
+        manageSlotLevelControl(wrap, item, entry);
       })
     );
+  }
+
+  /**
+   * Show or remove the inline "Item level" control for a slot. Level-scaled
+   * defense items (e.g. Amulet of Protection) get a number input whose level
+   * drives their enhancement bonus; everything else has no control.
+   * @param {Element | null} wrap - the `.power-slot-row-wrap` element
+   * @param {{ instanceId: string, level?: number | null } | null} item
+   * @param {{ listing_fields?: Record<string, string> } | null} entry
+   */
+  function manageSlotLevelControl(wrap, item, entry) {
+    if (!wrap) return;
+    const existing = wrap.querySelector('.equipment-slot-level');
+    const info = item && entry ? getDefenseEnhancementInfo(entry) : null;
+    if (!info) {
+      existing?.remove();
+      return;
+    }
+
+    const level = item.level ?? levelFromEntry(entry) ?? 1;
+    const bonus = enhancementFromLevel(level);
+    const defenseList = info.defenses.map((d) => d.toUpperCase()).join('/');
+    const inputId = `equipment-slot-level-${esc(item.instanceId)}`;
+
+    let control = existing;
+    if (!control) {
+      control = document.createElement('div');
+      control.className = 'equipment-slot-level';
+      control.innerHTML = `
+        <label class="equipment-slot-level-label" for="${inputId}">Item level</label>
+        <input type="number" id="${inputId}" class="equipment-slot-level-input" min="1" max="30" step="1" />
+        <span class="equipment-slot-level-hint" aria-live="polite"></span>`;
+      wrap.appendChild(control);
+      const input = control.querySelector('.equipment-slot-level-input');
+      // Read the instance id from the control at change time (the same slot row
+      // is reused when items are swapped, so do not capture a stale instance).
+      input?.addEventListener('change', async () => {
+        const instanceId = control.dataset.instanceId;
+        if (!instanceId) return;
+        const raw = Number(input.value);
+        setEquipmentItemLevel(character, instanceId, Number.isFinite(raw) ? raw : null);
+        await afterEquipmentChange();
+        await refreshSlotLabels();
+      });
+    }
+    control.dataset.instanceId = item.instanceId;
+
+    const input = control.querySelector('.equipment-slot-level-input');
+    if (input) {
+      input.id = inputId;
+      if (document.activeElement !== input) input.value = String(level);
+    }
+    control.querySelector('.equipment-slot-level-label')?.setAttribute('for', inputId);
+    const hint = control.querySelector('.equipment-slot-level-hint');
+    if (hint) hint.textContent = `+${bonus} ${defenseList}`;
   }
 
   async function renderInventoryList() {

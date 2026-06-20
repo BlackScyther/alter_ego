@@ -9,7 +9,8 @@
 | Security & input (online API, files, XSS) | **Automated** | `npm test` or `npm run test:security` |
 | Campaign API smoke | **Script** | `npm run test:api` |
 | Unit tests | **Node test runner** | `tests/*.test.mjs` (no extra devDependency) |
-| Web build | **Script** | `npm run build:app` |
+| Web build | **Script** | `npm run build:app` (runs `normalize --if-exists` then post-build) |
+| Compendium normalize | **Script** | `npm run normalize` (real DB), `npm run normalize:stub` (dev DB from JSON stub) |
 | Desktop app | **Manual** | `npm run tauri:dev`, `npm run tauri:build` (requires Rust) |
 | PDF export | **Manual / script** | `npm run pdf`, `npm run pdf:levels` |
 | Party index | **Dev script** | `npm run party:index` |
@@ -41,13 +42,16 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
-| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks |
+| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks; level→enhancement mapping; Amulet of Protection → Fort/Ref/Will enh by item level |
 | `tests/defense-formulas.test.mjs` | `defenseAbilityMod` (higher of two ability mods per defense); feeds defense total (FORT level-3 example = 18) |
 | `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
 | `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
 | `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback |
+| `tests/normalize.test.mjs` | Runs the normalizer ETL into a temp DB: tables created, race/subrace split, exact `power_type`, materialized armor/weapon stats, multi-tier `item_level` split (Amulet of Protection → 6 ascending tiers, parent `cost_gp` = lowest tier) + single-level items → one tier, source-book release dates, `norm_meta` counts |
+| `tests/hybrid-merge.test.mjs` | PH3 hybrid merge: HP/surge math, skills (any three), armor/shield intersection + weapon/implement union, `hybridPairAllowed`, `hybridPowerCoverage` |
+| `tests/subrace-hydrate.test.mjs` | `race-subraces.js` static default plus DB hydration via `setSubraceMap`/`hydrateSubracesFromProvider` |
 
 ## Manual test checklist — background step (editor)
 

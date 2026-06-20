@@ -350,6 +350,12 @@
           "listing_fields": { "Name": "Adventurer's Kit", "Category": "Gear", "Type": "Adventuring Gear", "Level": "1", "Cost": "15 gp", "Rarity": "Common", "SourceBook": "PHB" },
           "body_html": "<p>Standard adventuring kit.</p>",
           "index_text": "Adventurer's Kit"
+        },
+        {
+          "id": "item498",
+          "listing_fields": { "Name": "Amulet of Protection", "Category": "Neck", "Type": "", "Level": "1+,1,16,6,21,11,26", "Cost": "360+ gp,360,45000,1800,225000,9000,1125000", "Rarity": "Common", "SourceBook": "PHB" },
+          "body_html": "<p>Neck Slot</p><p>Enhancement: Fortitude, Reflex, and Will.</p>",
+          "index_text": "Amulet of Protection neck"
         }
       ]
     },

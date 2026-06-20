@@ -80,9 +80,14 @@ The **Encounters** page (`/src/gm/campaigns/encounters/`) is the GM combat-prep 
 
 Specification: [game-editor.md](game-editor.md).
 
+## Compendium normalization
+
+The compendium is moving from runtime HTML parsing to a **normalized SQLite** schema built once at import time. `tools/normalize/normalize.mjs` (`npm run normalize`) reads the denormalized `entries` table and writes structured tables (races/subraces, classes incl. hybrid links, powers with exact types, equipment stats incl. per-level `item_level` tiers for level-scaled items, source books with release dates) into the same DB file, reusing the existing parsers and recording parse failures in `normalize_warnings`. The app reads normalized-first with a parse fallback per category, so the migration is incremental and non-breaking. The GM can edit source-book release dates and filter compendium pickers by publication date (Workshop "Source dates" + the duplicate picker's "released on/before" control). Details: [compendium-schema.md](compendium-schema.md).
+
 ## Still open (summary)
 
 - Full compendium (`alter_eger.db`) — phase 1 in [roadmap.md](roadmap.md)
+- Finish the hybrid (B-024) merge UI (trained-skill pool + proficiencies in the skill/equipment step, enforce `hybridPowerCoverage`); the GM still fills in the remaining `source_books.release_date` values (UI shipped)
 - DM combat surface — phase 3 (uses encounter roster)
 - Optional: SSE instead of polling, DELETE character via API
 

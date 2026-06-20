@@ -111,6 +111,55 @@ function numFrom(html, re, opts = {}) {
 }
 
 /**
+ * Level-scaled magic items whose enhancement applies to defenses, keyed by a
+ * name pattern. Each entry lists which defenses the item's enhancement bonus
+ * applies to. Used to prompt for an item level and apply the bonus on equip.
+ * @type {Array<{ match: RegExp, defenses: Array<'ac'|'fort'|'ref'|'will'>, slot: string }>}
+ */
+const DEFENSE_ENHANCEMENT_ITEMS = [
+  { match: /amulet of protection/i, defenses: ['fort', 'ref', 'will'], slot: 'neck' }
+];
+
+/**
+ * If the entry is a level-scaled defense-enhancement item (e.g. Amulet of
+ * Protection), return which defenses its enhancement bonus applies to.
+ * @param {{ listing_fields?: Record<string, string>, id?: string }} entry
+ * @returns {{ defenses: Array<'ac'|'fort'|'ref'|'will'>, slot: string } | null}
+ */
+export function getDefenseEnhancementInfo(entry) {
+  const name = entry?.listing_fields?.Name ?? '';
+  for (const row of DEFENSE_ENHANCEMENT_ITEMS) {
+    if (row.match.test(name)) return { defenses: row.defenses, slot: row.slot };
+  }
+  return null;
+}
+
+/**
+ * Enhancement bonus (+1…+6) for a 4e item at a given level: one step per five
+ * levels (1–5 → +1, 6–10 → +2, … 26–30 → +6).
+ * @param {number} level
+ */
+export function enhancementFromLevel(level) {
+  const n = Math.floor(Number(level) || 0);
+  if (n <= 0) return 0;
+  return Math.min(6, Math.max(1, Math.ceil(n / 5)));
+}
+
+/**
+ * Read a single numeric level from an entry's listing fields, when unambiguous.
+ * Returns null for missing or multi-value level fields (e.g. "1, 6, 11").
+ * @param {{ listing_fields?: Record<string, string> }} entry
+ */
+export function levelFromEntry(entry) {
+  const raw = entry?.listing_fields?.Level;
+  if (raw == null) return null;
+  const m = String(raw).match(/\d+/g);
+  if (!m || m.length !== 1) return null;
+  const n = Number(m[0]);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * @param {ReturnType<typeof getEquipmentStats>} stats
  * @param {'melee' | 'ranged'} mode
  */

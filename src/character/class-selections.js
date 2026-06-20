@@ -7,6 +7,7 @@ import classFeaturePowersMeta from '../../metadata/class-feature-powers.json' wi
 import { abilityModifier } from '../formulas.js';
 import { getFinalScores } from './tutor.js';
 import { computeMaxHp, getClassHpPerLevel, getClassMaxHpAt1 } from './hp.js';
+import { mergeHybridClasses, hybridPairAllowed } from './hybrid-merge.js';
 import {
   parseClassEntry,
   buildClassNotesText,
@@ -39,6 +40,7 @@ export function ensureClassSelectionsShape(character) {
   if (!Array.isArray(character.selections.trainedSkillIds)) character.selections.trainedSkillIds = [];
   if (typeof character.selections.classHybrid !== 'boolean') character.selections.classHybrid = false;
   if (!Array.isArray(character.selections.hybridClassIds)) character.selections.hybridClassIds = [];
+  if (!('hybridMerged' in character.selections)) character.selections.hybridMerged = null;
   character.notes = character.notes ?? {};
   if (typeof character.notes.classFeatures !== 'string') character.notes.classFeatures = '';
   return character;
@@ -50,6 +52,7 @@ export function resetClassDerivedSelections(character) {
   character.selections.classTrainedSkillChoices = [];
   character.selections.classPowerIds = [];
   character.selections.trainedSkillIds = [];
+  character.selections.hybridMerged = null;
   return character;
 }
 
@@ -252,6 +255,67 @@ export function syncClassTraitsToSheet(character, classEntry) {
   }
 
   applyClassEffects(character, detectClassEffects(classEntry));
+
+  return character;
+}
+
+/**
+ * Combine the two hybrid classes (PH3) into the sheet's HP and surges, and
+ * persist the full merge (skills/proficiencies too) on
+ * `selections.hybridMerged` for downstream use. No-op unless hybrid mode is on
+ * and BOTH classes resolve to normalized rows; otherwise the primary class's
+ * single-class stats (already applied by syncClassTraitsToSheet) stand.
+ *
+ * Requires the normalized compendium (`getNormalizedClass`); falls back
+ * silently when unavailable so non-normalized builds are unaffected.
+ *
+ * @param {object} character
+ * @param {{ getNormalizedClass?: (id: string) => Promise<object|null> }} compendium
+ */
+export async function applyHybridClassStats(character, compendium) {
+  ensureClassSelectionsShape(character);
+  const sel = character.selections;
+  if (!sel.classHybrid) {
+    sel.hybridMerged = null;
+    return character;
+  }
+  const [aId, bId] = sel.hybridClassIds ?? [];
+  if (!aId || !bId || typeof compendium?.getNormalizedClass !== 'function') return character;
+
+  const [a, b] = await Promise.all([
+    compendium.getNormalizedClass(aId),
+    compendium.getNormalizedClass(bId)
+  ]);
+  if (!a || !b || !hybridPairAllowed(a, b).ok) return character;
+
+  const merged = mergeHybridClasses(a, b);
+  if (!merged) return character;
+  sel.hybridMerged = merged;
+
+  character.sheet = character.sheet ?? {};
+  character.sheet.hp = character.sheet.hp ?? { max: 0, current: 0, temp: 0, surgesPerDay: 0, surgeUses: 0 };
+  if (merged.hpAt1Base != null) character.sheet.hp.classBase = merged.hpAt1Base;
+  if (merged.hpPerLevel != null) character.sheet.hp.perLevel = merged.hpPerLevel;
+  if (merged.baseSpeed != null) {
+    character.sheet.speed = character.sheet.speed ?? { base: 6, armor: 0, item: 0, misc: 0 };
+    character.sheet.speed.base = merged.baseSpeed;
+  }
+
+  const scores = getFinalScores(character);
+  const conMod = abilityModifier(scores.con ?? 10);
+
+  const maxHp = computeMaxHp(character);
+  if (maxHp != null) {
+    const prevMax = Number(character.sheet.hp.max) || 0;
+    const prevCurrent = Number(character.sheet.hp.current) || 0;
+    character.sheet.hp.max = maxHp;
+    if (!(prevCurrent > 0) || prevCurrent >= prevMax) {
+      character.sheet.hp.current = maxHp;
+    }
+  }
+  if (merged.surgesBase != null) {
+    character.sheet.hp.surgesPerDay = Math.floor(merged.surgesBase + conMod);
+  }
 
   return character;
 }

@@ -948,6 +948,31 @@ body.player-editor #gate-lead {
   font: inherit;
 }
 
+.picker-source-date-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.picker-source-date-caption {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--editor-muted);
+  white-space: nowrap;
+}
+
+.picker-source-date-label input {
+  padding: 8px 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font: inherit;
+}
+
 .picker-hybrid-toggle {
   display: inline-flex;
   align-items: center;
@@ -955,6 +980,20 @@ body.player-editor #gate-lead {
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.picker-hybrid-warning {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  border-radius: 6px;
+}
+
+.picker-hybrid-warning[hidden] {
+  display: none;
 }
 
 /*
@@ -1592,6 +1631,7 @@ body.player-editor #gate-lead {
 .power-slot-row-wrap {
   display: flex;
   align-items: stretch;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -1625,6 +1665,40 @@ body.player-editor #gate-lead {
 
 .power-slot-clear:focus-visible {
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35);
+}
+
+/* Inline level control for level-scaled defense items (e.g. Amulet of
+   Protection). Drops to its own line under the equipped slot row. */
+.equipment-slot-level {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 2px;
+  font-size: 12px;
+  color: var(--editor-muted, #94a3b8);
+}
+
+.equipment-slot-level-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.equipment-slot-level-input {
+  width: 6ch;
+  padding: 4px 6px;
+  font-size: 13px;
+  text-align: center;
+  background: var(--editor-bg, #1a1d23);
+  color: var(--editor-text, #e8eaed);
+  border: 1px solid var(--editor-border, #475569);
+  border-radius: 6px;
+}
+
+.equipment-slot-level-hint {
+  font-weight: 600;
+  color: var(--editor-accent, #c9a227);
 }
 
 .power-slot-open {

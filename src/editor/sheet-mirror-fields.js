@@ -111,10 +111,13 @@ function defenseFields() {
     out.push(field(`${def.id}-half`, `${def.label} — ½ Lvl`, 'number', { readonly: true, row: def.id }));
     for (const part of def.parts) {
       const partLabel = part === 'abil' ? 'ABIL' : part.toUpperCase();
+      // ABIL is derived from ability scores; ENH on Fort/Ref/Will is managed by
+      // equipped enhancement items (e.g. Amulet of Protection). Both readonly.
+      const derived = part === 'abil' || (part === 'enh' && def.id !== 'ac');
       out.push(
         field(`${def.id}-${part}`, `${def.label} — ${partLabel}`, 'number', {
           row: def.id,
-          readonly: part === 'abil'
+          readonly: derived
         })
       );
     }

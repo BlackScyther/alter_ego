@@ -19,6 +19,8 @@ const chainmail = { id: 'armor1', category_slug: 'armor', listing_fields: { Name
 const heavyShield = { id: 'armor8', category_slug: 'armor', listing_fields: { Name: 'Heavy Shield', Type: 'Heavy Shield' } };
 const cloak = { id: 'item2', category_slug: 'item', listing_fields: { Name: 'Cloak', Type: 'Neck slot item' } };
 const rope = { id: 'item1', category_slug: 'item', listing_fields: { Name: 'Rope', Type: 'Adventuring Gear' } };
+// Magic items often have no slot in their Type field; the slot must be inferred from the name.
+const amulet = { id: 'item3', category_slug: 'item', listing_fields: { Name: 'Amulet of Protection', Type: '' } };
 
 describe('equipment-selections', () => {
   it('migrates legacy equipmentIds to equipmentItems', () => {
@@ -78,6 +80,7 @@ describe('equipment-selections', () => {
     assert.deepEqual(getEligibleSlotsForEntry(chainmail), ['armor']);
     assert.deepEqual(getEligibleSlotsForEntry(heavyShield), ['offHand']);
     assert.deepEqual(getEligibleSlotsForEntry(cloak), ['neck']);
+    assert.deepEqual(getEligibleSlotsForEntry(amulet), ['neck']);
     assert.deepEqual(getEligibleSlotsForEntry(rope), []);
   });
 

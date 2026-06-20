@@ -19,6 +19,7 @@ import {
 import {
   ensureClassSelectionsShape,
   resetClassDerivedSelections,
+  applyHybridClassStats,
   setClassBuildChoice,
   toggleClassTrainedSkill,
   syncClassNotesAndGrants,
@@ -26,6 +27,7 @@ import {
   validateClassStep
 } from '../../character/class-selections.js';
 import { applyChoiceGuide } from '../choice-guide.js';
+import { hybridPairAllowed } from '../../character/hybrid-merge.js';
 const PICKER_KEY = 'class';
 const LIST_LIMIT = 100;
 
@@ -131,6 +133,7 @@ export async function renderClassStep(panel, ctx) {
             placeholder: `Select second ${def.title}`,
             visibleLabel: `Second ${def.title}`
           })}
+          <p class="picker-hybrid-warning" id="picker-hybrid-warning" role="alert" hidden></p>
         </div>
       </div>
       <div class="class-step-body">
@@ -210,6 +213,7 @@ export async function renderClassStep(panel, ctx) {
       if (e) powerEntries.push(e);
     }
     syncClassNotesAndGrants(character, entry, powerEntries);
+    await applyHybridClassStats(character, compendium);
     setNotes(character.notes.classFeatures ?? '');
     await refreshBonuses();
     refreshPreview(entry);
@@ -306,6 +310,32 @@ export async function renderClassStep(panel, ctx) {
     const entry = await compendium.getEntry(id);
     if (!entry) return;
     ensureClassSelectionsShape(character);
+
+    // PH3: the two hybrid classes cannot be subclasses of the same class.
+    // Enforced only when the normalized class table is available; otherwise the
+    // records are null and we fall back to the previous (name-prefix) behavior.
+    const warnEl = panel.querySelector('#picker-hybrid-warning');
+    const primaryId = character.selections.classId ?? character.selections.hybridClassIds?.[0] ?? null;
+    if (primaryId && compendium.getNormalizedClass) {
+      const [a, b] = await Promise.all([
+        compendium.getNormalizedClass(primaryId),
+        compendium.getNormalizedClass(id)
+      ]);
+      if (a && b) {
+        const verdict = hybridPairAllowed(a, b);
+        if (!verdict.ok) {
+          if (warnEl) {
+            warnEl.textContent = verdict.reason ?? 'Invalid hybrid pairing.';
+            warnEl.hidden = false;
+          }
+          searchInput2.value = '';
+          combobox2.closeDropdown();
+          return;
+        }
+      }
+    }
+    if (warnEl) warnEl.hidden = true;
+
     const ids = character.selections.hybridClassIds;
     ids[0] = character.selections.classId ?? ids[0] ?? null;
     ids[1] = id;

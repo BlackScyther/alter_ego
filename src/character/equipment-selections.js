@@ -28,6 +28,21 @@ export const EQUIPMENT_SLOTS = [
 /** @type {Record<string, EquipmentSlotDef>} */
 const SLOT_BY_ID = Object.fromEntries(EQUIPMENT_SLOTS.map((s) => [s.id, s]));
 
+/**
+ * Maps a normalized `item.slot` value (from tools/normalize) to the equip slot
+ * ids. Rings can go in either ring slot.
+ * @type {Record<string, string[]>}
+ */
+const SLOT_IDS_BY_NORMALIZED = {
+  head: ['head'],
+  neck: ['neck'],
+  arms: ['arms'],
+  hands: ['hands'],
+  waist: ['waist'],
+  feet: ['feet'],
+  ring: ['ring1', 'ring2']
+};
+
 const ITEM_TYPE_SLOT_PATTERNS = [
   { slotIds: ['head'], patterns: [/^head\b/i, /head slot/i] },
   { slotIds: ['neck'], patterns: [/^neck\b/i, /neck slot/i, /\bamulet\b/i] },
@@ -39,7 +54,7 @@ const ITEM_TYPE_SLOT_PATTERNS = [
 ];
 
 /**
- * @typedef {{ instanceId: string, compendiumId: string, categorySlug: string, slotId: string | null }} EquipmentItem
+ * @typedef {{ instanceId: string, compendiumId: string, categorySlug: string, slotId: string | null, level?: number | null }} EquipmentItem
  */
 
 /**
@@ -91,7 +106,8 @@ export function migrateEquipmentIdsToItems(character) {
     instanceId: crypto.randomUUID(),
     compendiumId,
     categorySlug: categorySlugFromCompendiumId(compendiumId),
-    slotId: null
+    slotId: null,
+    level: null
   }));
   return character;
 }
@@ -130,6 +146,7 @@ export function clearAllEquipment(character) {
 export function getEligibleSlotsForEntry(entry) {
   const category = entry.category_slug ?? categorySlugFromCompendiumId(entry.id ?? '');
   const type = entry.listing_fields?.Type ?? '';
+  const name = entry.listing_fields?.Name ?? '';
 
   if (category === 'armor') {
     if (/shield/i.test(type)) return ['offHand'];
@@ -139,16 +156,29 @@ export function getEligibleSlotsForEntry(entry) {
   if (category === 'implement') return ['implement', 'offHand'];
 
   if (category === 'item') {
+    // Authoritative slot from the normalized `item` table (derived once from
+    // the item body's "<X> Slot" line). Covers wondrous items whose `Type` is
+    // empty and whose name carries no slot cue (cloak, periapt, medallion, …).
+    const normalizedSlot = entry.slot ?? entry.normalizedSlot ?? null;
+    if (normalizedSlot && SLOT_IDS_BY_NORMALIZED[normalizedSlot]) {
+      return [...SLOT_IDS_BY_NORMALIZED[normalizedSlot]];
+    }
+
     const slots = new Set();
+    // Fallback when no normalized slot is present: match on the item name/type
+    // (e.g. "Amulet of Protection" → neck, "Bracers …" → arms).
     for (const { slotIds, patterns } of ITEM_TYPE_SLOT_PATTERNS) {
-      if (patterns.some((re) => re.test(type))) {
+      if (patterns.some((re) => re.test(type) || re.test(name))) {
         for (const slotId of slotIds) slots.add(slotId);
       }
     }
     for (const slot of EQUIPMENT_SLOTS) {
       if (!slot.itemTypeHints?.length) continue;
       if (
-        slot.itemTypeHints.some((hint) => new RegExp(`\\b${hint}\\b`, 'i').test(type))
+        slot.itemTypeHints.some((hint) => {
+          const re = new RegExp(`\\b${hint}\\b`, 'i');
+          return re.test(type) || re.test(name);
+        })
       ) {
         slots.add(slot.id);
       }
@@ -206,6 +236,24 @@ export function findEquipmentItem(character, instanceId) {
 }
 
 /**
+ * Set the item level for a specific equipment instance (used by level-scaled
+ * magic items such as Amulet of Protection). Pass null to clear.
+ * @param {import('./model.js').Character} character
+ * @param {string} instanceId
+ * @param {number | null} level
+ */
+export function setEquipmentItemLevel(character, instanceId, level) {
+  const item = findEquipmentItem(character, instanceId);
+  if (!item) return character;
+  if (level == null || Number.isNaN(Number(level))) {
+    item.level = null;
+  } else {
+    item.level = Math.min(30, Math.max(1, Math.floor(Number(level))));
+  }
+  return character;
+}
+
+/**
  * @param {import('./model.js').Character} character
  * @param {{ id: string, category_slug?: string, listing_fields?: Record<string, string> }} entry
  * @param {string | null} [slotId]
@@ -217,7 +265,8 @@ export function addEquipmentFromCompendium(character, entry, slotId = null) {
     instanceId: crypto.randomUUID(),
     compendiumId: entry.id,
     categorySlug,
-    slotId: null
+    slotId: null,
+    level: null
   };
   character.selections.equipmentItems.push(item);
 

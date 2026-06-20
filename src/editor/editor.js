@@ -27,7 +27,7 @@ import { getSessionCampaign, isPlayerSession, saveCharacterToCampaign } from '..
 import { downloadCharacterJson, readCharacterJsonFile } from '../character/io.js';
 import { compendium } from '../data/compendium.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
-import { raceBonusEntryId } from '../character/race-subraces.js';
+import { raceBonusEntryId, hydrateSubracesFromProvider } from '../character/race-subraces.js';
 import { xpForLevel } from '../formulas.js';
 import { canLevelUp, levelUpTooltip, retrainingBuilderStart } from './post-load.js';
 import {
@@ -1436,6 +1436,7 @@ async function init() {
 
   await loadEditorMeta();
   await compendium.ready();
+  await hydrateSubracesFromProvider(compendium);
   linkIndex = await buildCompendiumLinkIndex(compendium);
   attachCompendiumHoverDelegates(document);
 

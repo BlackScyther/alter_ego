@@ -1,13 +1,26 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter } from '../src/character/model.js';
-import { addEquipmentFromCompendium, unequipSlot } from '../src/character/equipment-selections.js';
+import {
+  addEquipmentFromCompendium,
+  setEquipmentItemLevel,
+  unequipSlot
+} from '../src/character/equipment-selections.js';
 import { syncEquipmentToSheet } from '../src/character/equipment-sheet-sync.js';
-import { getEquipmentStats } from '../src/character/equipment-stats.js';
+import {
+  enhancementFromLevel,
+  getDefenseEnhancementInfo,
+  getEquipmentStats
+} from '../src/character/equipment-stats.js';
 
 const scale = { id: 'armor5', category_slug: 'armor', listing_fields: { Name: 'Scale Armor', Type: 'Scale' } };
 const shield = { id: 'armor8', category_slug: 'armor', listing_fields: { Name: 'Heavy Shield', Type: 'Heavy Shield' } };
 const longsword = { id: 'weapon3610', category_slug: 'weapon', listing_fields: { Name: 'Longsword', Type: 'Heavy blade' } };
+const amulet = {
+  id: 'item-aop',
+  category_slug: 'item',
+  listing_fields: { Name: 'Amulet of Protection', Type: 'Neck slot', Level: '1' }
+};
 
 const fighterClass = {
   id: 'class3',
@@ -17,7 +30,13 @@ const fighterClass = {
 
 const compendium = {
   async getEntry(id) {
-    const map = { armor5: scale, armor8: shield, weapon3610: longsword, class3: fighterClass };
+    const map = {
+      armor5: scale,
+      armor8: shield,
+      weapon3610: longsword,
+      class3: fighterClass,
+      'item-aop': amulet
+    };
     return map[id] ?? null;
   }
 };
@@ -64,6 +83,42 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
     assert.equal(c.sheet.extraFields['melee-atk-abil'], 3);
     assert.match(c.sheet.extraFields['basic1-weapon'], /Longsword/);
+  });
+
+  it('maps item level to enhancement bonus (+1..+6 in steps of 5)', () => {
+    assert.equal(enhancementFromLevel(1), 1);
+    assert.equal(enhancementFromLevel(5), 1);
+    assert.equal(enhancementFromLevel(6), 2);
+    assert.equal(enhancementFromLevel(11), 3);
+    assert.equal(enhancementFromLevel(26), 6);
+    assert.equal(enhancementFromLevel(30), 6);
+    assert.equal(enhancementFromLevel(0), 0);
+  });
+
+  it('detects Amulet of Protection as a Fort/Ref/Will enhancement item', () => {
+    assert.deepEqual(getDefenseEnhancementInfo(amulet)?.defenses, ['fort', 'ref', 'will']);
+    assert.equal(getDefenseEnhancementInfo(longsword), null);
+  });
+
+  it('applies Amulet of Protection enhancement to Fort/Ref/Will by item level', async () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, amulet, 'neck');
+
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.fort.enh, 1);
+    assert.equal(c.sheet.defenses.ref.enh, 1);
+    assert.equal(c.sheet.defenses.will.enh, 1);
+    assert.equal(c.sheet.defenses.ac.enh ?? 0, 0);
+
+    const item = c.selections.equipmentItems[0];
+    setEquipmentItemLevel(c, item.instanceId, 11);
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.fort.enh, 3);
+    assert.equal(c.sheet.defenses.will.enh, 3);
+
+    unequipSlot(c, 'neck');
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.fort.enh, 0);
   });
 
   it('clears equipment bonuses after unequip', async () => {

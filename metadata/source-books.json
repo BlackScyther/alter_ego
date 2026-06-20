@@ -1,0 +1,29 @@
+{
+  "$comment": "Source-book reference for the normalized compendium. The normalizer (tools/normalize/normalize.mjs) writes one source_books row per distinct SourceBook code found in the compendium; values below seed title/release_date/edition_era where known. release_date is what powers the GM's planned 'filter source by date' feature. Codes with an unknown date are left null for the GM to fill in (see doc/bugs.md). Dates are ISO YYYY-MM-DD; edition_era is one of: core, heroic, paragon, epic, setting, dragon, other.",
+  "books": {
+    "PHB": { "title": "Player's Handbook", "release_date": "2008-06-06", "edition_era": "core" },
+    "MM": { "title": "Monster Manual", "release_date": "2008-06-06", "edition_era": "core" },
+    "DMG": { "title": "Dungeon Master's Guide", "release_date": "2008-06-06", "edition_era": "core" },
+    "PHB2": { "title": "Player's Handbook 2", "release_date": "2009-03-17", "edition_era": "core" },
+    "PHB3": { "title": "Player's Handbook 3", "release_date": "2010-03-16", "edition_era": "core" },
+    "MM2": { "title": "Monster Manual 2", "release_date": "2009-05-19", "edition_era": "core" },
+    "MM3": { "title": "Monster Manual 3", "release_date": "2010-06-15", "edition_era": "core" },
+    "DMG2": { "title": "Dungeon Master's Guide 2", "release_date": "2009-09-15", "edition_era": "core" },
+    "AV": { "title": "Adventurer's Vault", "release_date": "2008-09-16", "edition_era": "core" },
+    "AV2": { "title": "Adventurer's Vault 2", "release_date": "2009-09-15", "edition_era": "core" },
+    "MP": { "title": "Martial Power", "release_date": "2008-11-18", "edition_era": "core" },
+    "MP2": { "title": "Martial Power 2", "release_date": "2010-02-16", "edition_era": "core" },
+    "AP": { "title": "Arcane Power", "release_date": "2009-04-21", "edition_era": "core" },
+    "DP": { "title": "Divine Power", "release_date": "2009-07-21", "edition_era": "core" },
+    "PrP": { "title": "Primal Power", "release_date": "2009-09-15", "edition_era": "core" },
+    "PsP": { "title": "Psionic Power", "release_date": "2010-08-17", "edition_era": "core" },
+    "Psionic Power": { "title": "Psionic Power", "release_date": "2010-08-17", "edition_era": "core" },
+    "HotFL": { "title": "Heroes of the Fallen Lands", "release_date": "2010-09-21", "edition_era": "core" },
+    "HotFK": { "title": "Heroes of the Forgotten Kingdoms", "release_date": "2010-11-16", "edition_era": "core" },
+    "FRPG": { "title": "Forgotten Realms Player's Guide", "release_date": "2008-08-19", "edition_era": "setting" },
+    "FRCG": { "title": "Forgotten Realms Campaign Guide", "release_date": "2008-08-19", "edition_era": "setting" },
+    "EPG": { "title": "Eberron Player's Guide", "release_date": "2009-06-16", "edition_era": "setting" },
+    "DSCS": { "title": "Dark Sun Campaign Setting", "release_date": "2010-08-17", "edition_era": "setting" },
+    "PH Races": { "title": "Player's Handbook Races (line)", "release_date": null, "edition_era": "core" }
+  }
+}

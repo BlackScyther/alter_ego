@@ -109,3 +109,80 @@ export function getCompendiumEntry(category, entryId) {
 export function compendiumUsesSqlite() {
   return Boolean(getCompendiumDb());
 }
+
+/**
+ * @param {string} table
+ */
+function compendiumHasTable(table) {
+  const database = getCompendiumDb();
+  if (!database) return false;
+  return Boolean(
+    database.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name = ?`).get(table)
+  );
+}
+
+/** True when the normalized compendium tables are present. */
+export function compendiumUsesNormalized() {
+  return compendiumHasTable('class') || compendiumHasTable('race');
+}
+
+/**
+ * All distinct source-book codes the normalizer recorded (one row per code,
+ * including those without a known date). Empty when the normalized DB is absent.
+ * @returns {string[]}
+ */
+export function listSourceBookCodes() {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('source_books')) return [];
+  return database
+    .prepare(`SELECT code FROM source_books ORDER BY code`)
+    .all()
+    .map((r) => r.code)
+    .filter(Boolean);
+}
+
+/**
+ * Normalized equipment stats for an item id (armor/weapon), else null. Mirrors
+ * the browser provider so server-side spawn can use structured stats.
+ * @param {string} entryId
+ */
+export function getNormalizedItemStats(entryId) {
+  const database = getCompendiumDb();
+  if (!database) return null;
+  const name = compendiumHasTable('item')
+    ? database.prepare(`SELECT name FROM item WHERE id = ? LIMIT 1`).get(entryId)?.name ?? entryId
+    : entryId;
+  if (compendiumHasTable('armor_stats')) {
+    const a = database.prepare(`SELECT * FROM armor_stats WHERE item_id = ? LIMIT 1`).get(entryId);
+    if (a) {
+      return a.is_shield
+        ? { kind: 'shield', name, acBonus: a.ac_bonus, refBonus: a.ref_bonus, checkPenalty: a.check_penalty }
+        : {
+            kind: 'armor',
+            name,
+            acBonus: a.ac_bonus,
+            checkPenalty: a.check_penalty,
+            speedPenalty: a.speed_penalty,
+            isHeavy: !!a.is_heavy,
+            armorCategory: a.armor_category
+          };
+    }
+  }
+  if (compendiumHasTable('weapon_stats')) {
+    const w = database.prepare(`SELECT * FROM weapon_stats WHERE item_id = ? LIMIT 1`).get(entryId);
+    if (w) {
+      const stats = {
+        kind: 'weapon',
+        name,
+        proficiencyBonus: w.proficiency_bonus,
+        damageDice: w.damage_dice,
+        weaponGroup: w.weapon_group,
+        range: w.range,
+        attackAbility: w.attack_ability
+      };
+      if (w.ranged_attack_ability) stats.rangedAttackAbility = w.ranged_attack_ability;
+      return stats;
+    }
+  }
+  return null;
+}

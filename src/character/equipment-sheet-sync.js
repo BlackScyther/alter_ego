@@ -11,7 +11,10 @@ import {
 } from './equipment-selections.js';
 import {
   attackAbilityForWeapon,
-  getEquipmentStats
+  enhancementFromLevel,
+  getDefenseEnhancementInfo,
+  getEquipmentStats,
+  levelFromEntry
 } from './equipment-stats.js';
 import { parseClassEntry } from './class-parse.js';
 
@@ -59,6 +62,11 @@ function clearEquipmentDerivedSheet(character) {
   character.sheet.armorPenaltyGlobal = 0;
   character.sheet.speed.armor = 0;
   character.sheet.armorIsHeavy = false;
+  // Equipment-managed enhancement bonuses to Fort/Ref/Will (e.g. Amulet of
+  // Protection). Reset each sync, then re-derived from equipped items below.
+  character.sheet.defenses.fort.enh = 0;
+  character.sheet.defenses.ref.enh = 0;
+  character.sheet.defenses.will.enh = 0;
 
   const keysToClear = [
     'melee-name',
@@ -110,6 +118,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   let checkPenalty = 0;
   let speedPenalty = 0;
   let armorIsHeavy = false;
+  const defenseEnh = { ac: 0, fort: 0, ref: 0, will: 0 };
 
   /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats> }>} */
   const weapons = [];
@@ -119,7 +128,23 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     if (!item) continue;
     const entry = await compendium.getEntry(item.compendiumId);
     if (!entry) continue;
-    const stats = getEquipmentStats(entry);
+
+    const defEnhInfo = getDefenseEnhancementInfo(entry);
+    if (defEnhInfo) {
+      const level = item.level ?? levelFromEntry(entry) ?? 1;
+      const bonus = enhancementFromLevel(level);
+      for (const def of defEnhInfo.defenses) {
+        defenseEnh[def] = (defenseEnh[def] || 0) + bonus;
+      }
+    }
+
+    // Prefer normalized stats from the compendium DB when present; fall back to
+    // runtime HTML parsing for any item not yet covered by the normalizer.
+    const normalizedStats =
+      typeof compendium.getNormalizedItemStats === 'function'
+        ? await compendium.getNormalizedItemStats(item.compendiumId)
+        : null;
+    const stats = normalizedStats ?? getEquipmentStats(entry);
     if (!stats) continue;
 
     if (stats.kind === 'armor') {
@@ -147,6 +172,9 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   character.sheet.armorPenaltyGlobal = checkPenalty;
   character.sheet.speed.armor = speedPenalty;
   character.sheet.armorIsHeavy = armorIsHeavy;
+  character.sheet.defenses.fort.enh = defenseEnh.fort;
+  character.sheet.defenses.ref.enh = defenseEnh.ref;
+  character.sheet.defenses.will.enh = defenseEnh.will;
 
   const scores = getFinalScores(character);
   const mainWeapon = weapons.find((w) => w.slotId === 'mainHand') ?? weapons[0];

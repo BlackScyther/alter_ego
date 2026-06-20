@@ -19,6 +19,19 @@ for (const cls of Object.values(presets.classes ?? {})) {
 }
 
 /**
+ * Merged hybrid class stats persisted on the character, when hybrid mode is
+ * active and both classes resolved (see applyHybridClassStats). Returns null
+ * for non-hybrid characters so the normal preset/parse path is used.
+ * @param {object} character
+ */
+function hybridStatsFor(character) {
+  const sel = character?.selections;
+  if (!sel?.classHybrid) return null;
+  const merged = sel.hybridMerged;
+  return merged && merged.hpAt1Base != null ? merged : null;
+}
+
+/**
  * @param {object} character
  */
 export function ensureDerivedBonuses(character) {
@@ -74,7 +87,8 @@ export function getClassHpPerLevel(classId, classEntry = null) {
  */
 export function computeLevel1MaxHp(character, classEntry = null) {
   const classId = classEntry?.id ?? character.selections?.classId;
-  const classHp = getClassMaxHpAt1(classId, classEntry);
+  const hybrid = hybridStatsFor(character);
+  const classHp = hybrid ? hybrid.hpAt1Base : getClassMaxHpAt1(classId, classEntry);
   if (classHp == null) return null;
 
   const scores = character.abilities?.scores ?? {};
@@ -100,14 +114,15 @@ export function computeLevel1MaxHp(character, classEntry = null) {
 export function computeMaxHp(character, classEntry = null) {
   const classId = classEntry?.id ?? character.selections?.classId;
   const sheetHp = character.sheet?.hp ?? {};
+  const hybrid = hybridStatsFor(character);
 
-  let classHp = getClassMaxHpAt1(classId, classEntry);
+  let classHp = hybrid ? hybrid.hpAt1Base : getClassMaxHpAt1(classId, classEntry);
   if (classHp == null && Number.isFinite(Number(sheetHp.classBase))) {
     classHp = Number(sheetHp.classBase);
   }
   if (classHp == null) return null;
 
-  let perLevel = getClassHpPerLevel(classId, classEntry);
+  let perLevel = hybrid ? hybrid.hpPerLevel : getClassHpPerLevel(classId, classEntry);
   if (perLevel == null && Number.isFinite(Number(sheetHp.perLevel))) {
     perLevel = Number(sheetHp.perLevel);
   }

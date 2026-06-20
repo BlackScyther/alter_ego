@@ -352,22 +352,49 @@ export class CompendiumProvider {
 
       let powerClause = '';
       const powerParams = [];
-      if (className) {
-        const patterns = classNameLikePatterns(className);
-        if (patterns.length) {
-          powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.ClassName')) LIKE ?`).join(' OR ')})`;
-          powerParams.push(...patterns);
+      // Prefer the normalized `power` table for power filtering when present:
+      // exact power_type and an indexed level/class_name column replace the
+      // brittle json_extract LIKE patterns (e.g. '%enc.%'). Falls back to the
+      // JSON path for older DBs without the normalized table.
+      const useNormalizedPower = powerFilters && this._hasTable('power');
+      if (useNormalizedPower) {
+        const conds = [];
+        if (className) {
+          const patterns = classNameLikePatterns(className);
+          if (patterns.length) {
+            conds.push(`(${patterns.map(() => `lower(class_name) LIKE ?`).join(' OR ')})`);
+            powerParams.push(...patterns);
+          }
         }
-      }
-      if (level != null && level !== '') {
-        powerClause += ` AND cast(json_extract(listing_fields, '$.Level') as integer) = ?`;
-        powerParams.push(parseInt(String(level), 10));
-      }
-      if (powerType) {
-        const patterns = powerTypeLikePatterns(powerType);
-        if (patterns.length) {
-          powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.Type')) LIKE ?`).join(' OR ')})`;
-          powerParams.push(...patterns);
+        if (level != null && level !== '') {
+          conds.push(`level = ?`);
+          powerParams.push(parseInt(String(level), 10));
+        }
+        if (powerType) {
+          conds.push(`power_type = ?`);
+          powerParams.push(powerType);
+        }
+        if (conds.length) {
+          powerClause = ` AND id IN (SELECT id FROM power WHERE ${conds.join(' AND ')})`;
+        }
+      } else {
+        if (className) {
+          const patterns = classNameLikePatterns(className);
+          if (patterns.length) {
+            powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.ClassName')) LIKE ?`).join(' OR ')})`;
+            powerParams.push(...patterns);
+          }
+        }
+        if (level != null && level !== '') {
+          powerClause += ` AND cast(json_extract(listing_fields, '$.Level') as integer) = ?`;
+          powerParams.push(parseInt(String(level), 10));
+        }
+        if (powerType) {
+          const patterns = powerTypeLikePatterns(powerType);
+          if (patterns.length) {
+            powerClause += ` AND (${patterns.map(() => `lower(json_extract(listing_fields, '$.Type')) LIKE ?`).join(' OR ')})`;
+            powerParams.push(...patterns);
+          }
         }
       }
 
@@ -512,13 +539,191 @@ export class CompendiumProvider {
          FROM entries WHERE id = ? LIMIT 1`,
         [id]
       );
-      if (rows.length) return rowToEntry(rows[0]);
+      if (rows.length) {
+        const entry = rowToEntry(rows[0]);
+        // Attach the authoritative worn-item slot from the normalized table so
+        // slot eligibility (getEligibleSlotsForEntry) doesn't have to guess from
+        // the often-empty Type field or the item name.
+        if (entry?.category_slug === 'item' && this._hasTable('item')) {
+          const slotRow = this._queryAll(`SELECT slot FROM item WHERE id = ? LIMIT 1`, [id]);
+          if (slotRow[0]?.slot) entry.slot = slotRow[0].slot;
+        }
+        return entry;
+      }
     }
     return null;
   }
 
+  // --- Normalized compendium read path ------------------------------------
+  // These query the structured tables written by tools/normalize/normalize.mjs.
+  // When those tables are absent (older DB, stub, or unavailable) every method
+  // returns null/empty so callers transparently fall back to the parse path.
+
+  /** @param {string} name */
+  _hasTable(name) {
+    if (!this._usesSqlite()) return false;
+    if (!this._tableCache) this._tableCache = new Map();
+    if (this._tableCache.has(name)) return this._tableCache.get(name);
+    let exists = false;
+    try {
+      const rows = this._queryAll(
+        `SELECT 1 FROM sqlite_master WHERE type='table' AND name = ? LIMIT 1`,
+        [name]
+      );
+      exists = rows.length > 0;
+    } catch {
+      exists = false;
+    }
+    this._tableCache.set(name, exists);
+    return exists;
+  }
+
+  /** True when the normalized tables are present and should be preferred. */
+  async usesNormalized() {
+    await this.ready();
+    return this._hasTable('race') || this._hasTable('class');
+  }
+
+  /**
+   * Parent -> subrace id map from the normalized `race_subrace` table.
+   * @returns {Promise<Record<string, string[]> | null>}
+   */
+  async getRaceSubraceMap() {
+    await this.ready();
+    if (!this._hasTable('race_subrace')) return null;
+    const rows = this._queryAll(
+      `SELECT parent_race_id, subrace_race_id FROM race_subrace`
+    );
+    /** @type {Record<string, string[]>} */
+    const map = {};
+    for (const r of rows) {
+      (map[r.parent_race_id] ??= []).push(r.subrace_race_id);
+    }
+    return map;
+  }
+
+  /**
+   * Normalized class record (traits + defense bonuses + trained skills + builds).
+   * @param {string} id
+   */
+  async getNormalizedClass(id) {
+    await this.ready();
+    if (!this._hasTable('class')) return null;
+    const rows = this._queryAll(`SELECT * FROM class WHERE id = ? LIMIT 1`, [id]);
+    if (!rows.length) return null;
+    const cls = rows[0];
+    cls.defenseBonuses = this._queryAll(
+      `SELECT defense, amount FROM class_defense_bonus WHERE class_id = ?`,
+      [id]
+    );
+    cls.trainedSkills = this._queryAll(
+      `SELECT skill_id, kind, choose_count FROM class_trained_skill WHERE class_id = ?`,
+      [id]
+    );
+    cls.buildOptions = this._queryAll(
+      `SELECT id, label FROM class_build_option WHERE class_id = ?`,
+      [id]
+    );
+    cls.proficiencies = this._hasTable('class_proficiency')
+      ? this._queryAll(`SELECT kind, value FROM class_proficiency WHERE class_id = ?`, [id])
+      : [];
+    return cls;
+  }
+
+  /**
+   * Normalized power rows (exact power_type/level/class_name columns), else null.
+   * @param {{ className?: string, level?: number, powerType?: string, limit?: number }} [opts]
+   */
+  async listNormalizedPowers(opts = {}) {
+    await this.ready();
+    if (!this._hasTable('power')) return null;
+    const conds = [];
+    const params = [];
+    if (opts.className) {
+      conds.push(`lower(class_name) LIKE ?`);
+      params.push(`%${String(opts.className).toLowerCase()}%`);
+    }
+    if (opts.level != null && opts.level !== '') {
+      conds.push(`level = ?`);
+      params.push(parseInt(String(opts.level), 10));
+    }
+    if (opts.powerType) {
+      conds.push(`power_type = ?`);
+      params.push(opts.powerType);
+    }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    return this._queryAll(
+      `SELECT id, name, class_name, level, power_type, action, source_book FROM power ${where} ORDER BY name COLLATE NOCASE LIMIT ?`,
+      [...params, opts.limit ?? 500]
+    );
+  }
+
+  /**
+   * Normalized equipment stats for an item id (armor or weapon), else null.
+   * @param {string} id
+   */
+  async getNormalizedItemStats(id) {
+    await this.ready();
+    const name = this._hasTable('item')
+      ? this._queryAll(`SELECT name FROM item WHERE id = ? LIMIT 1`, [id])[0]?.name ?? id
+      : id;
+    if (this._hasTable('armor_stats')) {
+      const a = this._queryAll(`SELECT * FROM armor_stats WHERE item_id = ? LIMIT 1`, [id]);
+      if (a.length) {
+        const r = a[0];
+        return r.is_shield
+          ? { kind: 'shield', name, acBonus: r.ac_bonus, refBonus: r.ref_bonus, checkPenalty: r.check_penalty }
+          : {
+              kind: 'armor',
+              name,
+              acBonus: r.ac_bonus,
+              checkPenalty: r.check_penalty,
+              speedPenalty: r.speed_penalty,
+              isHeavy: !!r.is_heavy,
+              armorCategory: r.armor_category
+            };
+      }
+    }
+    if (this._hasTable('weapon_stats')) {
+      const w = this._queryAll(`SELECT * FROM weapon_stats WHERE item_id = ? LIMIT 1`, [id]);
+      if (w.length) {
+        const r = w[0];
+        const stats = {
+          kind: 'weapon',
+          name,
+          proficiencyBonus: r.proficiency_bonus,
+          damageDice: r.damage_dice,
+          weaponGroup: r.weapon_group,
+          range: r.range,
+          attackAbility: r.attack_ability
+        };
+        if (r.ranged_attack_ability) stats.rangedAttackAbility = r.ranged_attack_ability;
+        return stats;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Source-book release dates for the GM's "filter source by date" feature.
+   * @returns {Promise<Record<string, { title: string, release_date: string | null, edition_era: string | null }> | null>}
+   */
+  async getSourceBookDates() {
+    await this.ready();
+    if (!this._hasTable('source_books')) return null;
+    const rows = this._queryAll(
+      `SELECT code, title, release_date, edition_era FROM source_books`
+    );
+    /** @type {Record<string, object>} */
+    const map = {};
+    for (const r of rows) {
+      map[r.code] = { title: r.title, release_date: r.release_date, edition_era: r.edition_era };
+    }
+    return map;
+  }
+
   getStatus() {
-    return { mode: this.mode, dbPath: this.dbPath };
+    return { mode: this.mode, dbPath: this.dbPath, normalized: this._hasTable('class') };
   }
 }
 

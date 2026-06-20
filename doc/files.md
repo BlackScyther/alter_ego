@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-06-17 (GM Workshop homebrew)
+**Last updated:** 2026-06-20 (item_level tiers + GM source-date filter/editor)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -16,6 +16,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `roadmap.md` | Phases, completed online-campaign plan, backlog |
 | `todos.md` | Host, developer, and agent checklists |
 | `architecture.md` | Stack, API, data flows |
+| `compendium-schema.md` | Normalized compendium schema + ETL pipeline (tools/normalize), read path, hybrid (B-024) rules |
 | `game-editor.md` | GM encounters: rest mode, initiative, rewards ([game-editor.md](game-editor.md)) |
 | `deploy-online.md` | VPS deploy: static app + Node API |
 | `mac-build-ohne-mac.md` | macOS CI builds without a Mac |
@@ -56,6 +57,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `starting-equipment.json` | Level-1 starting equipment kits by class/build (PHB Fighter kits; stub Fighter fallback) |
 | `equipment-stats-overrides.json` | PHB mundane armor/weapon stats for sheet sync when compendium body lacks parseable fields |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
+| `source-books.json` | Source-book reference (title/release_date/edition_era) seeding the normalized `source_books` table; the **writable** source of truth for the GM's "filter source by date" (edited via `PUT /api/source-books/:code`) |
 | `README.md` | Index of metadata files; points to Alter Ego `PROJECT.md` |
 
 ## `data/`
@@ -98,20 +100,27 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `race-parse.test.mjs` | Race HTML parsing, metric helpers, notes compaction, power-card stripping |
 | `race-selections.test.mjs` | Race build decisions: powers gated behind manifestation choice |
 | `compendium-links.test.mjs` | Compendium term linking (longest-first, boundaries) |
+| `normalize.test.mjs` | Normalizer ETL: tables created, race/subrace split, exact `power_type`, armor/weapon stats, multi-tier `item_level` split + parent cost, source-book dates, meta counts |
+| `hybrid-merge.test.mjs` | PH3 hybrid merge math, proficiency intersection/union, pairing rule, power coverage |
+| `subrace-hydrate.test.mjs` | `race-subraces.js` static default + DB hydration (`setSubraceMap`/`hydrateSubracesFromProvider`) |
+| `hybrid-sheet.test.mjs` | Hybrid HP/surge wiring: `computeMaxHp` prefers `selections.hybridMerged` when hybrid; `applyHybridClassStats` merges both classes onto the sheet |
+| `equipment-slot.test.mjs` | Worn-item slot eligibility prefers the normalized `item.slot` (amulet/cloak → neck, ring → ring1/ring2), with name-heuristic fallback |
 
 ## `server/`
 
 | File | Role |
 |------|------|
-| `index.mjs` | Express app: CORS, rate limit, `/api/campaigns`, `/api/homebrew` |
+| `index.mjs` | Express app: CORS, rate limit, `/api/campaigns`, `/api/homebrew`, `/api/source-books` |
 | `db.mjs` | SQLite schema and queries (includes `homebrew_entries`) |
 | `auth.mjs` | Bearer token hashing and middleware (`requireAnyGmToken` for homebrew writes) |
 | `validate-character.mjs` | API-side character JSON validation |
 | `routes/campaigns.mjs` | Create campaign, list/sync characters, GM rewards |
 | `routes/encounters.mjs` | Encounters + actors; phase PATCH |
 | `routes/homebrew.mjs` | Shared homebrew CRUD (`GET` public; writes require GM token) |
+| `routes/source-books.mjs` | Source-book dates: `GET` public, `PUT /:code` requires GM token |
 | `homebrew.mjs` | Homebrew entry storage, `hbrw_{gm}` SourceBook, index text |
-| `compendium.mjs` | Server compendium lookup (official + `hb_*` homebrew ids) |
+| `source-books.mjs` | Read/write `metadata/source-books.json`; `getSourceBooks` merges the seed with all normalizer-discovered codes; validates date/era on `updateSourceBook` |
+| `compendium.mjs` | Server compendium lookup (official + `hb_*` homebrew ids); `listSourceBookCodes()` for the date editor |
 | `apply-rewards.mjs` | GM reward application + compendium stub lookup |
 | `spawn-actor.mjs` | Spawn party/compendium/duplicate/blank actors |
 
@@ -122,6 +131,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `campaign-session.js` | `sessionStorage` for campaign id, role, token |
 | `campaign-api.js` | Client for `/api/campaigns` |
 | `homebrew-api.js` | Client for `/api/homebrew` (Workshop CRUD) |
+| `source-books-api.js` | Client for `/api/source-books` (`getSourceBookDates` with DB fallback, `saveSourceBook`) |
 | `gm-campaign-registry.js` | GM localStorage registry for multiple campaigns (tokens, invite URLs) |
 | `encounter-api.js` | GM client for `/api/campaigns/:id/encounters` (phase, HP, initiative) |
 | `rewards-api.js` | GM client for `POST …/characters/:id/rewards` |
@@ -196,7 +206,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `io.js` | Export/import `{Name}_{level}.json` filenames and parsing |
 | `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
 | `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking, and level-up ability score increases (`ASI_PAIR_LEVELS`/`ASI_ALL_LEVELS`, `abilityLevelIncreases`, `setLevelIncrease`, `pendingAbilityIncreaseLevels`) |
-| `race-subraces.js` | Core/subrace map helpers and base-race filtering |
+| `race-subraces.js` | Core/subrace map helpers and base-race filtering; runtime map is hydratable from the normalized `race_subrace` table (`setSubraceMap`/`hydrateSubracesFromProvider`), defaulting to `metadata/race-subraces.json` |
 | `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices) |
 | `race-selections.js` | Race step validation, build/bonus choices, grant sync |
 | `background-parse.js` | Parse background HTML (iws.mx inline skills + raw narrative), preview fold, skill picker, compact notes |
@@ -205,13 +215,14 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `background-effect-selections.js` | Persist HP-substitute ability choice on character |
 | `class-effects.js` | Static initiative bonuses from class features (curated override-first, conditional phrasing skipped); composes with background initiative |
 | `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names) |
-| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync; persists class HP params and recomputes Max HP for the current level |
-| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape, HP-substitute tutor hint |
-| `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; shields equip to off hand |
-| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text |
-| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines |
+| `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync; persists class HP params and recomputes Max HP for the current level; `applyHybridClassStats` merges two normalized classes (PH3) into sheet HP/surges/speed and persists `selections.hybridMerged` |
+| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
+| `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
+| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text; `getDefenseEnhancementInfo`/`enhancementFromLevel`/`levelFromEntry` drive level-scaled defense items (Amulet of Protection → Fort/Ref/Will) |
+| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`, derived from each item's level) |
 | `starting-equipment.js` | Level-1 kit resolve/apply (`resolveStartingKit`, `applyStartingKit`, `getRecommendedStartingKitMeta`); auto-seed on create; force-apply for recommend button |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
+| `hybrid-merge.js` | PH3 hybrid-character combination from two normalized class records: HP/surge math, combined skills (any three), armor/shield proficiency intersection + weapon/implement union, `hybridPairAllowed` (no two subclasses of one class), `hybridPowerCoverage` (one power of each type from both) |
 | `party-loader.js` | Loads party JSON for GM console |
 
 ## `src/playlist/`
@@ -231,15 +242,15 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `editor.css` | Editor layout, race step, sheet-mirror tabs (resizable body: `height: max(40vh, 220px)`, `resize: vertical`), compendium hover cards |
 | `collapsible-chevron.js` | Shared SVG chevron for collapsible editor panels (sheet mirror, character collection) |
 | `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields |
-| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts are readonly (auto-derived from ability scores) |
+| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts and Fort/Ref/Will `${def}-enh` parts are readonly (auto-derived from ability scores / equipped enhancement items) |
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
 | `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link |
 | `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
 | `steps/feat-step.js` | Feat slots grouped by tier + shared combobox; **Recommended feats for this class** button; compendium open link (↗) on filled slots; source combo filter above picker |
-| `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field |
-| `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat, equipment) |
+| `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field; inline **Item level** control on equipped level-scaled defense items (Amulet of Protection) |
+| `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat, equipment); opt-in "released on/before" date filter (`showDate`) with `resolveSourceBooksByDate(dateMap, cutoff)` (used by the GM Workshop duplicate picker) |
 | `choice-guide.js` | Sequential pending-choice highlight, scroll, and focus (race + class steps) |
 | `steps/race-grants-panel.js` | Racial power/feat tile cards on race step |
 
@@ -284,10 +295,10 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `campaigns/encounters/encounters.js` | Encounters page logic |
 | `campaigns/encounters/encounters.css` | Encounters layout |
 | `campaigns-panel.js` | Expandable multi-campaign list, create, invite copy, party polling |
-| `workshop/index.html` | GM Workshop: category dashboard + homebrew entry editor |
-| `workshop/workshop.js` | Workshop page: GM slug, category list, entry CRUD |
-| `workshop/workshop.css` | Workshop dashboard grid and editor dialog layout |
-| `workshop/entry-editor-dialog.js` | Entry editor modal with live compendium-parity preview |
+| `workshop/index.html` | GM Workshop: category dashboard + homebrew entry editor + Source-dates dialog |
+| `workshop/workshop.js` | Workshop page: GM slug, category list, entry CRUD, Source-dates editor (`getSourceBookDates`/`saveSourceBook`) |
+| `workshop/workshop.css` | Workshop dashboard grid, editor + source-dates dialog layout |
+| `workshop/entry-editor-dialog.js` | Entry editor modal with live compendium-parity preview; duplicate picker has the source + "released on/before" date filter |
 | `workshop/category-columns.js` | Listing column defs per compendium category (PROJECT.md §5.2) |
 | `workshop/render-entry-preview.js` | Shared preview renderer for Workshop and compendium detail |
 | `gm.css` | GM console styles |
@@ -304,7 +315,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew` |
+| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew`; normalized-first read methods (`usesNormalized`, `getRaceSubraceMap`, `getNormalizedClass`, `listNormalizedPowers`, `getNormalizedItemStats`, `getSourceBookDates`) with parse fallback; power filtering uses the normalized `power` table when present |
 
 ## `src/party/`
 
@@ -320,6 +331,13 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `README.md` | JSONP → SQLite pipeline spec (implementation external) |
+
+## `tools/normalize/`
+
+| File | Role |
+|------|------|
+| `normalize.mjs` | Compendium ETL: reads denormalized `entries`, writes normalized tables into the same SQLite file; reuses existing parsers; emits `normalize_warnings`. `parseItemTiers` splits level-scaled items into `item_level` rows and sets the parent `item.cost_gp` to the lowest tier. Flags `--src`/`--out`/`--from-stub`/`--report`/`--if-exists`. Scripts: `npm run normalize`, `npm run normalize:stub` |
+| `schema.sql` | Normalized table DDL (`source_books`, `race*`, `class*`, `power`, `item`/`item_level`/`armor_stats`/`weapon_stats`, `background*`, `norm_meta`, `normalize_warnings`) |
 
 ## URLs (dev server `npm start`)
 
