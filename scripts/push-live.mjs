@@ -31,7 +31,9 @@ const APP_SEGMENTS = [
   'player',
   'playlist',
   'sheet',
-  'compendium'
+  'compendium',
+  'resources',
+  'feedback'
 ];
 
 const SRC_ROOT_FILES = ['index.html', 'levels.html', 'dimensions.json'];
