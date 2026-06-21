@@ -1,0 +1,152 @@
+/* GM feedback statistics + management page. */
+
+.fb-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.fb-stat-card {
+  border: 1px solid var(--editor-border, #334155);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.85rem 1rem;
+}
+
+.fb-stat-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.fb-stat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fb-stat-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.fb-stat-list strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.fb-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.fb-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fb-filters select {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #475569;
+  border-radius: 0.4rem;
+  background: #1e293b;
+  color: inherit;
+}
+
+.fb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.fb-entry {
+  border: 1px solid #334155;
+  border-left: 4px solid #64748b;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.85rem 1rem;
+}
+
+.fb-entry--bug { border-left-color: #ef4444; }
+.fb-entry--stuck { border-left-color: #f59e0b; }
+.fb-entry--wrong { border-left-color: #f97316; }
+.fb-entry--missing { border-left-color: #a855f7; }
+.fb-entry--feature { border-left-color: #22c55e; }
+.fb-entry--different { border-left-color: #38bdf8; }
+
+.fb-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.fb-entry-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fb-entry-date {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.fb-entry-meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.fb-entry-message {
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.fb-entry-contact {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.fb-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.fb-status-select {
+  min-height: 2.5rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #475569;
+  border-radius: 0.4rem;
+  background: #1e293b;
+  color: inherit;
+}

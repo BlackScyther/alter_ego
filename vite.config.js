@@ -65,7 +65,8 @@ function trailingSlashRedirectPlugin() {
     'join',
     'playlist',
     'levels',
-    'resources'
+    'resources',
+    'feedback'
   ];
   return {
     name: 'alter-ego-trailing-slash-redirect',

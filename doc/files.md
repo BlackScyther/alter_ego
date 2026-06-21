@@ -106,19 +106,22 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `subrace-hydrate.test.mjs` | `race-subraces.js` static default + DB hydration (`setSubraceMap`/`hydrateSubracesFromProvider`) |
 | `hybrid-sheet.test.mjs` | Hybrid HP/surge wiring: `computeMaxHp` prefers `selections.hybridMerged` when hybrid; `applyHybridClassStats` merges both classes onto the sheet |
 | `equipment-slot.test.mjs` | Worn-item slot eligibility prefers the normalized `item.slot` (amulet/cloak → neck, ring → ring1/ring2), with name-heuristic fallback |
+| `feedback-api.test.mjs` | Feedback API: public POST + validation (required/enum/length), GM-only list/stats/PATCH/DELETE, stats aggregation |
 
 ## `server/`
 
 | File | Role |
 |------|------|
-| `index.mjs` | Express app: CORS, rate limit, `/api/campaigns`, `/api/homebrew`, `/api/source-books` |
-| `db.mjs` | SQLite schema and queries (includes `homebrew_entries`) |
+| `index.mjs` | Express app: CORS, rate limit, `/api/campaigns`, `/api/homebrew`, `/api/source-books`, `/api/feedback` |
+| `db.mjs` | SQLite schema and queries (includes `homebrew_entries`, `feedback`) |
 | `auth.mjs` | Bearer token hashing and middleware (`requireAnyGmToken` for homebrew writes) |
 | `validate-character.mjs` | API-side character JSON validation |
+| `validate-feedback.mjs` | API-side feedback validation (category/area/severity enums, length caps, `prepareFeedback`) |
 | `routes/campaigns.mjs` | Create campaign, list/sync characters, GM rewards |
 | `routes/encounters.mjs` | Encounters + actors; phase PATCH |
 | `routes/homebrew.mjs` | Shared homebrew CRUD (`GET` public; writes require GM token) |
 | `routes/source-books.mjs` | Source-book dates: `GET` public, `PUT /:code` requires GM token |
+| `routes/feedback.mjs` | Feedback: `POST` public submit; `GET` list/`GET /stats`/`PATCH :id`/`DELETE :id` require GM token |
 | `homebrew.mjs` | Homebrew entry storage, `hbrw_{gm}` SourceBook, index text |
 | `source-books.mjs` | Read/write `metadata/source-books.json`; `getSourceBooks` merges the seed with all normalizer-discovered codes; validates date/era on `updateSourceBook` |
 | `compendium.mjs` | Server compendium lookup (official + `hb_*` homebrew ids); `listSourceBookCodes()` for the date editor |
@@ -132,6 +135,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `campaign-session.js` | `sessionStorage` for campaign id, role, token |
 | `campaign-api.js` | Client for `/api/campaigns` |
 | `homebrew-api.js` | Client for `/api/homebrew` (Workshop CRUD) |
+| `feedback-api.js` | Client for `/api/feedback` (`submitFeedback` public; `listFeedback`/`getFeedbackStats`/`setFeedbackStatus`/`deleteFeedback` GM) |
 | `source-books-api.js` | Client for `/api/source-books` (`getSourceBookDates` with DB fallback, `saveSourceBook`) |
 | `gm-campaign-registry.js` | GM localStorage registry for multiple campaigns (tokens, invite URLs) |
 | `encounter-api.js` | GM client for `/api/campaigns/:id/encounters` (phase, HP, initiative) |
@@ -206,6 +210,14 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `resources.js` | Fills the level table via `buildLevelTable(30)`, hydrates universal actions from `metadata/universal-actions.json` (`loadUniversalActionsMeta` + `compendium.getEntry` + `condenseRuleHtml`), and wires the Print button (toggles `.no-print` on unselected sections, then `window.print()`) |
 | `print-resources-dialog.js` | Pop-up `<dialog>` to choose which sections (Level values / Formula key / Universal actions) to print; remembers the choice in `sessionStorage` (`resources.print.sections`) |
 | `resources.css` | Universal-action layout and the local print-sections dialog styles |
+
+## `src/feedback/` — feedback submission (players + GMs)
+
+| File | Role |
+|------|------|
+| `index.html` | Categorized feedback form (problem/stuck/wrong/missing/feature/different) with optional area/severity/contact; links to GM stats when a GM session exists |
+| `feedback.js` | Reads session role + app version, validates, and POSTs via `submitFeedback`; `aria-live` status + offline notice |
+| `feedback.css` | Form layout reusing hub shell + editor variables |
 
 ## `src/character/` — document model & persistence
 
@@ -322,6 +334,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `workshop/workshop.css` | Workshop dashboard grid, editor + source-dates dialog layout |
 | `workshop/entry-editor-dialog.js` | Entry editor modal with live compendium-parity preview; duplicate picker has the source + "released on/before" date filter |
 | `workshop/category-columns.js` | Listing column defs per compendium category (PROJECT.md §5.2) |
+| `feedback/index.html` | GM feedback statistics + management page (gated on a GM session) |
+| `feedback/feedback-admin.js` | Loads stats + entries via `feedback-api.js`; filter, change status, delete (GM only) |
+| `feedback/feedback-admin.css` | Stats grid + entry list/card styles with per-category accent |
 | `workshop/render-entry-preview.js` | Shared preview renderer for Workshop and compendium detail |
 | `gm.css` | GM console styles |
 
@@ -373,4 +388,6 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `/src/gm/campaigns/` | Online campaign management |
 | `/src/gm/campaigns/encounters/` | Encounter tracker (initiative, rewards) |
 | `/src/gm/workshop/` | GM Workshop (shared homebrew compendium entries) |
+| `/src/gm/feedback/` | GM feedback statistics + management |
+| `/src/feedback/` | Feedback submission form (players + GMs) |
 | `/src/game/` | Legacy game editor |

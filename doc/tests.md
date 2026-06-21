@@ -48,6 +48,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
+| `tests/feedback-api.test.mjs` | Feedback API: public `POST` + validation (required fields, category/area enums, length caps), GM-only `GET`/`GET /stats`/`PATCH`/`DELETE` (401/403 without GM token), stats aggregation by category/area |
 | `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
 | `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback |
 | `tests/normalize.test.mjs` | Runs the normalizer ETL into a temp DB: tables created, race/subrace split, exact `power_type`, materialized armor/weapon stats, multi-tier `item_level` split (Amulet of Protection → 6 ascending tiers, parent `cost_gp` = lowest tier) + single-level items → one tier, source-book release dates, `norm_meta` counts |
@@ -170,6 +171,13 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 ### Campaigns (`/src/gm/campaigns/`)
 
 - [ ] **Online campaigns** — expand list; create multiple; active campaign shows invite and character count
+
+### Feedback (`/src/feedback/` and `/src/gm/feedback/`)
+
+- [ ] **Feedback** link present on player hub, launcher, home hub, GM console nav, and the character generator sidebar
+- [ ] Submit form: choosing a category + title + details and clicking **Send feedback** shows a thank-you (server running)
+- [ ] With the API offline, submit shows a clear "server may be offline" notice
+- [ ] GM stats page: without a GM session shows the "GM session required" panel; with one, shows totals + by category/area/status + most recurring, and entries can be filtered, status-changed, and deleted
 
 ### Legacy (developers only)
 

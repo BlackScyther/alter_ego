@@ -79,6 +79,25 @@ function migrate(database) {
 
     CREATE INDEX IF NOT EXISTS idx_homebrew_category ON homebrew_entries(category_slug);
     CREATE INDEX IF NOT EXISTS idx_homebrew_gm_slug ON homebrew_entries(gm_slug);
+
+    CREATE TABLE IF NOT EXISTS feedback (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      category TEXT NOT NULL,
+      severity TEXT,
+      area TEXT,
+      role TEXT,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      app_version TEXT,
+      user_agent TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      contact TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category);
+    CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
   `);
 
   const encounterCols = database.prepare(`PRAGMA table_info(encounters)`).all();
@@ -264,4 +283,133 @@ export function listCharacters(campaignId) {
     updatedAt: row.updated_at,
     character: JSON.parse(row.document_json)
   }));
+}
+
+export function insertFeedback({
+  id,
+  createdAt,
+  category,
+  severity = null,
+  area = null,
+  role = null,
+  title,
+  message,
+  appVersion = null,
+  userAgent = null,
+  status = 'open',
+  contact = null
+}) {
+  getDb()
+    .prepare(
+      `INSERT INTO feedback (
+         id, created_at, category, severity, area, role,
+         title, message, app_version, user_agent, status, contact
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      id,
+      createdAt,
+      category,
+      severity,
+      area,
+      role,
+      title,
+      message,
+      appVersion,
+      userAgent,
+      status,
+      contact
+    );
+}
+
+function rowToFeedback(row) {
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    category: row.category,
+    severity: row.severity,
+    area: row.area,
+    role: row.role,
+    title: row.title,
+    message: row.message,
+    appVersion: row.app_version,
+    userAgent: row.user_agent,
+    status: row.status,
+    contact: row.contact
+  };
+}
+
+export function getFeedback(id) {
+  const row = getDb().prepare(`SELECT * FROM feedback WHERE id = ?`).get(id);
+  return row ? rowToFeedback(row) : null;
+}
+
+export function listFeedback({ category, status, limit = 200, offset = 0 } = {}) {
+  const clauses = [];
+  const params = [];
+  if (category) {
+    clauses.push('category = ?');
+    params.push(category);
+  }
+  if (status) {
+    clauses.push('status = ?');
+    params.push(status);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+  const safeOffset = Math.max(0, Number(offset) || 0);
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM feedback ${where}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(...params, safeLimit, safeOffset);
+  return rows.map(rowToFeedback);
+}
+
+export function getFeedbackStats() {
+  const db = getDb();
+  const total = db.prepare(`SELECT COUNT(*) AS c FROM feedback`).get().c;
+  const byCategory = db
+    .prepare(
+      `SELECT category, COUNT(*) AS count FROM feedback
+       GROUP BY category ORDER BY count DESC`
+    )
+    .all();
+  const byStatus = db
+    .prepare(
+      `SELECT status, COUNT(*) AS count FROM feedback
+       GROUP BY status ORDER BY count DESC`
+    )
+    .all();
+  const byArea = db
+    .prepare(
+      `SELECT COALESCE(NULLIF(area, ''), 'unspecified') AS area, COUNT(*) AS count
+       FROM feedback GROUP BY area ORDER BY count DESC`
+    )
+    .all();
+  const topRecurring = db
+    .prepare(
+      `SELECT category, COALESCE(NULLIF(area, ''), 'unspecified') AS area, COUNT(*) AS count
+       FROM feedback GROUP BY category, area ORDER BY count DESC LIMIT 10`
+    )
+    .all();
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const last30Days = db
+    .prepare(`SELECT COUNT(*) AS c FROM feedback WHERE created_at >= ?`)
+    .get(cutoff).c;
+  return { total, last30Days, byCategory, byStatus, byArea, topRecurring };
+}
+
+export function updateFeedbackStatus(id, status) {
+  const info = getDb()
+    .prepare(`UPDATE feedback SET status = ? WHERE id = ?`)
+    .run(status, id);
+  return info.changes > 0;
+}
+
+export function deleteFeedback(id) {
+  const info = getDb().prepare(`DELETE FROM feedback WHERE id = ?`).run(id);
+  return info.changes > 0;
 }

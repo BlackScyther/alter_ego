@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Feedback and tracking</title>
+  <link rel="stylesheet" href="../app.css" />
+  <link rel="stylesheet" href="feedback.css" />
+</head>
+<body class="hub-page">
+  <main class="hub-shell hub-shell--wide" aria-label="Send feedback">
+    <header class="hub-header">
+      <p class="hub-kicker">Dungeons &amp; Dragons 4e</p>
+      <h1 class="hub-title">Feedback and tracking</h1>
+      <p class="hub-lead">
+        Tell us what broke, where you got stuck, what is missing or wrong, or what you wish for.
+        Your reports help find the most common problems.
+      </p>
+    </header>
+
+    <form id="feedback-form" class="feedback-form" novalidate>
+      <fieldset class="feedback-fieldset">
+        <legend>What kind of feedback is this?</legend>
+        <div class="feedback-categories">
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="bug" required />
+            <span><strong>Problem / bug</strong> — something is broken</span>
+          </label>
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="stuck" />
+            <span><strong>I got stuck</strong> — I could not proceed</span>
+          </label>
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="wrong" />
+            <span><strong>Wrong</strong> — works, but not per 4e rules</span>
+          </label>
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="missing" />
+            <span><strong>Missing</strong> — I expected this to exist</span>
+          </label>
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="feature" />
+            <span><strong>Feature wish</strong> — I would like this added</span>
+          </label>
+          <label class="feedback-radio">
+            <input type="radio" name="category" value="different" />
+            <span><strong>Do differently</strong> — a suggestion</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="feedback-field">
+        <span class="feedback-label">Short title <span aria-hidden="true">*</span></span>
+        <input type="text" id="feedback-title" name="title" maxlength="200" required
+          autocomplete="off" placeholder="One line summary" />
+      </label>
+
+      <label class="feedback-field">
+        <span class="feedback-label">Details <span aria-hidden="true">*</span></span>
+        <textarea id="feedback-message" name="message" rows="6" maxlength="4000" required
+          placeholder="What happened? What did you expect? Steps to reproduce if it is a bug."></textarea>
+      </label>
+
+      <label class="feedback-field">
+        <span class="feedback-label">Where did this happen? (optional)</span>
+        <select id="feedback-area" name="area">
+          <option value="">— Choose an area —</option>
+          <option value="editor">Character generator / editor</option>
+          <option value="sheet">Character sheet</option>
+          <option value="resources">Resources page</option>
+          <option value="gm">GM console</option>
+          <option value="campaigns">Campaigns</option>
+          <option value="encounters">Encounters</option>
+          <option value="workshop">Workshop</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+
+      <label class="feedback-field">
+        <span class="feedback-label">How serious is it? (optional)</span>
+        <select id="feedback-severity" name="severity">
+          <option value="">— Not sure —</option>
+          <option value="low">Low — minor annoyance</option>
+          <option value="medium">Medium — slows me down</option>
+          <option value="high">High — blocks me</option>
+        </select>
+      </label>
+
+      <label class="feedback-field">
+        <span class="feedback-label">Contact (optional)</span>
+        <input type="text" id="feedback-contact" name="contact" maxlength="200"
+          autocomplete="off" placeholder="Email or name, if you want a reply" />
+      </label>
+
+      <button type="submit" id="feedback-submit" class="hub-btn hub-btn-primary">Send feedback</button>
+
+      <ul class="validation-errors" id="feedback-errors" hidden></ul>
+      <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+    </form>
+
+    <nav class="hub-nav" aria-label="Feedback menu">
+      <a id="feedback-stats-link" href="../gm/feedback/index.html" class="hub-link hidden">View feedback statistics (GM)</a>
+      <a href="../launcher/index.html" class="hub-link">← Back to home</a>
+    </nav>
+  </main>
+  <script type="module" src="feedback.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+/* Feedback submission form styles (reuses hub shell + editor variables). */
+
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  text-align: left;
+}
+
+.feedback-fieldset {
+  margin: 0;
+  padding: 1rem 1.125rem 1.125rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 0.75rem;
+  background: var(--editor-surface);
+}
+
+.feedback-fieldset legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+  color: var(--editor-text);
+}
+
+.feedback-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.feedback-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--editor-muted);
+  cursor: pointer;
+}
+
+.feedback-radio:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.feedback-radio input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+
+.feedback-radio strong {
+  color: var(--editor-text);
+}
+
+.feedback-radio:focus-within {
+  border-color: var(--editor-accent);
+}
+
+.feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.feedback-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--editor-text);
+}
+
+.feedback-field input,
+.feedback-field select,
+.feedback-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 0.5rem;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font: inherit;
+}
+
+.feedback-field textarea {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.feedback-field input:focus-visible,
+.feedback-field select:focus-visible,
+.feedback-field textarea:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
+}
+
+.feedback-status {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--editor-accent);
+}
+
+.feedback-status--error {
+  color: var(--editor-danger);
+}
+
+.hidden {
+  display: none !important;
+}

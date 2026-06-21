@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Feedback statistics</title>
+  <link rel="stylesheet" href="../../app.css" />
+  <link rel="stylesheet" href="../gm.css" />
+  <link rel="stylesheet" href="feedback-admin.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <div class="gm-shell">
+    <nav class="editor-nav gm-nav" aria-label="GM navigation">
+      <h1>Feedback</h1>
+      <a href="../index.html">← GM Console</a>
+      <a href="../../feedback/index.html">Submit feedback</a>
+      <a href="../workshop/index.html">Workshop</a>
+      <a href="../campaigns/index.html">Campaigns</a>
+    </nav>
+
+    <main class="editor-main gm-main">
+      <section id="fb-no-session" class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6" hidden>
+        <h2 class="text-lg font-semibold m-0">GM session required</h2>
+        <p class="text-sm text-slate-400 mt-2 mb-0">
+          Open a campaign as GM first (via <a href="../campaigns/index.html" class="underline">Campaigns</a>),
+          then return here to see feedback statistics.
+        </p>
+      </section>
+
+      <div id="fb-workspace" hidden>
+        <section class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
+          <h2 class="text-lg font-semibold m-0">Statistics</h2>
+          <p id="fb-stats-summary" class="text-sm text-slate-400 mt-2">Loading…</p>
+          <div class="fb-stats-grid" id="fb-stats-grid"></div>
+        </section>
+
+        <section class="gm-campaign-panel rounded-xl border border-slate-700 bg-slate-900/80 p-4 mb-6">
+          <div class="fb-list-header">
+            <h2 class="text-lg font-semibold m-0">Entries</h2>
+            <div class="fb-filters">
+              <label>
+                <span class="text-sm text-slate-400">Category</span>
+                <select id="fb-filter-category">
+                  <option value="">All</option>
+                  <option value="bug">Problem / bug</option>
+                  <option value="stuck">Got stuck</option>
+                  <option value="wrong">Wrong</option>
+                  <option value="missing">Missing</option>
+                  <option value="feature">Feature wish</option>
+                  <option value="different">Do differently</option>
+                </select>
+              </label>
+              <label>
+                <span class="text-sm text-slate-400">Status</span>
+                <select id="fb-filter-status">
+                  <option value="">All</option>
+                  <option value="open">Open</option>
+                  <option value="triaged">Triaged</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="wontfix">Won't fix</option>
+                </select>
+              </label>
+              <button type="button" id="fb-refresh" class="btn-secondary min-h-11 px-4">Refresh</button>
+            </div>
+          </div>
+          <div id="fb-list" class="fb-list">Loading…</div>
+        </section>
+      </div>
+
+      <ul class="validation-errors" id="fb-errors" hidden></ul>
+    </main>
+  </div>
+
+  <script type="module" src="feedback-admin.js"></script>
+</body>
+</html>

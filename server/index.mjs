@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import campaignsRouter from './routes/campaigns.mjs';
 import homebrewRouter from './routes/homebrew.mjs';
 import sourceBooksRouter from './routes/source-books.mjs';
+import feedbackRouter from './routes/feedback.mjs';
 import { getDb } from './db.mjs';
 import { compendiumUsesSqlite } from './compendium.mjs';
 
@@ -45,6 +46,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/homebrew', homebrewRouter);
 app.use('/api/source-books', sourceBooksRouter);
+app.use('/api/feedback', feedbackRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
