@@ -1,0 +1,212 @@
+:root {
+  --ink: #1e293b;
+  --muted: #64748b;
+  --line: #cbd5e1;
+  --accent: #475569;
+  --atwill: #15803d;
+  --encounter: #b91c1c;
+  --daily: #1f2937;
+  /* Gap between cards and the minimum card height. A4 printable height with
+     10mm margins is 277mm; a ~124mm minimum means two card rows (plus a section
+     heading) fit per page but a third never does, so at most four cards print
+     per page. Cards grow past this minimum for long rule text instead of being
+     clipped (printed pages can't scroll). */
+  --card-gap: 6mm;
+  --card-h: 124mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cards-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.cards-toolbar-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cards-toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cards-toolbar-actions button {
+  cursor: pointer;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.cards-toolbar-actions button:hover {
+  background: #334155;
+}
+
+.cards-page {
+  padding: 1rem;
+}
+
+.cards-status {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.cards-status--error {
+  color: #b91c1c;
+}
+
+.rule-card-section {
+  margin: 0 0 1.25rem;
+}
+
+.rule-card-section-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.2rem;
+  /* Never leave a category heading stranded at the bottom of a page. */
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* Two-column grid where every card is at least a quarter of the page tall, so
+   at most four cards land on each A4 page. A card with long rule text grows
+   past this minimum (it is never clipped); when a row no longer fits, the card
+   moves to the next page. */
+.rule-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--card-gap);
+  align-items: start;
+}
+
+.rule-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  min-height: var(--card-h);
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--accent);
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.9rem 1rem 1rem;
+  overflow-wrap: anywhere;
+}
+
+.rule-card--atwill {
+  border-top-color: var(--atwill);
+}
+
+.rule-card--encounter {
+  border-top-color: var(--encounter);
+}
+
+.rule-card--daily {
+  border-top-color: var(--daily);
+}
+
+.rule-card-head {
+  margin-bottom: 0.5rem;
+}
+
+.rule-card-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.rule-card-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.rule-card-body {
+  font-size: 0.98rem;
+}
+
+.rule-card-body p {
+  margin: 0.25rem 0;
+}
+
+.rule-card-body h1,
+.rule-card-body h2,
+.rule-card-body h3 {
+  font-size: 1rem;
+  margin: 0.45rem 0 0.2rem;
+}
+
+/* Compendium rule-text markup that survives condensing. */
+.rule-card-body .powerstat {
+  margin: 0.2rem 0;
+}
+
+.rule-card-body blockquote {
+  margin: 0.3rem 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--line);
+}
+
+.rule-card-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Character-specific computed attack/damage values injected into rule text. */
+.rule-card-calc {
+  font-weight: 700;
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .cards-toolbar {
+    display: none;
+  }
+
+  .cards-page {
+    padding: 0;
+  }
+
+  .rule-card {
+    border-color: #94a3b8;
+  }
+}

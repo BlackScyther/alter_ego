@@ -45,6 +45,8 @@ let summaryEl = null;
 let portraitEl = null;
 /** @type {((character: object) => void) | null} */
 let onChangeHandler = null;
+/** @type {(() => void) | null} */
+let onPrintSheetHandler = null;
 let structureBuilt = false;
 let collapsed = false;
 /** @type {string} */
@@ -646,10 +648,12 @@ function setCollapsedState(next) {
 /**
  * @param {HTMLElement} container
  * @param {(fieldId: string, value: string|number|boolean) => void} onChange
+ * @param {() => void} [onPrintSheet]
  */
-export function initSheetMirror(container, onChange) {
+export function initSheetMirror(container, onChange, onPrintSheet) {
   rootEl = container;
   onChangeHandler = onChange;
+  onPrintSheetHandler = typeof onPrintSheet === 'function' ? onPrintSheet : null;
 
   try {
     collapsed = sessionStorage.getItem(COLLAPSE_KEY) === '1';
@@ -676,6 +680,11 @@ export function initSheetMirror(container, onChange) {
         <div class="sheet-mirror-portrait" hidden></div>
         <p class="sheet-mirror-summary m-0"></p>
       </div>
+      <button
+        type="button"
+        class="sheet-mirror-print"
+        aria-label="Open printable character sheet in a new tab"
+      >Print sheet</button>
     </div>
     <div id="sheet-mirror-body" class="sheet-mirror-body${collapsed ? ' sheet-mirror-body--collapsed' : ''}"></div>`;
 
@@ -686,6 +695,15 @@ export function initSheetMirror(container, onChange) {
   container.querySelector('.sheet-mirror-toggle')?.addEventListener('click', () => {
     setCollapsedState(!collapsed);
   });
+
+  const printBtn = container.querySelector('.sheet-mirror-print');
+  if (printBtn) {
+    if (onPrintSheetHandler) {
+      printBtn.addEventListener('click', () => onPrintSheetHandler?.());
+    } else {
+      printBtn.hidden = true;
+    }
+  }
 
   buildStructure();
   setCollapsedState(collapsed);

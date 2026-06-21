@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&amp;D 4e — Player resources</title>
+  <link rel="stylesheet" href="../sheet.css" />
+  <link rel="stylesheet" href="resources.css" />
+</head>
+<body class="sheet-body resources-body">
+  <div class="toolbar no-print resources-toolbar">
+    <a href="../launcher/index.html">← Home</a>
+    <a href="../player/index.html">Player tools</a>
+    <a href="../sheet/index.html">Character sheet</a>
+    <button type="button" id="btn-print">Print…</button>
+  </div>
+
+  <section class="levels-page resources-page">
+    <h1>D&amp;D 4e — Player resources</h1>
+    <p class="note">Shared reference that never changes — it applies to every character regardless of class or race.</p>
+
+    <section class="resources-section" id="section-levels" data-section="levels">
+      <h2>Values by Level (1–30)</h2>
+      <table class="levels-table">
+        <thead>
+          <tr>
+            <th>Level</th><th>Tier</th><th>½ Level</th><th>Defense 10+½</th><th>XP to Level</th><th>Mod+½Lvl @ score 10</th>
+          </tr>
+        </thead>
+        <tbody id="level-table-body"></tbody>
+      </table>
+    </section>
+
+    <section class="resources-section" id="section-formulas" data-section="formulas">
+      <h2>Formula key</h2>
+      <dl class="formula-key">
+        <dt>½ Level</dt><dd>floor(Level ÷ 2)</dd>
+        <dt>Ability modifier</dt><dd>floor((Score − 10) ÷ 2)</dd>
+        <dt>Mod + ½ Level</dt><dd>Ability modifier + ½ level</dd>
+        <dt>Initiative</dt><dd>DEX mod + ½ level + misc</dd>
+        <dt>Defense</dt><dd>10 + ½ level + ability + class + feat + enhance + misc + armor</dd>
+        <dt>Skill bonus</dt><dd>Ability mod + ½ level + 5 if trained + armor penalty + misc</dd>
+        <dt>Attack bonus</dt><dd>½ level + ability + class + prof + feat + enhance + misc</dd>
+        <dt>Passive Insight / Perception</dt><dd>10 + listed skill bonus</dd>
+        <dt>Bloodied / Surge</dt><dd>½ max HP / ¼ max HP (round down)</dd>
+      </dl>
+    </section>
+
+    <section class="resources-section" id="section-universal" data-section="universal">
+      <h2>Universal actions</h2>
+      <p class="note">Every character can use these actions, no matter their class or race.</p>
+      <div id="universal-actions" class="resources-universal">Loading universal actions…</div>
+    </section>
+  </section>
+
+  <script type="module" src="resources.js"></script>
+</body>
+</html>

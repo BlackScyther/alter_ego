@@ -1,6 +1,6 @@
 {
   "name": "alter-eger",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "private": true,
   "description": "Alter Ego — offline D&D 4e compendium, character tools, and DM party surface",
   "type": "module",
@@ -27,7 +27,7 @@
     "dev:api": "node server/index.mjs",
     "dev:all": "node scripts/dev-all.mjs",
     "test:api": "node scripts/test-campaign-api.mjs",
-    "test": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs tests/homebrew-api.test.mjs tests/homebrew-store.test.mjs tests/gm-campaign-registry.test.mjs tests/feat-selections.test.mjs tests/feat-prerequisite.test.mjs tests/background-prerequisite.test.mjs tests/background-parse.test.mjs tests/background-effects.test.mjs tests/power-selections.test.mjs tests/power-filter.test.mjs tests/power-prerequisite.test.mjs tests/race-subraces.test.mjs tests/race-parse.test.mjs tests/race-selections.test.mjs tests/compendium-links.test.mjs tests/class-parse.test.mjs tests/class-selections.test.mjs tests/character-collection.test.mjs tests/ritual-selections.test.mjs tests/tutor-bonus-table.test.mjs tests/compendium-entry-url.test.mjs tests/post-load.test.mjs tests/equipment-selections.test.mjs tests/starting-equipment.test.mjs tests/equipment-sheet-sync.test.mjs tests/defense-formulas.test.mjs tests/hybrid-merge.test.mjs tests/normalize.test.mjs tests/subrace-hydrate.test.mjs tests/hybrid-sheet.test.mjs tests/equipment-slot.test.mjs",
+    "test": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs tests/homebrew-api.test.mjs tests/homebrew-store.test.mjs tests/gm-campaign-registry.test.mjs tests/feat-selections.test.mjs tests/feat-prerequisite.test.mjs tests/background-prerequisite.test.mjs tests/background-parse.test.mjs tests/background-effects.test.mjs tests/power-selections.test.mjs tests/power-filter.test.mjs tests/power-prerequisite.test.mjs tests/race-subraces.test.mjs tests/race-parse.test.mjs tests/race-selections.test.mjs tests/compendium-links.test.mjs tests/class-parse.test.mjs tests/class-selections.test.mjs tests/character-collection.test.mjs tests/power-card-values.test.mjs tests/ritual-selections.test.mjs tests/tutor-bonus-table.test.mjs tests/compendium-entry-url.test.mjs tests/post-load.test.mjs tests/equipment-selections.test.mjs tests/starting-equipment.test.mjs tests/equipment-sheet-sync.test.mjs tests/defense-formulas.test.mjs tests/hybrid-merge.test.mjs tests/normalize.test.mjs tests/subrace-hydrate.test.mjs tests/hybrid-sheet.test.mjs tests/equipment-slot.test.mjs",
     "test:security": "node --test tests/html-escape.test.mjs tests/validate-character.test.mjs tests/character-io.test.mjs tests/party-loader.test.mjs tests/api-security.test.mjs"
   },
   "dependencies": {

@@ -54,7 +54,7 @@ const ITEM_TYPE_SLOT_PATTERNS = [
 ];
 
 /**
- * @typedef {{ instanceId: string, compendiumId: string, categorySlug: string, slotId: string | null, level?: number | null }} EquipmentItem
+ * @typedef {{ instanceId: string, compendiumId: string, categorySlug: string, slotId: string | null, level?: number | null, enhancement?: number | null }} EquipmentItem
  */
 
 /**
@@ -107,7 +107,8 @@ export function migrateEquipmentIdsToItems(character) {
     compendiumId,
     categorySlug: categorySlugFromCompendiumId(compendiumId),
     slotId: null,
-    level: null
+    level: null,
+    enhancement: null
   }));
   return character;
 }
@@ -254,6 +255,25 @@ export function setEquipmentItemLevel(character, instanceId, level) {
 }
 
 /**
+ * Set the magic enhancement bonus (+1/+2/+3) for a specific equipment instance
+ * (used by base weapons/armor turned magic). Pass null or 0 to make it mundane.
+ * @param {import('./model.js').Character} character
+ * @param {string} instanceId
+ * @param {number | null} bonus
+ */
+export function setEquipmentItemEnhancement(character, instanceId, bonus) {
+  const item = findEquipmentItem(character, instanceId);
+  if (!item) return character;
+  const n = Math.floor(Number(bonus));
+  if (!Number.isFinite(n) || n <= 0) {
+    item.enhancement = null;
+  } else {
+    item.enhancement = Math.min(3, Math.max(1, n));
+  }
+  return character;
+}
+
+/**
  * @param {import('./model.js').Character} character
  * @param {{ id: string, category_slug?: string, listing_fields?: Record<string, string> }} entry
  * @param {string | null} [slotId]
@@ -266,7 +286,8 @@ export function addEquipmentFromCompendium(character, entry, slotId = null) {
     compendiumId: entry.id,
     categorySlug,
     slotId: null,
-    level: null
+    level: null,
+    enhancement: null
   };
   character.selections.equipmentItems.push(item);
 

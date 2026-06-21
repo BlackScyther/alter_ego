@@ -101,6 +101,7 @@ import {
   initCharacterCollectionPanel
 } from './steps/character-collection-panel.js';
 import { loadUniversalActionsMeta } from './steps/power-collection-panel.js';
+import { openPrintCardsDialog } from './print-cards-dialog.js';
 import {
   ensureRitualSelectionsShape,
   pruneRitualSelections,
@@ -233,8 +234,50 @@ async function refreshCharacterCollection() {
     onActivateRitualSlot: (slotId) => {
       activeRitualSlotId = slotId;
       showRitualPicker(slotId);
-    }
+    },
+    onPrintCards: () => openPrintCards()
   });
+}
+
+/** Map rendered collection-section titles to print-card category keys. */
+const PRINT_CARD_SECTION_KEYS = {
+  Powers: 'powers',
+  Feats: 'feats',
+  Rituals: 'rituals'
+};
+
+/** Which card categories the current character actually has rendered. */
+function availablePrintCardCategories() {
+  const panel = $('#character-collection-panel');
+  const titles = panel
+    ? Array.from(panel.querySelectorAll('.character-collection-section .power-collection-group-title'))
+    : [];
+  const keys = [];
+  for (const el of titles) {
+    const key = PRINT_CARD_SECTION_KEYS[(el.textContent ?? '').trim()];
+    if (key && !keys.includes(key)) keys.push(key);
+  }
+  return keys;
+}
+
+/**
+ * Let the player choose which categories to print, then hand off the current
+ * working character (plus the chosen categories) to the printable rule-cards
+ * page and open it in a new tab. The card page reads (and clears) the handoff
+ * so it prints exactly what the player has built, including unsaved changes.
+ */
+async function openPrintCards() {
+  const available = availablePrintCardCategories();
+  const categories = await openPrintCardsDialog(available);
+  if (categories === null) return;
+
+  try {
+    localStorage.setItem('editor.printCards', JSON.stringify({ character, categories }));
+  } catch {
+    /* fall back to the active stored character on the cards page */
+  }
+  const url = new URL('../print/cards.html', location.href);
+  window.open(url.href, '_blank', 'noopener');
 }
 
 function showRitualPicker(slotId) {
@@ -1421,7 +1464,12 @@ function openSheet() {
   persist();
   stashCharacterForSheet(character);
   const sheetHref = withPlayerMode('../sheet/index.html?from=editor');
-  window.location.href = sheetHref;
+  // Prefer a new tab so the editor stays open. If the browser blocks the popup,
+  // fall back to same-tab navigation; the sheet toolbar has a link back here.
+  const sheetWindow = window.open(sheetHref, '_blank');
+  if (!sheetWindow) {
+    window.location.href = sheetHref;
+  }
 }
 
 async function init() {
@@ -1442,7 +1490,7 @@ async function init() {
 
   const mirrorPanel = $('#sheet-mirror-panel');
   if (mirrorPanel) {
-    initSheetMirror(mirrorPanel, handleSheetMirrorChange);
+    initSheetMirror(mirrorPanel, handleSheetMirrorChange, openSheet);
   }
 
   const collectionPanel = $('#character-collection-panel');
@@ -1571,7 +1619,6 @@ async function init() {
   $('#btn-next').addEventListener('click', nextStep);
   $('#btn-prev').addEventListener('click', prevStep);
   $('#btn-save').addEventListener('click', () => saveCharacterNow());
-  $('#btn-sheet').addEventListener('click', openSheet);
 
   updateDeleteButtons();
 }

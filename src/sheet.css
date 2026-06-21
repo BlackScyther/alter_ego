@@ -421,8 +421,12 @@ body.sheet-body {
   cursor: pointer;
 }
 
-#level-reference {
-  page-break-before: always;
+.toolbar a.toolbar-back {
+  font-weight: 700;
+  color: #1d4ed8;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  text-decoration: none;
 }
 
 /* Level reference page */

@@ -32,6 +32,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text |
 | `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
 | `tests/character-collection.test.mjs` | Class grant collection; racial powers stay out of the class-powers sheet note |
+| `tests/power-card-values.test.mjs` | Printable power-card math: ability-name mapping, signed formatting, full to-hit (half level + ability + weapon proficiency + enhancement + inline bonus), implement omits proficiency, weapon/implement enhancement folded into attack+damage per source, damage modifier, proficiency defaults to 0 when unsynced |
 | `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations |
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering |
@@ -42,7 +43,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
-| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks; level→enhancement mapping; Amulet of Protection → Fort/Ref/Will enh by item level |
+| `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks; level→enhancement mapping; Amulet of Protection → Fort/Ref/Will enh by item level; magic weapon → atk/dmg enh and magic armor → AC enh; magic implement → its bonus on the attack lines + `implement-enh` card field, melee line uses max(weapon, implement); `isEnhanceableEntry` (incl. implements)/`magicDisplayName`/`magicTierForBonus`/`magicTotalCostGp` + enhancement clamping |
 | `tests/defense-formulas.test.mjs` | `defenseAbilityMod` (higher of two ability mods per defense); feeds defense total (FORT level-3 example = 18) |
 | `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |

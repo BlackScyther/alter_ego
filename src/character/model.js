@@ -202,7 +202,8 @@ export function validateStep(stepId, character, editorMeta) {
 
   switch (stepId) {
     case 'basics':
-      if (!character.identity.playerName?.trim()) errors.push('Player name is required.');
+      // Player name is informational only (not used in any calculation), so it
+      // stays optional and never blocks progress.
       if (!character.identity.characterName?.trim()) errors.push('Character name is required.');
       if (lvl < 1 || lvl > 30) errors.push('Level must be between 1 and 30.');
       break;

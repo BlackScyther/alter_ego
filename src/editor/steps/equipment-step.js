@@ -13,12 +13,17 @@ import {
   getEligibleSlotsForEntry,
   getFirstEmptyEligibleSlot,
   isEntryEligibleForSlot,
-  setEquipmentItemLevel
+  setEquipmentItemLevel,
+  setEquipmentItemEnhancement
 } from '../../character/equipment-selections.js';
 import {
   enhancementFromLevel,
   getDefenseEnhancementInfo,
-  levelFromEntry
+  levelFromEntry,
+  isEnhanceableEntry,
+  magicDisplayName,
+  magicTierForBonus,
+  magicTotalCostGp
 } from '../../character/equipment-stats.js';
 import {
   renderComboboxHtml,
@@ -294,11 +299,13 @@ export async function renderEquipmentStep(panel, ctx) {
         }
         if (!item) {
           manageSlotLevelControl(wrap, null, null);
+          manageSlotMagicControl(wrap, null, null);
           if (metaEl) metaEl.textContent = 'Empty — click to choose';
           return;
         }
         const entry = await compendium.getEntry(item.compendiumId);
-        const name = entry?.listing_fields?.Name ?? 'Selected';
+        const baseName = entry?.listing_fields?.Name ?? 'Selected';
+        const name = magicDisplayName(baseName, item.enhancement);
         const meta = formatEquipmentListingMeta(entry?.listing_fields);
         if (metaEl) metaEl.textContent = meta ? `${name} — ${meta}` : name;
         if (openLink) {
@@ -307,6 +314,7 @@ export async function renderEquipmentStep(panel, ctx) {
           openLink.setAttribute('aria-label', `Open ${name} in compendium`);
         }
         manageSlotLevelControl(wrap, item, entry);
+        manageSlotMagicControl(wrap, item, entry);
       })
     );
   }
@@ -366,6 +374,73 @@ export async function renderEquipmentStep(panel, ctx) {
     if (hint) hint.textContent = `+${bonus} ${defenseList}`;
   }
 
+  /**
+   * Show or remove the inline "Magic bonus" selector for a slot. Base weapons
+   * and armor get a None/+1/+2/+3 dropdown whose choice drives the item's
+   * enhancement bonus, derived level, and price; everything else has no control.
+   * @param {Element | null} wrap - the `.power-slot-row-wrap` element
+   * @param {{ instanceId: string, enhancement?: number | null } | null} item
+   * @param {{ listing_fields?: Record<string, string> } | null} entry
+   */
+  function manageSlotMagicControl(wrap, item, entry) {
+    if (!wrap) return;
+    const existing = wrap.querySelector('.equipment-slot-magic');
+    const enhanceable = item && entry ? isEnhanceableEntry(entry) : false;
+    if (!enhanceable) {
+      existing?.remove();
+      return;
+    }
+
+    const bonus = Math.max(0, Math.floor(Number(item.enhancement) || 0));
+    const selectId = `equipment-slot-magic-${esc(item.instanceId)}`;
+
+    let control = existing;
+    if (!control) {
+      control = document.createElement('div');
+      control.className = 'equipment-slot-magic';
+      control.innerHTML = `
+        <label class="equipment-slot-magic-label" for="${selectId}">Magic bonus</label>
+        <select id="${selectId}" class="equipment-slot-magic-select">
+          <option value="0">None</option>
+          <option value="1">+1</option>
+          <option value="2">+2</option>
+          <option value="3">+3</option>
+        </select>
+        <span class="equipment-slot-magic-hint" aria-live="polite"></span>`;
+      wrap.appendChild(control);
+      const select = control.querySelector('.equipment-slot-magic-select');
+      // Read the instance id from the control at change time (the same slot row
+      // is reused when items are swapped, so do not capture a stale instance).
+      select?.addEventListener('change', async () => {
+        const instanceId = control.dataset.instanceId;
+        if (!instanceId) return;
+        const raw = Number(select.value);
+        setEquipmentItemEnhancement(character, instanceId, Number.isFinite(raw) ? raw : null);
+        await afterEquipmentChange();
+        await refreshSlotLabels();
+      });
+    }
+    control.dataset.instanceId = item.instanceId;
+
+    const select = control.querySelector('.equipment-slot-magic-select');
+    if (select) {
+      select.id = selectId;
+      if (document.activeElement !== select) select.value = String(bonus);
+    }
+    control.querySelector('.equipment-slot-magic-label')?.setAttribute('for', selectId);
+
+    const hint = control.querySelector('.equipment-slot-magic-hint');
+    if (hint) {
+      const tier = magicTierForBonus(bonus);
+      if (tier) {
+        const cost = magicTotalCostGp(entry, bonus);
+        hint.textContent = `Level ${tier.level}${cost != null ? ` · ${cost.toLocaleString()} gp` : ''}`;
+      } else {
+        hint.textContent = '';
+      }
+    }
+  }
+
   async function renderInventoryList() {
     if (!inventoryListEl) return;
     const items = getInventoryItems(character);
@@ -377,7 +452,8 @@ export async function renderEquipmentStep(panel, ctx) {
     const rows = await Promise.all(
       items.map(async (item) => {
         const entry = await compendium.getEntry(item.compendiumId);
-        const name = entry?.listing_fields?.Name ?? item.compendiumId;
+        const baseName = entry?.listing_fields?.Name ?? item.compendiumId;
+        const name = magicDisplayName(baseName, item.enhancement);
         const meta = formatEquipmentListingMeta(entry?.listing_fields);
         const eligible = entry ? getEligibleSlotsForEntry(entry) : [];
         const canEquip = eligible.length > 0;

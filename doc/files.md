@@ -56,6 +56,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `race-build-options.json` | Dragonborn / Genasi build-choice definitions (power picks) |
 | `starting-equipment.json` | Level-1 starting equipment kits by class/build (PHB Fighter kits; stub Fighter fallback) |
 | `equipment-stats-overrides.json` | PHB mundane armor/weapon stats for sheet sync when compendium body lacks parseable fields |
+| `magic-equipment-tiers.json` | GM-editable magic enhancement tiers for base weapons/armor: bonus (+1/+2/+3) → item level + enhancement price (`magicCostGp`); total price = base item cost + tier price |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
 | `source-books.json` | Source-book reference (title/release_date/edition_era) seeding the normalized `source_books` table; the **writable** source of truth for the GM's "filter source by date" (edited via `PUT /api/source-books/:code`) |
 | `README.md` | Index of metadata files; points to Alter Ego `PROJECT.md` |
@@ -191,11 +192,20 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `index.html` | Main sheet DOM + embedded level 1–30 table |
+| `index.html` | Main sheet DOM (character page only — the static level 1–30 table was moved to the Resources page so printing the sheet emits just the character); includes a dedicated **Racial Powers** textarea (`racial-powers`) so racial powers from the editor mirror print on the sheet |
 | `levels.html` | Level reference page only (for `pdf:levels`) |
 | `app.js` | Binds inputs to `formulas.js`; recalculates on change |
 | `formulas.js` | D&D 4e math: ½ level, defenses (incl. `defenseAbilityMod` = higher of the two relevant ability mods), skills, attacks, HP, XP table |
 | `sheet.css` | Print layout; `@page { size: letter }` |
+
+## `src/resources/` — shared player reference (character-independent)
+
+| File | Role |
+|------|------|
+| `index.html` | Player Resources page: Values by Level (1–30) table, formula key, and Universal actions; each section tagged `data-section` for selective printing. Reuses `sheet.css` table styles |
+| `resources.js` | Fills the level table via `buildLevelTable(30)`, hydrates universal actions from `metadata/universal-actions.json` (`loadUniversalActionsMeta` + `compendium.getEntry` + `condenseRuleHtml`), and wires the Print button (toggles `.no-print` on unselected sections, then `window.print()`) |
+| `print-resources-dialog.js` | Pop-up `<dialog>` to choose which sections (Level values / Formula key / Universal actions) to print; remembers the choice in `sessionStorage` (`resources.print.sections`) |
+| `resources.css` | Universal-action layout and the local print-sections dialog styles |
 
 ## `src/character/` — document model & persistence
 
@@ -217,11 +227,12 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names) |
 | `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync; persists class HP params and recomputes Max HP for the current level; `applyHybridClassStats` merges two normalized classes (PH3) into sheet HP/surges/speed and persists `selections.hybridMerged` |
 | `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
-| `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
-| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text; `getDefenseEnhancementInfo`/`enhancementFromLevel`/`levelFromEntry` drive level-scaled defense items (Amulet of Protection → Fort/Ref/Will) |
-| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`, derived from each item's level) |
+| `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; per-instance `level` and magic `enhancement` (`setEquipmentItemEnhancement`, +1/+2/+3); shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
+| `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; implements resolve to a `kind: 'implement'` stat (no AC/dice, enhancement only); falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text; `getDefenseEnhancementInfo`/`enhancementFromLevel`/`levelFromEntry` drive level-scaled defense items (Amulet of Protection → Fort/Ref/Will); magic-item helpers `getMagicTiers`/`magicTierForBonus`/`isEnhanceableEntry` (weapon/armor/implement)/`magicDisplayName`/`baseCostGpFromEntry`/`magicTotalCostGp` (config-driven +1/+2/+3) |
+| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`) and magic weapon/armor/implement enhancement (weapon → melee/ranged atk+dmg `enh`; armor → AC `enh`; implement → its bonus). The melee/ranged line `enh` shows the higher of the weapon's and the implement's bonus; per-source values (`weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`) are also stored for the power cards |
 | `starting-equipment.js` | Level-1 kit resolve/apply (`resolveStartingKit`, `applyStartingKit`, `getRecommendedStartingKitMeta`); auto-seed on create; force-apply for recommend button |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
+| `power-card-values.js` | Per-character attack/damage math for printable power cards: `buildPowerCardContext` (ability mods, half level, synced weapon proficiency, and per-source magic enhancement: `weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`), `attackTotalFor` (half + ability + weapon proficiency + enhancement + inline bonus), `damageModFor` (ability + enhancement), `abilityKeyFromName`, `formatSigned`. Weapon powers use the weapon's enhancement (per line), implement powers use the implement's |
 | `hybrid-merge.js` | PH3 hybrid-character combination from two normalized class records: HP/surge math, combined skills (any three), armor/shield proficiency intersection + weapon/implement union, `hybridPairAllowed` (no two subclasses of one class), `hybridPowerCoverage` (one power of each type from both) |
 | `party-loader.js` | Loads party JSON for GM console |
 
@@ -239,17 +250,18 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `index.html` | Generator: gate (load) → post-load (Edit character, Level up, Create new) → wizard (Tailwind + editor.css) |
 | `editor.js` | Gate modes, `creationFlow` / `builderFlow`, post-load actions, compendium pickers, link index init |
 | `post-load.js` | Level-up XP gate (`canLevelUp`, tooltip text) and retraining builder entry index |
-| `editor.css` | Editor layout, race step, sheet-mirror tabs (resizable body: `height: max(40vh, 220px)`, `resize: vertical`), compendium hover cards |
+| `editor.css` | Editor layout, race step, sheet-mirror tabs (resizable body: `height: max(40vh, 220px)`, `resize: vertical`), `.sheet-mirror-print` header button, compendium hover cards |
 | `collapsible-chevron.js` | Shared SVG chevron for collapsible editor panels (sheet mirror, character collection) |
-| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields |
-| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts and Fort/Ref/Will `${def}-enh` parts are readonly (auto-derived from ability scores / equipped enhancement items) |
+| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields; renders a top-right **Print sheet** button in the mirror header (via the `onPrintSheet` callback) that opens the populated scalable sheet in a new tab |
+| `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts and all four `${def}-enh` parts are readonly (auto-derived from ability scores / equipped enhancement items: magic armor → AC enh, neck items → Fort/Ref/Will enh) |
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
+| `print-cards-dialog.js` | Native `<dialog>` shown when clicking "Print cards": per-category checkboxes (Powers/Feats/Rituals — universal actions are excluded; they live on the Resources page) limited to categories the character has; remembers the last selection in `sessionStorage` (`editor.printCards.categories`); resolves to the chosen keys or `null` on cancel |
 | `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link |
 | `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
 | `steps/feat-step.js` | Feat slots grouped by tier + shared combobox; **Recommended feats for this class** button; compendium open link (↗) on filled slots; source combo filter above picker |
-| `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field; inline **Item level** control on equipped level-scaled defense items (Amulet of Protection) |
+| `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field; inline **Item level** control on equipped level-scaled defense items (Amulet of Protection) and inline **Magic bonus** selector (None/+1/+2/+3) on equipped base weapons/armor/implements (shows derived name "+2 Chainmail", item level, and price) |
 | `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat, equipment); opt-in "released on/before" date filter (`showDate`) with `resolveSourceBooksByDate(dateMap, cutoff)` (used by the GM Workshop duplicate picker) |
 | `choice-guide.js` | Sequential pending-choice highlight, scroll, and focus (race + class steps) |
 | `steps/race-grants-panel.js` | Racial power/feat tile cards on race step |
@@ -274,6 +286,16 @@ One-line role for each tracked file. Update this table when the tree changes.
 |------|------|
 | `compendium-links.js` | Link compendium terms in plain text and HTML previews |
 | `compendium-hover-card.js` | Floating hover card for `.comp-link` terms |
+| `compendium-entry-url.js` | Build the standalone compendium entry-viewer URL (`entry.html?id=`) |
+| `condense-rule-text.js` | `condenseRuleHtml(entry)` strips flavor/`publishedIn`/title-duplicate nodes, keeps the mechanical core (powerstat lines, feat benefit, ritual stat block) for printable rule cards |
+
+## `src/print/`
+
+| File | Role |
+|------|------|
+| `cards.html` | Printable rule-cards page shell (toolbar + grid; links `cards.css`) |
+| `cards.js` | Renders one condensed tile per power/universal action/feat/ritual the character has; reads the `editor.printCards` localStorage handoff (`{ character, categories }`; falls back to the active stored character + all categories), rendering only the chosen categories, reusing `collectAllCollectionItems` + `condenseRuleHtml`. Power tiles are personalized via `power-card-values.js`: Attack ability terms gain this character's full to-hit (e.g. `Strength +9`) and `<ability> modifier` damage terms gain the modifier value (e.g. `(+5)`), styled `.rule-card-calc`. Weapon vs implement vs ranged is detected from the rule text so the correct magic enhancement is folded in (weapon powers use the equipped weapon's bonus, implement powers the implement's). The A4 layout is a two-column grid with at most four large cards per page; long cards grow past the minimum height instead of clipping |
+| `cards.css` | Self-contained card grid + frequency accents (at-will/encounter/daily); `@page { size: A4 }`, a 2-column grid with a `--card-h` per-card minimum height and `--card-gap` so at most four cards print per page yet long cards grow past the minimum (`break-inside: avoid`, no clipping), and `@media print` rules |
 
 ## `src/encounter/`
 

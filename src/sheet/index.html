@@ -11,10 +11,10 @@
     <label>Scale: <input type="range" id="scale-slider" min="75" max="125" value="100" /> <span id="scale-label">100%</span></label>
     <span id="dim-meta"></span>
     <button type="button" id="btn-print">Print / Save as PDF</button>
+    <a href="../editor/index.html" id="back-to-editor" class="toolbar-back">← Character generator</a>
     <a href="../index.html">Home</a>
-    <a href="../editor/index.html">Character generator</a>
     <a href="../gm/index.html">GM console</a>
-    <a href="../levels.html">Level 1–30 reference</a>
+    <a href="../resources/index.html">Resources</a>
   </div>
 
   <main class="sheet-page" id="character-sheet">
@@ -168,6 +168,11 @@
           <textarea id="race-features"></textarea>
         </div>
 
+        <div class="panel lined-area sm">
+          <div class="panel-title">Racial Powers</div>
+          <textarea id="racial-powers"></textarea>
+        </div>
+
         <div class="panel lined-area">
           <div class="panel-title">Class / Path / Destiny Features</div>
           <textarea id="class-features"></textarea>
@@ -263,28 +268,6 @@
 
     <footer class="sheet-footer">Page 1</footer>
   </main>
-
-  <!-- Level table included for single PDF export -->
-  <section class="levels-page" id="level-reference">
-    <h1>D&amp;D 4e — Values by Level (1–30)</h1>
-    <p class="note">Half-level = floor(Level ÷ 2). Defense base = 10 + half-level. Mod+½Lvl example uses ability score 10 (modifier 0). Print this page with the character sheet for a full reference.</p>
-    <table class="levels-table">
-      <thead>
-        <tr>
-          <th>Level</th><th>Tier</th><th>½ Level</th><th>Defense 10+½</th><th>XP to Level</th><th>Mod+½Lvl @ score 10</th>
-        </tr>
-      </thead>
-      <tbody id="level-table-body"></tbody>
-    </table>
-    <dl class="formula-key">
-      <dt>Initiative</dt><dd>DEX mod + ½ level + misc</dd>
-      <dt>Defense</dt><dd>10 + ½ level + ability + class + feat + enhance + misc + armor</dd>
-      <dt>Skill bonus</dt><dd>Ability mod + ½ level + 5 if trained + armor penalty + misc</dd>
-      <dt>Attack bonus</dt><dd>½ level + ability + class + prof + feat + enhance + misc</dd>
-      <dt>Passive Insight / Perception</dt><dd>10 + listed skill bonus</dd>
-      <dt>Bloodied / Surge</dt><dd>½ max HP / ¼ max HP (round down)</dd>
-    </dl>
-  </section>
 
   <script type="module" src="../app.js"></script>
   <script type="module">

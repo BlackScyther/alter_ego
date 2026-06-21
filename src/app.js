@@ -250,11 +250,21 @@ function applyEditorPayload() {
   }
 }
 
+function wireBackLink() {
+  const link = document.getElementById('back-to-editor');
+  if (!link) return;
+  const params = new URLSearchParams(location.search);
+  if (params.get('mode') === 'player') {
+    link.href = '../editor/index.html?mode=player';
+  }
+}
+
 export function initSheet() {
   wireEvents();
   loadDimensions();
   renderLevelTable();
   applyEditorPayload();
+  wireBackLink();
   recalcAll();
 }
 

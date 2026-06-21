@@ -5,18 +5,52 @@ import { loadUniversalActionsMeta } from './power-collection-panel.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
 import { COLLAPSIBLE_CHEVRON_SVG } from '../collapsible-chevron.js';
 
+const SECTION_COLLAPSE_PREFIX = 'editor.characterCollection.section.';
+
+/**
+ * @param {string} title
+ * @param {boolean} defaultOpen
+ * @returns {boolean}
+ */
+function readSectionOpen(title, defaultOpen) {
+  try {
+    const stored = sessionStorage.getItem(SECTION_COLLAPSE_PREFIX + title);
+    return stored === null ? defaultOpen : stored === '1';
+  } catch {
+    return defaultOpen;
+  }
+}
+
+/**
+ * @param {string} title
+ * @param {boolean} open
+ */
+function writeSectionOpen(title, open) {
+  try {
+    sessionStorage.setItem(SECTION_COLLAPSE_PREFIX + title, open ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * @param {HTMLElement} parent
  * @param {string} title
- * @param {{ compact?: boolean }} [opts]
+ * @param {{ compact?: boolean, defaultOpen?: boolean }} [opts]
  */
 function renderSection(parent, title, opts = {}) {
-  const section = document.createElement('section');
-  section.className = 'character-collection-section power-collection-group';
+  const defaultOpen = opts.defaultOpen ?? false;
+  const section = document.createElement('details');
+  section.className = 'character-collection-section character-collection-universal power-collection-group';
   if (opts.compact) section.classList.add('character-collection-section--compact');
+  section.open = readSectionOpen(title, defaultOpen);
+  const cardsClass = opts.compact
+    ? 'character-collection-cards character-collection-cards--compact'
+    : 'character-collection-cards power-collection-cards';
   section.innerHTML = `
-    <h4 class="power-collection-group-title">${esc(title)}</h4>
-    <div class="character-collection-cards power-collection-cards"></div>`;
+    <summary class="power-collection-group-title">${esc(title)}</summary>
+    <div class="${cardsClass}"></div>`;
+  section.addEventListener('toggle', () => writeSectionOpen(title, section.open));
   parent.appendChild(section);
   return section.querySelector('.character-collection-cards');
 }
@@ -139,12 +173,7 @@ export async function renderCharacterCollectionPanel(root, ctx) {
   }
 
   if (universalPowers.length) {
-    const details = document.createElement('details');
-    details.className = 'character-collection-universal';
-    details.innerHTML = `<summary class="power-collection-group-title">Universal actions</summary>`;
-    const cardsEl = document.createElement('div');
-    cardsEl.className = 'character-collection-cards character-collection-cards--compact';
-    details.appendChild(cardsEl);
+    const cardsEl = renderSection(body, 'Universal actions', { compact: true });
     renderItemCards(cardsEl, universalPowers, {
       ...ctx,
       compendium,
@@ -152,7 +181,6 @@ export async function renderCharacterCollectionPanel(root, ctx) {
       onActivateSlot,
       onActivateRitualSlot
     });
-    body.appendChild(details);
   }
 
   if (feats.length) {
@@ -168,7 +196,62 @@ export async function renderCharacterCollectionPanel(root, ctx) {
   if (!powers.length && !feats.length && !rituals.length) {
     body.innerHTML =
       '<p class="character-collection-empty text-sm text-slate-400 m-0">Selections from race, class, feats, and powers will appear here.</p>';
+    return;
   }
+
+  renderExpandCollapseAll(body, ctx);
+}
+
+/**
+ * Adds a single "Expand all / Collapse all" toggle above the collapsible sections,
+ * plus a "Print cards" button when a print handler is supplied.
+ * @param {HTMLElement} body
+ * @param {{ onPrintCards?: () => void }} [ctx]
+ */
+function renderExpandCollapseAll(body, ctx = {}) {
+  const sections = () => Array.from(body.querySelectorAll('details.character-collection-section'));
+  if (!sections().length) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'character-collection-toolbar';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'character-collection-expand-all';
+
+  const sync = () => {
+    const allOpen = sections().every((s) => s.open);
+    btn.textContent = allOpen ? 'Collapse all' : 'Expand all';
+    btn.setAttribute('aria-label', allOpen ? 'Collapse all categories' : 'Expand all categories');
+  };
+
+  btn.addEventListener('click', () => {
+    const list = sections();
+    const expand = !list.every((s) => s.open);
+    for (const s of list) {
+      if (s.open !== expand) {
+        s.open = expand;
+        s.dispatchEvent(new Event('toggle'));
+      }
+    }
+    sync();
+  });
+
+  body.addEventListener('toggle', sync, true);
+  sync();
+
+  bar.appendChild(btn);
+
+  if (typeof ctx.onPrintCards === 'function') {
+    const printBtn = document.createElement('button');
+    printBtn.type = 'button';
+    printBtn.className = 'character-collection-print';
+    printBtn.textContent = 'Print cards';
+    printBtn.setAttribute('aria-label', 'Open printable rule cards for this character');
+    printBtn.addEventListener('click', () => ctx.onPrintCards());
+    bar.appendChild(printBtn);
+  }
+
+  body.insertBefore(bar, body.firstChild);
 }
 
 const COLLECTION_COLLAPSE_KEY = 'editor.characterCollection.collapsed';

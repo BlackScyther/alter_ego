@@ -4,18 +4,24 @@ import { createCharacter } from '../src/character/model.js';
 import {
   addEquipmentFromCompendium,
   setEquipmentItemLevel,
+  setEquipmentItemEnhancement,
   unequipSlot
 } from '../src/character/equipment-selections.js';
 import { syncEquipmentToSheet } from '../src/character/equipment-sheet-sync.js';
 import {
   enhancementFromLevel,
   getDefenseEnhancementInfo,
-  getEquipmentStats
+  getEquipmentStats,
+  isEnhanceableEntry,
+  magicDisplayName,
+  magicTierForBonus,
+  magicTotalCostGp
 } from '../src/character/equipment-stats.js';
 
 const scale = { id: 'armor5', category_slug: 'armor', listing_fields: { Name: 'Scale Armor', Type: 'Scale' } };
 const shield = { id: 'armor8', category_slug: 'armor', listing_fields: { Name: 'Heavy Shield', Type: 'Heavy Shield' } };
 const longsword = { id: 'weapon3610', category_slug: 'weapon', listing_fields: { Name: 'Longsword', Type: 'Heavy blade' } };
+const wand = { id: 'implement1', category_slug: 'implement', listing_fields: { Name: 'Wand', Type: 'Wand' } };
 const amulet = {
   id: 'item-aop',
   category_slug: 'item',
@@ -34,6 +40,7 @@ const compendium = {
       armor5: scale,
       armor8: shield,
       weapon3610: longsword,
+      implement1: wand,
       class3: fighterClass,
       'item-aop': amulet
     };
@@ -132,5 +139,116 @@ describe('equipment-sheet-sync', () => {
     await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
     assert.equal(c.sheet.defenses.ac.armor, 0);
     assert.equal(c.sheet.extraFields['melee-dice'], undefined);
+  });
+
+  it('flags base weapons/armor as enhanceable, but not neck items', () => {
+    assert.equal(isEnhanceableEntry(longsword), true);
+    assert.equal(isEnhanceableEntry(scale), true);
+    assert.equal(isEnhanceableEntry(amulet), false);
+  });
+
+  it('derives magic display name and looks up tier level/price', () => {
+    assert.equal(magicDisplayName('Chainmail', 2), '+2 Chainmail');
+    assert.equal(magicDisplayName('Chainmail', 0), 'Chainmail');
+    assert.equal(magicDisplayName('Chainmail', null), 'Chainmail');
+
+    assert.equal(magicTierForBonus(1)?.level, 3);
+    assert.equal(magicTierForBonus(2)?.level, 11);
+    assert.equal(magicTierForBonus(3)?.level, 22);
+    assert.equal(magicTierForBonus(4), null);
+    assert.equal(magicTierForBonus(0), null);
+
+    const chain = {
+      id: 'armor999',
+      category_slug: 'armor',
+      listing_fields: { Name: 'Chainmail', Type: 'Heavy armor', Cost: '40 gp' }
+    };
+    const tier = magicTierForBonus(1);
+    assert.equal(magicTotalCostGp(chain, 1), 40 + tier.magicCostGp);
+    assert.equal(magicTotalCostGp(chain, 0), null);
+  });
+
+  it('applies a magic weapon enhancement to attack and damage', async () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, longsword, 'mainHand');
+    const item = c.selections.equipmentItems[0];
+    setEquipmentItemEnhancement(c, item.instanceId, 2);
+
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.extraFields['melee-atk-enh'], 2);
+    assert.equal(c.sheet.extraFields['melee-dmg-enh'], 2);
+
+    setEquipmentItemEnhancement(c, item.instanceId, null);
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.extraFields['melee-atk-enh'], 0);
+    assert.equal(c.sheet.extraFields['melee-dmg-enh'], 0);
+
+    unequipSlot(c, 'mainHand');
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.extraFields['melee-atk-enh'], undefined);
+  });
+
+  it('applies a magic armor enhancement to AC enh', async () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, scale, 'armor');
+    const item = c.selections.equipmentItems[0];
+    setEquipmentItemEnhancement(c, item.instanceId, 3);
+
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.ac.enh, 3);
+    assert.equal(c.sheet.defenses.ac.armor, 8);
+
+    unequipSlot(c, 'armor');
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.ac.enh, 0);
+  });
+
+  it('flags implements as enhanceable', () => {
+    assert.equal(isEnhanceableEntry(wand), true);
+  });
+
+  it('applies a magic implement enhancement to the attack lines and card field', async () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, wand, 'implement');
+    const item = c.selections.equipmentItems[0];
+    setEquipmentItemEnhancement(c, item.instanceId, 2);
+
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    // No weapon equipped: ranged Javelin fallback line carries the implement enh.
+    assert.equal(c.sheet.extraFields['implement-enh'], 2);
+    assert.equal(c.sheet.extraFields['ranged-atk-enh'], 2);
+    assert.equal(c.sheet.extraFields['ranged-dmg-enh'], 2);
+    assert.equal(c.sheet.extraFields['weapon-melee-enh'], 0);
+
+    unequipSlot(c, 'implement');
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.extraFields['implement-enh'], 0);
+  });
+
+  it('melee line uses the higher of weapon and implement enhancement', async () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, longsword, 'mainHand');
+    addEquipmentFromCompendium(c, wand, 'implement');
+    const weaponItem = c.selections.equipmentItems[0];
+    const implementItem = c.selections.equipmentItems[1];
+    setEquipmentItemEnhancement(c, weaponItem.instanceId, 1);
+    setEquipmentItemEnhancement(c, implementItem.instanceId, 3);
+
+    await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
+    assert.equal(c.sheet.extraFields['melee-atk-enh'], 3);
+    assert.equal(c.sheet.extraFields['melee-dmg-enh'], 3);
+    assert.equal(c.sheet.extraFields['weapon-melee-enh'], 1);
+    assert.equal(c.sheet.extraFields['implement-enh'], 3);
+  });
+
+  it('clamps enhancement to the 1..3 range (null when <= 0)', () => {
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, scale, 'armor');
+    const item = c.selections.equipmentItems[0];
+
+    setEquipmentItemEnhancement(c, item.instanceId, 9);
+    assert.equal(item.enhancement, 3);
+    setEquipmentItemEnhancement(c, item.instanceId, 0);
+    assert.equal(item.enhancement, null);
   });
 });

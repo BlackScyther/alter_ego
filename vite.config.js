@@ -64,7 +64,8 @@ function trailingSlashRedirectPlugin() {
     'game',
     'join',
     'playlist',
-    'levels'
+    'levels',
+    'resources'
   ];
   return {
     name: 'alter-ego-trailing-slash-redirect',

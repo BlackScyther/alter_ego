@@ -3,8 +3,22 @@
  */
 
 import overrides from '../../metadata/equipment-stats-overrides.json' with { type: 'json' };
+import magicTiers from '../../metadata/magic-equipment-tiers.json' with { type: 'json' };
 
 const OVERRIDE_BY_ID = overrides ?? {};
+
+/**
+ * GM-editable magic enhancement tiers (bonus -> level + price), sorted by bonus.
+ * @type {Array<{ bonus: number, level: number, magicCostGp: number }>}
+ */
+const MAGIC_TIERS = [...(magicTiers?.tiers ?? [])]
+  .map((t) => ({
+    bonus: Math.floor(Number(t.bonus) || 0),
+    level: Math.floor(Number(t.level) || 0),
+    magicCostGp: Math.max(0, Math.floor(Number(t.magicCostGp) || 0))
+  }))
+  .filter((t) => t.bonus > 0)
+  .sort((a, b) => a.bonus - b.bonus);
 
 const ARMOR_AC_RE = /(?:AC\s*Bonus|Armor\s*Bonus)\s*[:\s]*\+?\s*(\d+)/i;
 const CHECK_PEN_RE = /(?:Check\s*Penalty|Armor\s*Check\s*Penalty)\s*[:\s]*([+-]?\d+)/i;
@@ -94,6 +108,17 @@ export function getEquipmentStats(entry) {
     };
   }
 
+  if (category === 'implement') {
+    // Implements have no inherent AC/damage dice; their enhancement bonus
+    // applies to the attacks and damage of implement powers (handled at sync /
+    // power-card time). We only need a kind so they are recognized as magic.
+    return {
+      kind: 'implement',
+      name,
+      implementGroup: type
+    };
+  }
+
   return null;
 }
 
@@ -157,6 +182,75 @@ export function levelFromEntry(entry) {
   if (!m || m.length !== 1) return null;
   const n = Number(m[0]);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * All configured magic enhancement tiers (bonus -> level + price).
+ * @returns {Array<{ bonus: number, level: number, magicCostGp: number }>}
+ */
+export function getMagicTiers() {
+  return MAGIC_TIERS.map((t) => ({ ...t }));
+}
+
+/**
+ * Look up the tier (level + enhancement price) for a magic bonus, or null.
+ * @param {number} bonus
+ * @returns {{ bonus: number, level: number, magicCostGp: number } | null}
+ */
+export function magicTierForBonus(bonus) {
+  const n = Math.floor(Number(bonus) || 0);
+  if (n <= 0) return null;
+  const tier = MAGIC_TIERS.find((t) => t.bonus === n);
+  return tier ? { ...tier } : null;
+}
+
+/**
+ * True when an entry resolves to a base weapon, armor, or implement (i.e. a
+ * candidate for a magic enhancement). Shields are excluded for now.
+ * @param {Parameters<typeof getEquipmentStats>[0]} entry
+ */
+export function isEnhanceableEntry(entry) {
+  if (!entry) return false;
+  const stats = getEquipmentStats(entry);
+  return stats?.kind === 'weapon' || stats?.kind === 'armor' || stats?.kind === 'implement';
+}
+
+/**
+ * Prefix a base item name with its magic bonus, e.g. ("Chainmail", 2) -> "+2 Chainmail".
+ * @param {string} name
+ * @param {number | null | undefined} bonus
+ */
+export function magicDisplayName(name, bonus) {
+  const n = Math.floor(Number(bonus) || 0);
+  const base = String(name ?? '');
+  return n > 0 ? `+${n} ${base}` : base;
+}
+
+/**
+ * Parse a base item's gold cost from its listing "Cost" field. Handles values
+ * like "45 gp", "1,200 gp", "10 sp" (sp/cp ignored, treated as <1 gp -> 0).
+ * Returns 0 when no parseable gp value is present.
+ * @param {{ listing_fields?: Record<string, string> }} entry
+ */
+export function baseCostGpFromEntry(entry) {
+  const raw = entry?.listing_fields?.Cost;
+  if (raw == null) return 0;
+  const m = String(raw).replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*gp/i);
+  if (!m) return 0;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? Math.floor(n) : 0;
+}
+
+/**
+ * Total gold cost of a magic version of an entry: base item cost plus the
+ * enhancement price for the chosen bonus. Returns null for an unknown tier.
+ * @param {{ listing_fields?: Record<string, string> }} entry
+ * @param {number} bonus
+ */
+export function magicTotalCostGp(entry, bonus) {
+  const tier = magicTierForBonus(bonus);
+  if (!tier) return null;
+  return baseCostGpFromEntry(entry) + tier.magicCostGp;
 }
 
 /**

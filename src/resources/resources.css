@@ -1,0 +1,142 @@
+/* Player resources reference page. Reuses sheet.css for the page frame,
+   level table, and formula key; this file styles the universal-actions
+   sections and the print-sections dialog. */
+
+.resources-section {
+  margin-bottom: calc(0.32in * var(--scale));
+}
+
+.resources-section > h2 {
+  font-size: calc(11pt * var(--scale));
+  margin: 0 0 calc(0.1in * var(--scale));
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.resources-universal-group {
+  margin-bottom: calc(0.18in * var(--scale));
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resources-universal-group-title {
+  font-size: calc(9pt * var(--scale));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: calc(0.12in * var(--scale)) 0 calc(0.06in * var(--scale));
+  color: var(--ink);
+}
+
+.resources-universal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(0.14in * var(--scale));
+  align-items: start;
+}
+
+.resources-action {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: calc(0.06in * var(--scale)) calc(0.08in * var(--scale));
+  break-inside: avoid;
+  page-break-inside: avoid;
+  overflow-wrap: anywhere;
+}
+
+.resources-action-name {
+  margin: 0 0 2px;
+  font-size: calc(8.5pt * var(--scale));
+  font-weight: 700;
+}
+
+.resources-action-body {
+  font-size: calc(7pt * var(--scale));
+}
+
+.resources-action-body p,
+.resources-action-body .powerstat {
+  margin: 2px 0;
+}
+
+.resources-empty {
+  color: var(--muted, #64748b);
+  font-style: italic;
+}
+
+/* Print-sections dialog (no editor.css on this page, so styled locally). */
+.print-resources-dialog {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0;
+  max-width: 92vw;
+  width: 22rem;
+  color: #1e293b;
+  background: #fff;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.35);
+}
+
+.print-resources-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.print-resources-form {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.print-resources-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.print-resources-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.print-resources-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.print-resources-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.print-resources-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.print-resources-actions button {
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f1f5f9;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.print-resources-confirm {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #1e293b;
+}
+
+@media print {
+  .resources-page {
+    box-shadow: none;
+    margin: 0;
+  }
+}

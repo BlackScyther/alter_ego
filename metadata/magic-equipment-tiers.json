@@ -1,0 +1,7 @@
+{
+  "tiers": [
+    { "bonus": 1, "level": 3, "magicCostGp": 680 },
+    { "bonus": 2, "level": 11, "magicCostGp": 9000 },
+    { "bonus": 3, "level": 22, "magicCostGp": 325000 }
+  ]
+}

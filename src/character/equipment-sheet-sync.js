@@ -62,8 +62,10 @@ function clearEquipmentDerivedSheet(character) {
   character.sheet.armorPenaltyGlobal = 0;
   character.sheet.speed.armor = 0;
   character.sheet.armorIsHeavy = false;
-  // Equipment-managed enhancement bonuses to Fort/Ref/Will (e.g. Amulet of
-  // Protection). Reset each sync, then re-derived from equipped items below.
+  // Equipment-managed enhancement bonuses to AC/Fort/Ref/Will (magic armor and
+  // neck items such as the Amulet of Protection). Reset each sync, then
+  // re-derived from equipped items below.
+  character.sheet.defenses.ac.enh = 0;
   character.sheet.defenses.fort.enh = 0;
   character.sheet.defenses.ref.enh = 0;
   character.sheet.defenses.will.enh = 0;
@@ -73,12 +75,21 @@ function clearEquipmentDerivedSheet(character) {
     'melee-dice',
     'melee-atk-prof',
     'melee-atk-abil',
+    'melee-atk-enh',
     'melee-dmg-abil',
+    'melee-dmg-enh',
     'ranged-name',
     'ranged-dice',
     'ranged-atk-prof',
     'ranged-atk-abil',
+    'ranged-atk-enh',
     'ranged-dmg-abil',
+    'ranged-dmg-enh',
+    // Per-source enhancement values consumed by the printable power cards
+    // (weapon powers vs implement powers); not shown as sheet inputs.
+    'weapon-melee-enh',
+    'weapon-ranged-enh',
+    'implement-enh',
     'basic1-weapon',
     'basic1-dmg',
     'basic1-vs',
@@ -118,9 +129,10 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   let checkPenalty = 0;
   let speedPenalty = 0;
   let armorIsHeavy = false;
+  let implementEnh = 0;
   const defenseEnh = { ac: 0, fort: 0, ref: 0, will: 0 };
 
-  /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats> }>} */
+  /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats>, enhancement: number }>} */
   const weapons = [];
 
   for (const slot of EQUIPMENT_SLOTS) {
@@ -147,8 +159,12 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     const stats = normalizedStats ?? getEquipmentStats(entry);
     if (!stats) continue;
 
+    // Magic enhancement (+1/+2/+3) chosen on a base weapon/armor instance.
+    const enhancement = Math.max(0, Math.floor(Number(item.enhancement) || 0));
+
     if (stats.kind === 'armor') {
       acArmor += Number(stats.acBonus) || 0;
+      defenseEnh.ac += enhancement;
       checkPenalty += Number(stats.checkPenalty) || 0;
       if (/chain|scale|plate/i.test(stats.armorCategory ?? '')) armorIsHeavy = true;
       const proficient = isProficientInArmor(
@@ -163,7 +179,12 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
       refArmor += Number(stats.refBonus) || 0;
       checkPenalty += Number(stats.checkPenalty) || 0;
     } else if (stats.kind === 'weapon' && (slot.id === 'mainHand' || slot.id === 'offHand')) {
-      weapons.push({ slotId: slot.id, stats });
+      weapons.push({ slotId: slot.id, stats, enhancement });
+    } else if (stats.kind === 'implement') {
+      // An implement's enhancement applies to implement powers (attack +
+      // damage). Track the best one equipped; it feeds the attack lines and the
+      // power cards below.
+      implementEnh = Math.max(implementEnh, enhancement);
     }
   }
 
@@ -172,6 +193,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   character.sheet.armorPenaltyGlobal = checkPenalty;
   character.sheet.speed.armor = speedPenalty;
   character.sheet.armorIsHeavy = armorIsHeavy;
+  character.sheet.defenses.ac.enh = defenseEnh.ac;
   character.sheet.defenses.fort.enh = defenseEnh.fort;
   character.sheet.defenses.ref.enh = defenseEnh.ref;
   character.sheet.defenses.will.enh = defenseEnh.will;
@@ -180,8 +202,17 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   const mainWeapon = weapons.find((w) => w.slotId === 'mainHand') ?? weapons[0];
   const offWeapon = weapons.find((w) => w.slotId === 'offHand' && w.stats?.kind === 'weapon');
 
+  // Per-source enhancement values for the power cards: weapon powers use the
+  // weapon's bonus (per line), implement powers use the implement's bonus. The
+  // sheet's single melee/ranged enh field shows the higher of the two so an
+  // equipped magic implement also benefits the basic attack lines.
+  const meleeWeaponEnh = Math.max(0, Math.floor(Number(mainWeapon?.enhancement) || 0));
+  setExtra(character, 'weapon-melee-enh', meleeWeaponEnh);
+  setExtra(character, 'implement-enh', implementEnh);
+
   if (mainWeapon?.stats) {
     const w = mainWeapon.stats;
+    const enh = Math.max(meleeWeaponEnh, implementEnh);
     const abil = attackAbilityForWeapon(w, 'melee');
     const abilMod = abilityModifier(scores[abil] ?? 10);
     const label = `Melee Basic Attack — ${w.name}`;
@@ -189,19 +220,25 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     setExtra(character, 'melee-dice', w.damageDice ?? '1d4');
     setExtra(character, 'melee-atk-prof', w.proficiencyBonus ?? 3);
     setExtra(character, 'melee-atk-abil', abilMod);
+    setExtra(character, 'melee-atk-enh', enh);
     setExtra(character, 'melee-dmg-abil', abilMod);
+    setExtra(character, 'melee-dmg-enh', enh);
     setExtra(character, 'basic1-weapon', label);
     setExtra(character, 'basic1-dmg', w.damageDice ?? '1d4');
     setExtra(character, 'basic1-vs', 'AC');
   }
 
-  const rangedCandidate =
+  const rangedWeapon =
     offWeapon?.stats?.range === 'ranged'
-      ? offWeapon.stats
-      : weapons.find((w) => w.stats?.range === 'ranged' || w.stats?.range === 'both')?.stats;
+      ? offWeapon
+      : weapons.find((w) => w.stats?.range === 'ranged' || w.stats?.range === 'both');
+  const rangedCandidate = rangedWeapon?.stats;
+  const rangedWeaponEnh = Math.max(0, Math.floor(Number(rangedWeapon?.enhancement) || 0));
+  setExtra(character, 'weapon-ranged-enh', rangedWeaponEnh);
 
   if (rangedCandidate) {
     const w = rangedCandidate;
+    const enh = Math.max(rangedWeaponEnh, implementEnh);
     const abil = attackAbilityForWeapon(w, 'ranged');
     const abilMod = abilityModifier(scores[abil] ?? 10);
     const label = `Ranged Basic Attack — ${w.name}`;
@@ -209,7 +246,9 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     setExtra(character, 'ranged-dice', w.damageDice ?? '1d4');
     setExtra(character, 'ranged-atk-prof', w.proficiencyBonus ?? 3);
     setExtra(character, 'ranged-atk-abil', abilMod);
+    setExtra(character, 'ranged-atk-enh', enh);
     setExtra(character, 'ranged-dmg-abil', abilMod);
+    setExtra(character, 'ranged-dmg-enh', enh);
     setExtra(character, 'basic2-weapon', label);
     setExtra(character, 'basic2-dmg', w.damageDice ?? '1d4');
     setExtra(character, 'basic2-vs', 'AC');
@@ -222,7 +261,9 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     setExtra(character, 'ranged-dice', '1d6');
     setExtra(character, 'ranged-atk-prof', 3);
     setExtra(character, 'ranged-atk-abil', dexMod);
+    setExtra(character, 'ranged-atk-enh', implementEnh);
     setExtra(character, 'ranged-dmg-abil', dexMod);
+    setExtra(character, 'ranged-dmg-enh', implementEnh);
   }
 
   return character;
