@@ -159,9 +159,23 @@ Create `~/alter-eger/.env` or use panel “Environment” (not in Git):
 
 ### 3.3 Static frontend
 
-- [ ] Copy or symlink `dist/app/*` to **web root** **or** point vhost `root` to `~/alter-eger/dist/app`
+The build (`npm run build:app`) produces a **self-contained** `dist/app/` that already
+includes `metadata/` and `data/` (the `post-build-app` step copies them in). The app
+loads these at runtime via relative paths (e.g. `../../metadata/editor.json`,
+`../../data/alter_eger.db`). They are served by the **static host**, not the API.
+
+- [ ] Upload the **entire** `dist/app/` tree to **web root** **or** point vhost `root` to `~/alter-eger/dist/app`
+- [ ] Do **not** upload only `index.html` + `assets/` — include the `metadata/` and `data/` subfolders too (don't let an SFTP filter or size limit skip the large `data/alter_eger.db`)
 - [ ] Confirm `index.html` and assets load: `https://<domain>/`
-- [ ] GM path works: `https://<domain>/src/gm/` (or as built by Vite — verify in browser)
+- [ ] GM path works: `https://<domain>/gm/` (built path; `index.html` is stripped from the URL)
+- [ ] **Supporting files reachable** (open each URL directly):
+  - [ ] `https://<domain>/metadata/editor.json` → returns **JSON** (not the 404 HTML page)
+  - [ ] `https://<domain>/data/alter_eger.db` → downloads a **SQLite file** (or 404 only if you intentionally ship stub data)
+
+> If `metadata/editor.json` is missing or returns HTML, the character generator
+> aborts during startup and the **"Create new character" button does nothing**
+> (no visible error in older builds). This is a deploy/file issue, not auth — the
+> generator gate requires no token.
 
 ### 3.4 API process
 
@@ -213,6 +227,8 @@ Repeat for each release (shortened after first time).
 ### 4.3 Post-deploy checks
 
 - [ ] `https://<domain>/` loads, no mixed-content errors (HTTPS only)
+- [ ] `https://<domain>/metadata/editor.json` returns JSON, and `https://<domain>/data/alter_eger.db` is reachable (see [§3.3](#33-static-frontend))
+- [ ] Open the generator in a **private/incognito window** (no cache, no prior session): the **"Create new character"** button opens the name step
 - [ ] Browser devtools → Network: `POST /api/...` returns **not** 502/404
 - [ ] `npm run test:api` against production URL (set `API_BASE` if script supports it) **or** manual steps in [tests.md](tests.md)
 - [ ] Create test campaign as GM → copy invite link → open in private window → Save test character → GM party list updates
@@ -276,6 +292,7 @@ One session before the real session.
 
 | Symptom | Check |
 |---------|--------|
+| "Create new character" button does nothing (works for you, not testers) | `metadata/editor.json` / `data/alter_eger.db` reachable at web root? Open them directly. Usually `metadata/`+`data/` were not uploaded with `dist/app/`. Not auth — gate needs no token. Test in incognito. |
 | 502 on `/api` | API running? `PORT`? Proxy config? |
 | CORS error in browser | `CORS_ORIGIN` exact match `https://domain` (no trailing slash mismatch) |
 | Invite link wrong host | `PUBLIC_APP_URL` matches public URL |

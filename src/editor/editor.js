@@ -147,8 +147,22 @@ let ritualCombobox = null;
 const EDITOR_RETURN_KEY = 'dnd4e.editorReturn';
 
 async function loadEditorMeta() {
-  const res = await fetch('../../metadata/editor.json');
-  editorMeta = await res.json();
+  let res;
+  try {
+    res = await fetch('../../metadata/editor.json');
+  } catch (err) {
+    throw new Error(`Could not reach the generator configuration (metadata/editor.json): ${err?.message ?? err}`);
+  }
+  if (!res.ok) {
+    throw new Error(`Could not load the generator configuration (metadata/editor.json): HTTP ${res.status}.`);
+  }
+  try {
+    editorMeta = await res.json();
+  } catch {
+    // A 200 that is not JSON is almost always the host's HTML fallback page,
+    // i.e. metadata/ was not deployed next to the app.
+    throw new Error('The generator configuration (metadata/editor.json) was not valid JSON. On a deployed site, make sure the metadata/ and data/ folders are uploaded next to the app.');
+  }
   return editorMeta;
 }
 
@@ -1472,6 +1486,87 @@ function openSheet() {
   }
 }
 
+function showInitError(message) {
+  const box = $('#generator-init-error');
+  if (!box) return;
+  box.textContent = message;
+  box.classList.remove('hidden');
+}
+
+/**
+ * Attach all interactive control handlers. Called before any network load so a
+ * missing metadata/ or data/ file on a deployment can never leave navigation
+ * buttons (e.g. "Create new character") silently unresponsive.
+ */
+function wireControls() {
+  $('#char-picker')?.addEventListener('change', (e) => {
+    updateDeleteButtons();
+    switchToCharacter(e.target.value);
+  });
+  $('#gate-char-picker')?.addEventListener('change', () => {
+    updateGateContinueState();
+    updateDeleteButtons();
+  });
+  $('#btn-gate-continue')?.addEventListener('click', () => {
+    const id = $('#gate-char-picker')?.value;
+    if (id) switchToCharacter(id);
+  });
+  $('#btn-gate-create')?.addEventListener('click', enterIdentitySetup);
+  $('#btn-gate-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#gate-char-picker')?.value));
+  $('#btn-char-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#char-picker')?.value || character.id));
+  $('#btn-gate-export')?.addEventListener('click', exportCharacterFile);
+
+  $('#identity-character-name')?.addEventListener('input', updateIdentityNameUi);
+  $('#btn-identity-continue')?.addEventListener('click', () => {
+    const name = $('#identity-character-name')?.value?.trim();
+    if (!name) {
+      showIdentityErrors(['Character name is required.']);
+      return;
+    }
+    showIdentityErrors([]);
+    startCreationFlow();
+  });
+  $('#btn-identity-back')?.addEventListener('click', () => {
+    builderMode = 'gate';
+    setUiPhase('gate');
+  });
+  $('#identity-portrait-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await loadPortraitFile(file);
+      } catch (err) {
+        showIdentityErrors([err.message ?? String(err)]);
+      }
+    }
+    e.target.value = '';
+  });
+  $('#btn-identity-portrait-clear')?.addEventListener('click', clearPortraitPreview);
+
+  $('#gate-import')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) importCharacterFile(file);
+    e.target.value = '';
+  });
+  $('#btn-export')?.addEventListener('click', exportCharacterFile);
+  $('#btn-import')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) importCharacterFile(file);
+    e.target.value = '';
+  });
+
+  $('#btn-edit-character')?.addEventListener('click', startEditCharacterFlow);
+  $('#btn-level-up')?.addEventListener('click', startLevelUpFlow);
+  $('#btn-new-build')?.addEventListener('click', enterIdentitySetup);
+  $('#btn-back-to-load')?.addEventListener('click', returnToGate);
+
+  $('#btn-next')?.addEventListener('click', nextStep);
+  $('#btn-prev')?.addEventListener('click', prevStep);
+  $('#btn-save')?.addEventListener('click', () => saveCharacterNow());
+
+  updateDeleteButtons();
+}
+
 async function init() {
   initBuildStamp();
   syncPlayerModeFromUrl();
@@ -1482,10 +1577,25 @@ async function init() {
   applyPlayerEditorUi();
   setupReturnToGame();
 
-  await loadEditorMeta();
-  await compendium.ready();
-  await hydrateSubracesFromProvider(compendium);
-  linkIndex = await buildCompendiumLinkIndex(compendium);
+  // Wire controls and show the gate first, before any network load. This keeps
+  // the page usable (and the "Create new character" button responsive) even if
+  // the compendium or metadata files are slow or fail to load.
+  wireControls();
+  setUiPhase('gate');
+
+  try {
+    await loadEditorMeta();
+    await compendium.ready();
+    await hydrateSubracesFromProvider(compendium);
+    linkIndex = await buildCompendiumLinkIndex(compendium);
+  } catch (err) {
+    console.error('[editor] Initialization failed', err);
+    showInitError(
+      `${err?.message ?? 'The character generator could not start.'} ` +
+        'Reload the page to try again.'
+    );
+    return;
+  }
   attachCompendiumHoverDelegates(document);
 
   const mirrorPanel = $('#sheet-mirror-panel');
@@ -1554,73 +1664,9 @@ async function init() {
   }
   refreshCharacterPicker();
   refreshGatePicker();
-
-  $('#char-picker')?.addEventListener('change', (e) => {
-    updateDeleteButtons();
-    switchToCharacter(e.target.value);
-  });
-  $('#gate-char-picker')?.addEventListener('change', () => {
-    updateGateContinueState();
-    updateDeleteButtons();
-  });
-  $('#btn-gate-continue')?.addEventListener('click', () => {
-    const id = $('#gate-char-picker')?.value;
-    if (id) switchToCharacter(id);
-  });
-  $('#btn-gate-create')?.addEventListener('click', enterIdentitySetup);
-  $('#btn-gate-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#gate-char-picker')?.value));
-  $('#btn-char-delete')?.addEventListener('click', () => deleteSelectedCharacter($('#char-picker')?.value || character.id));
-  $('#btn-gate-export')?.addEventListener('click', exportCharacterFile);
-
-  $('#identity-character-name')?.addEventListener('input', updateIdentityNameUi);
-  $('#btn-identity-continue')?.addEventListener('click', () => {
-    const name = $('#identity-character-name')?.value?.trim();
-    if (!name) {
-      showIdentityErrors(['Character name is required.']);
-      return;
-    }
-    showIdentityErrors([]);
-    startCreationFlow();
-  });
-  $('#btn-identity-back')?.addEventListener('click', () => {
-    builderMode = 'gate';
-    setUiPhase('gate');
-  });
-  $('#identity-portrait-file')?.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await loadPortraitFile(file);
-      } catch (err) {
-        showIdentityErrors([err.message ?? String(err)]);
-      }
-    }
-    e.target.value = '';
-  });
-  $('#btn-identity-portrait-clear')?.addEventListener('click', clearPortraitPreview);
-
-  $('#gate-import')?.addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (file) importCharacterFile(file);
-    e.target.value = '';
-  });
-  $('#btn-export')?.addEventListener('click', exportCharacterFile);
-  $('#btn-import')?.addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (file) importCharacterFile(file);
-    e.target.value = '';
-  });
-
-  $('#btn-edit-character')?.addEventListener('click', startEditCharacterFlow);
-  $('#btn-level-up')?.addEventListener('click', startLevelUpFlow);
-  $('#btn-new-build')?.addEventListener('click', enterIdentitySetup);
-  $('#btn-back-to-load')?.addEventListener('click', returnToGate);
-
-  $('#btn-next').addEventListener('click', nextStep);
-  $('#btn-prev').addEventListener('click', prevStep);
-  $('#btn-save').addEventListener('click', () => saveCharacterNow());
-
-  updateDeleteButtons();
 }
 
-init();
+init().catch((err) => {
+  console.error('[editor] Unexpected startup error', err);
+  showInitError('The character generator failed to start. Reload the page to try again.');
+});
