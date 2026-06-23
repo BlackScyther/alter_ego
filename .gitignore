@@ -4,6 +4,7 @@ package-lock.json
 
 # Local env / secrets
 .env*
+ops/*.env
 
 # Local databases (SQLite + WAL/SHM)
 data/*.db

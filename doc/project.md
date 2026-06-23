@@ -116,4 +116,5 @@ npm run dev:all    # Frontend + API
 | [bugs.md](bugs.md) | Known limits |
 | [tests.md](tests.md) | Test checklist |
 | [deploy-online.md](deploy-online.md) | VPS deploy |
+| [deploy-vps.md](deploy-vps.md) | Ubuntu 24.04 + Coolify single-container deploy |
 | [../README.md](../README.md) | Short guide (EN) |

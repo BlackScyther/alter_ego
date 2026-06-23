@@ -1,0 +1,27 @@
+# Standalone single-host run (no panel). Useful for local prod testing and for
+# plain-Docker VPS hosting. On a Coolify host you normally let Coolify build the
+# Dockerfile instead, but this file documents the volumes and env it expects.
+#
+# Setup:
+#   1) cp ops/env.example ops/server.env   (then edit secrets)
+#   2) docker compose up -d --build
+#   3) copy the compendium DB into the public volume (see doc/deploy-vps.md):
+#        docker cp data/alter_eger.db alter-ego:/data-public/alter_eger.db
+
+services:
+  alter-ego:
+    build: .
+    container_name: alter-ego
+    restart: unless-stopped
+    env_file:
+      - ops/server.env
+    ports:
+      # Bind to localhost only; a reverse proxy (Caddy/Traefik/Coolify) terminates TLS.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - alter-ego-public:/data-public
+      - alter-ego-private:/data-private
+
+volumes:
+  alter-ego-public:
+  alter-ego-private:

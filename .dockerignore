@@ -1,0 +1,21 @@
+# Keep the build context small and free of secrets / large local artifacts.
+node_modules
+dist
+deploy
+sync-from-live
+output
+.git
+.cursor
+.env*
+ops/*.env
+
+# Local SQLite databases (compendium DB is provided via a runtime volume).
+data/*.db
+data/*.db-*
+
+# Tauri desktop build output (not needed for the web/server image).
+src-tauri/target
+
+# Misc local artifacts
+debug-*.log
+*.log

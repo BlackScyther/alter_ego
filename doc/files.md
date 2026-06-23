@@ -42,10 +42,21 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `PROMPT.md` | Agent instructions and doc-maintenance contract |
 | `package.json` | npm scripts: `dev`, `build:app`, `deploy:live`, `pull:live`, `tauri:dev`, `tauri:build`, `pdf`, `party:index` |
 | `vite.config.js` | Vite multi-page build → `dist/app/` |
+| `Dockerfile` | Multi-stage single-container build (frontend + API); compendium DB provided via volume |
+| `.dockerignore` | Keeps the Docker build context small and secret-free |
+| `docker-compose.yml` | Standalone single-host run (localhost:3000 + two data volumes) |
 | `app-icon.png` | Source for `npx tauri icon` (desktop icons) |
 | `package-lock.json` | Locked dependency versions (Playwright) |
 | `dimensions.json` | US Letter layout in inches; regions, columns, `--scale` |
 | `output/*.pdf` | Generated PDFs from `npm run pdf` (not source) |
+
+## `ops/` (VPS hosting)
+
+| File | Role |
+|------|------|
+| `ops/env.example` | Server env template; copy to gitignored `ops/server.env` |
+| `ops/vps/bootstrap.sh` | Fresh Ubuntu 24.04 hardening + Docker + Coolify install |
+| `ops/vps/harden-ssh.sh` | Disable SSH passwords / root-password login (run after key login works) |
 
 ## `metadata/`
 
