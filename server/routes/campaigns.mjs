@@ -21,8 +21,11 @@ function publicAppUrl() {
 
 function buildInviteUrl(campaignId, playerToken) {
   const base = publicAppUrl();
+  // Vite dev and the helloly /src layout use /src/join/index.html; a root-served
+  // production build (single container) uses /join/index.html. Make it configurable.
+  const joinPath = process.env.PUBLIC_JOIN_PATH || '/src/join/index.html';
   const params = new URLSearchParams({ c: campaignId, t: playerToken });
-  return `${base}/src/join/index.html?${params.toString()}`;
+  return `${base}${joinPath}?${params.toString()}`;
 }
 
 router.post('/', (req, res) => {
