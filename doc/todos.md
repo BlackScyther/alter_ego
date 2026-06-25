@@ -6,7 +6,7 @@ Actionable tasks for **hosts**, **developers**, and **agents**. Long-term produc
 
 **Deployment (web hosting with SSH / SFTP / Git from next week):** full checklists and fill-in profile → [deploy-hosting.md](deploy-hosting.md). VPS detail → [deploy-online.md](deploy-online.md).
 
-> **Reminder — compendium on production:** All **compendium** entries must be **live** when deployed (full `data/alter_eger.db`, not `compendium-stub.json`). Stub data (3 sample races, etc.) is for local usability testing only. See [§ Deployment — compendium must be live](#deployment--compendium-must-be-live).
+> **Reminder — compendium on production:** All **compendium** entries must be **live** when deployed (full `data/alter_ego.db`, not `compendium-stub.json`). Stub data (3 sample races, etc.) is for local usability testing only. See [§ Deployment — compendium must be live](#deployment--compendium-must-be-live).
 
 ---
 
@@ -43,7 +43,7 @@ Details and all server env vars: [deploy-hosting.md#hosting-profile-fill-in-once
 
 - [ ] Complete [hosting profile](deploy-hosting.md#hosting-profile-fill-in-once)
 - [ ] SSH login; record `node -v`, paths, disk space
-- [ ] Create `~/data/alter-eger` (writable, outside web root)
+- [ ] Create `~/data/alter-ego` (writable, outside web root)
 - [ ] HTTPS works on your domain
 - [ ] Plan `/api` → `localhost:3000` (proxy or subdomain)
 - [ ] SFTP test upload to web root
@@ -58,7 +58,7 @@ Guide: [deploy-hosting.md §2–3](deploy-hosting.md#2-day-1--hosting-inventory-
 - [ ] `npm install --omit=dev` on server (or upload `dist/app` from PC)
 - [ ] Set env: `DATABASE_PATH`, `CORS_ORIGIN`, `PUBLIC_APP_URL`, `TOKEN_PEPPER`, `PORT`
 - [ ] `dist/app` served at `https://<domain>/`
-- [ ] **Compendium:** ship `alter_eger.db` with static files; verify editor does **not** show “sample data” ([§ below](#deployment--compendium-must-be-live))
+- [ ] **Compendium:** ship `alter_ego.db` with static files; verify editor does **not** show “sample data” ([§ below](#deployment--compendium-must-be-live))
 - [ ] `npm run server` under PM2/systemd/panel Node app
 - [ ] Reverse proxy: `/api` → Node port 3000
 - [ ] Smoke test: GM create campaign → player Save → GM sees character ([tests.md](tests.md))
@@ -85,7 +85,7 @@ Guide: [deploy-hosting.md §4](deploy-hosting.md#4-first-production-deploy) · V
 - [ ] `npm run test:api`
 - [ ] Before release: `npm run build:app`
 - [ ] Before host deploy: `npm test`
-- [ ] Before host deploy: compendium importer run; `alter_eger.db` in build output; `CompendiumProvider` not in stub mode ([§ below](#deployment--compendium-must-be-live))
+- [ ] Before host deploy: compendium importer run; `alter_ego.db` in build output; `CompendiumProvider` not in stub mode ([§ below](#deployment--compendium-must-be-live))
 
 Optional:
 
@@ -165,15 +165,15 @@ All items from the online campaign plan:
 
 ## Deployment — compendium must be live
 
-**Rule:** Production must not rely on `data/samples/compendium-stub.json`. The character generator, GM monster spawn, and any compendium picker need the full iws.mx mirror in `data/alter_eger.db` (see [catalog-counts.json](../metadata/catalog-counts.json) — e.g. **55** races, not 3).
+**Rule:** Production must not rely on `data/samples/compendium-stub.json`. The character generator, GM monster spawn, and any compendium picker need the full iws.mx mirror in `data/alter_ego.db` (see [catalog-counts.json](../metadata/catalog-counts.json) — e.g. **55** races, not 3).
 
 Stub data stays valid for **local usability testing** only.
 
 ### Before any production deploy
 
-- [ ] Run Phase 1 importer → `data/alter_eger.db` ([tools/importer/README.md](../tools/importer/README.md), [import.json](../metadata/import.json))
+- [ ] Run Phase 1 importer → `data/alter_ego.db` ([tools/importer/README.md](../tools/importer/README.md), [import.json](../metadata/import.json))
 - [ ] Validate import counts against `metadata/catalog-counts.json`
-- [ ] Include `alter_eger.db` in the static deploy artifact (path must match `CompendiumProvider` / Vite `fetch` URL)
+- [ ] Include `alter_ego.db` in the static deploy artifact (path must match `CompendiumProvider` / Vite `fetch` URL)
 - [ ] Wire browser SQLite in `src/data/compendium.js` (resolve B-001, B-002 — no `mode: stub` or `sqlite-pending` with empty lists)
 - [ ] `npm run build:app` after DB is in place; redeploy static bundle
 
@@ -188,7 +188,7 @@ Stub data stays valid for **local usability testing** only.
 
 | ID | Task | Ref |
 |----|------|-----|
-| — | Phase 1 importer → `alter_eger.db` | PROJECT.md §11, B-003 |
+| — | Phase 1 importer → `alter_ego.db` | PROJECT.md §11, B-003 |
 | — | Wire sql.js / full compendium in `compendium.js` | B-001, B-002 |
 
 ---
@@ -201,7 +201,7 @@ Stub data stays valid for **local usability testing** only.
 | P1 | Production deploy online campaign (hosting checklists) | [deploy-hosting.md](deploy-hosting.md) |
 | P1 | Fill hosting profile + first SSH inventory | [deploy-hosting.md §2](deploy-hosting.md#2-day-1--hosting-inventory-ssh) |
 | P2 | **Character generator player UX** (Create new, hide import, guided flow) | Section above |
-| P2 | Phase 1: compendium importer → `alter_eger.db` | PROJECT.md §11 |
+| P2 | Phase 1: compendium importer → `alter_ego.db` | PROJECT.md §11 |
 | P2 | Wire sql.js / full compendium in `compendium.js` | B-001, B-002 |
 | P3 | API: DELETE character (GM) | FR-43 |
 | P3 | SSE for GM party updates | FR-42 |

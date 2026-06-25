@@ -1,7 +1,7 @@
 # Alter Ego - single-container build.
 # Builds the Vite frontend and runs the Express API from one Node process,
 # serving the static app same-origin (no CORS). The large compendium DB
-# (alter_eger.db, ~77 MB) is NOT baked in; it is provided at runtime via a
+# (alter_ego.db, ~77 MB) is NOT baked in; it is provided at runtime via a
 # persistent volume mounted at /data-public. See doc/deploy-vps.md.
 
 # ---- Stage 1: build frontend + prune to production deps ----
@@ -28,7 +28,7 @@ ENV NODE_ENV=production \
     PORT=3000 \
     STATIC_DIR=/app/dist/app \
     PUBLIC_DATA_DIR=/data-public \
-    COMPENDIUM_DB_PATH=/data-public/alter_eger.db \
+    COMPENDIUM_DB_PATH=/data-public/alter_ego.db \
     DATABASE_PATH=/data-private/campaigns.db \
     PUBLIC_JOIN_PATH=/join/index.html
 

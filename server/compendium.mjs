@@ -6,7 +6,7 @@ import compendiumStub from '../data/samples/compendium-stub.json' with { type: '
 import { getHomebrewEntry } from './homebrew.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_DB = path.join(__dirname, '..', 'data', 'alter_eger.db');
+const DEFAULT_DB = path.join(__dirname, '..', 'data', 'alter_ego.db');
 
 /** @type {import('better-sqlite3').Database | null} */
 let db = null;

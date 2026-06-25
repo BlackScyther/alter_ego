@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-const db = new Database('./data/alter_eger.db', { readonly: true });
+const db = new Database('./data/alter_ego.db', { readonly: true });
 
 function sample(name) {
   const r = db

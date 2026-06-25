@@ -54,7 +54,7 @@ app.use('/api/feedback', feedbackRouter);
 // from this same Node process (same-origin, no CORS). Enabled by setting
 // STATIC_DIR to the built app directory (e.g. /app/dist/app). PUBLIC_DATA_DIR,
 // if set, is exposed at /data and should ONLY contain public files such as the
-// compendium DB (alter_eger.db) and samples - never campaigns.db.
+// compendium DB (alter_ego.db) and samples - never campaigns.db.
 const staticDir = process.env.STATIC_DIR;
 if (staticDir) {
   const publicDataDir = process.env.PUBLIC_DATA_DIR;

@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { parseBackgroundEntry, renderBackgroundPreviewHtml } from '../src/character/background-parse.js';
 
-const db = new Database('./data/alter_eger.db', { readonly: true });
+const db = new Database('./data/alter_ego.db', { readonly: true });
 
 function rowToEntry(r) {
   return {

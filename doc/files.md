@@ -76,9 +76,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `README.md` | Where `alter_eger.db` lives after import |
+| `README.md` | Where `alter_ego.db` lives after import |
 | `samples/compendium-stub.json` | Stub races/classes/feats until DB exists |
-| `alter_eger.db` | *(planned)* SQLite compendium after importer runs |
+| `alter_ego.db` | *(planned)* SQLite compendium after importer runs |
 | `background-effect-overrides.json` | Curated background effects (HP substitute, initiative) keyed by id/name |
 | `class-effect-overrides.json` | Curated class-feature effects (static initiative) keyed by class id/name |
 
@@ -185,7 +185,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | Path | Role |
 |------|------|
 | `app/` | Vite production build (bundled into desktop app) |
-| `alter-eger-player/` | Legacy `pack:player` output |
+| `alter-ego-player/` | Legacy `pack:player` output |
 
 ## `src/` — app shell
 

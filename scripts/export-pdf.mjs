@@ -15,7 +15,7 @@ const srcDir = join(root, 'src');
 const outDir = join(root, 'output');
 const levelsOnly = process.argv.includes('--levels-only');
 const inputFile = levelsOnly ? 'levels.html' : 'sheet/index.html';
-const outName = levelsOnly ? 'alter-eger-levels-1-30.pdf' : 'alter-eger-sheet-page1.pdf';
+const outName = levelsOnly ? 'alter-ego-levels-1-30.pdf' : 'alter-ego-sheet-page1.pdf';
 
 const mime = {
   '.html': 'text/html; charset=utf-8',

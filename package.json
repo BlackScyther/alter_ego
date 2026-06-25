@@ -1,6 +1,6 @@
 {
-  "name": "alter-eger",
-  "version": "1.2.14",
+  "name": "alter-ego",
+  "version": "1.2.15",
   "private": true,
   "description": "Alter Ego — offline D&D 4e compendium, character tools, and DM party surface",
   "type": "module",
@@ -8,7 +8,7 @@
     "dev": "vite",
     "build:app": "vite build && node tools/normalize/normalize.mjs --if-exists && node scripts/post-build-app.mjs",
     "normalize": "node tools/normalize/normalize.mjs",
-    "normalize:stub": "node tools/normalize/normalize.mjs --from-stub --out data/alter_eger.dev.db --report",
+    "normalize:stub": "node tools/normalize/normalize.mjs --from-stub --out data/alter_ego.dev.db --report",
     "pull:live": "node scripts/pull-live.mjs && node scripts/pull-live-data.mjs",
     "deploy:live": "npm run build:app && node scripts/push-live.mjs",
     "deploy:live:app": "npm run build:app && node scripts/push-live.mjs --skip-data",

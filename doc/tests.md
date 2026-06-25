@@ -57,7 +57,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 
 ## Manual test checklist — background step (editor)
 
-Requires `npm run dev:src` or `npm run dev:all` and imported compendium (`data/alter_eger.db`).
+Requires `npm run dev:src` or `npm run dev:all` and imported compendium (`data/alter_ego.db`).
 
 - [ ] Pick **Cult Survivor** — preview shows narrative fold, Associated Skills (Arcana, Athletics, Religion), and +2/+1 skill picker
 - [ ] Choose **+2 to one skill** and pick a skill — status line and **Background Features** sheet mirror field update
@@ -138,7 +138,7 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 - [ ] `npm run build:app` succeeds
 - [ ] `npm run tauri:build` produces installer under `src-tauri/target/release/bundle/` (local OS only)
-- [ ] GitHub Actions **Build desktop app** → artifacts: `alter-eger-macos-intel-x64`, `alter-eger-macos-apple-silicon`, `alter-eger-windows-x64`
+- [ ] GitHub Actions **Build desktop app** → artifacts: `alter-ego-macos-intel-x64`, `alter-ego-macos-apple-silicon`, `alter-ego-windows-x64`
 
 ## Manual test checklist — browser dev (`npm run dev`)
 
@@ -186,7 +186,7 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 ### PDF (`npm run pdf`)
 
-- [ ] `output/alter-eger-sheet-page1.pdf` created without error
+- [ ] `output/alter-ego-sheet-page1.pdf` created without error
 
 ## Recording test changes
 

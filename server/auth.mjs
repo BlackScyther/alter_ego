@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { getCampaignById, getDb } from './db.mjs';
 
 export function hashToken(token) {
-  const pepper = process.env.TOKEN_PEPPER || 'alter-eger-dev-pepper-change-in-production';
+  const pepper = process.env.TOKEN_PEPPER || 'alter-ego-dev-pepper-change-in-production';
   return crypto.createHash('sha256').update(`${pepper}:${token}`).digest('hex');
 }
 

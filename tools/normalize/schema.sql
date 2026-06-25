@@ -2,7 +2,7 @@
 --
 -- These tables are DERIVED from the denormalized `entries` table by
 -- tools/normalize/normalize.mjs. They live in the same SQLite file
--- (data/alter_eger.db) so the in-browser sql.js load, the better-sqlite3
+-- (data/alter_ego.db) so the in-browser sql.js load, the better-sqlite3
 -- server read, and the Tauri bundle keep working with a single file. The
 -- `entries` table is kept untouched for display HTML and as the fallback the
 -- read path uses for any category not yet covered here.

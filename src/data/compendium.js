@@ -1,5 +1,5 @@
 /**
- * Compendium access layer — SQLite (alter_eger.db) with stub fallback.
+ * Compendium access layer — SQLite (alter_ego.db) with stub fallback.
  */
 
 import initSqlJs from 'sql.js/dist/sql-wasm.js';
@@ -136,7 +136,7 @@ async function fetchHomebrewFromApi(opts = {}) {
 
 export class CompendiumProvider {
   constructor(options = {}) {
-    this.dbPath = options.dbPath ?? '/data/alter_eger.db';
+    this.dbPath = options.dbPath ?? '/data/alter_ego.db';
     this.stubPath = options.stubPath ?? '/data/samples/compendium-stub.json';
     this.useStub = options.useStub ?? true;
     this._ready = null;

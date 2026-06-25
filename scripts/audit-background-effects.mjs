@@ -14,7 +14,7 @@ const root = join(__dirname, '..');
 
 /** @returns {Promise<object[]>} */
 async function loadBackgroundEntries() {
-  const dbPath = join(root, 'data', 'alter_eger.db');
+  const dbPath = join(root, 'data', 'alter_ego.db');
   if (existsSync(dbPath)) {
     try {
       const Database = (await import('better-sqlite3')).default;

@@ -12,7 +12,7 @@ export const projectRoot = path.join(__dirname, '..', '..');
 export async function startTestApiServer() {
   const tmpDb = path.join(
     os.tmpdir(),
-    `alter-eger-test-${crypto.randomUUID()}.db`
+    `alter-ego-test-${crypto.randomUUID()}.db`
   );
   const port = 3100 + Math.floor(Math.random() * 900);
   const base = `http://127.0.0.1:${port}`;

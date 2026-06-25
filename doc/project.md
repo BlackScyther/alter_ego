@@ -55,7 +55,7 @@
 | Build | **Vite** → `dist/app/` |
 | API | **Express** + **SQLite** (`server/`) |
 | Desktop | **Tauri 2** (optional) |
-| Data | `localStorage` + campaign API; compendium stub until `alter_eger.db` |
+| Data | `localStorage` + campaign API; compendium stub until `alter_ego.db` |
 
 Details: [architecture.md](architecture.md).
 
@@ -90,7 +90,7 @@ The compendium is moving from runtime HTML parsing to a **normalized SQLite** sc
 
 ## Still open (summary)
 
-- Full compendium (`alter_eger.db`) — phase 1 in [roadmap.md](roadmap.md)
+- Full compendium (`alter_ego.db`) — phase 1 in [roadmap.md](roadmap.md)
 - Finish the hybrid (B-024) merge UI (trained-skill pool + proficiencies in the skill/equipment step, enforce `hybridPowerCoverage`); the GM still fills in the remaining `source_books.release_date` values (UI shipped)
 - DM combat surface — phase 3 (uses encounter roster)
 - Optional: SSE instead of polling, DELETE character via API

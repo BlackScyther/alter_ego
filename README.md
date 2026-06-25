@@ -36,7 +36,7 @@ Requires `.env.deploy.local` (SSH host, user, key — gitignored).
 npm run deploy:live
 ```
 
-Builds `dist/app/` with the full `data/alter_eger.db`, then uploads to https://www.braincell.online/ via SFTP.
+Builds `dist/app/` with the full `data/alter_ego.db`, then uploads to https://www.braincell.online/ via SFTP.
 
 ## Repo structure (short)
 

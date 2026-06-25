@@ -23,9 +23,9 @@ copyIntoApp(resolve(projectRoot, 'metadata'), 'metadata');
 mkdirSync(resolve(appDir, 'data'), { recursive: true });
 copyIntoApp(resolve(projectRoot, 'data/samples'), 'data/samples');
 
-const db = resolve(projectRoot, 'data/alter_eger.db');
+const db = resolve(projectRoot, 'data/alter_ego.db');
 if (existsSync(db)) {
-  cpSync(db, resolve(appDir, 'data/alter_eger.db'));
+  cpSync(db, resolve(appDir, 'data/alter_ego.db'));
 }
 
 cpSync(resolve(projectRoot, 'dimensions.json'), resolve(appDir, 'dimensions.json'));

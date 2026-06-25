@@ -1,6 +1,6 @@
 {
   "$schema": "./editor.schema.json",
-  "specRef": "Alter_Eger PROJECT.md §8–9, UX §24–26; UI flows in rules/character-generator.md",
+  "specRef": "Alter_Ego PROJECT.md §8–9, UX §24–26; UI flows in rules/character-generator.md",
   "version": 1,
   "creationFlow": [
     "race",
@@ -168,7 +168,7 @@
   "import": {
     "source": "iws.mx",
     "baseUrl": "https://iws.mx/dnd/4e_database_files/",
-    "dbPath": "data/alter_eger.db",
+    "dbPath": "data/alter_ego.db",
     "catalogCountsRef": "metadata/catalog-counts.json"
   }
 }

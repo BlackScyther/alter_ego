@@ -28,7 +28,7 @@ Details: [deploy-hosting.md](deploy-hosting.md) (SSH/SFTP/Git), [deploy-online.m
 | **0d** | Vite build + role launcher | Yes | Done |
 | **0e** | Desktop encapsulation (Tauri) | Yes | Done |
 | **0f** | **Online campaign API + sync** | Yes | **Done** |
-| **1** | Compendium import → `alter_eger.db` | Yes | Open |
+| **1** | Compendium import → `alter_ego.db` | Yes | Open |
 | **2** | GM party roster (combat-prep) | Partial | Partial |
 | **3** | GM combat surface | Yes | Open |
 | **3a** | **Game editor** (encounter roster, NPC instances, editor bridge) | Yes | **Done** — [game-editor.md](game-editor.md) |
@@ -69,11 +69,11 @@ flowchart LR
 
 | Priority | Item | Notes |
 |----------|------|--------|
-| P1 | **Compendium live on deploy** — full `alter_eger.db`, not stub; all picker categories usable | [todos.md § Deployment — compendium](todos.md#deployment--compendium-must-be-live); blocks “real” production for character builder |
+| P1 | **Compendium live on deploy** — full `alter_ego.db`, not stub; all picker categories usable | [todos.md § Deployment — compendium](todos.md#deployment--compendium-must-be-live); blocks “real” production for character builder |
 | P1 | Deploy online campaign to production hosting | [deploy-hosting.md](deploy-hosting.md) then [deploy-online.md](deploy-online.md) |
 | P1 | Set `TOKEN_PEPPER`, `CORS_ORIGIN`, `PUBLIC_APP_URL` | Security |
 | P2 | **Character generator player UX** | Prominent Create new; hide JSON import for players; guided step flow — [todos.md § Character generator player UX](todos.md#open--character-generator-player-ux-p2) |
-| P2 | Phase 1: compendium importer + `alter_eger.db` | Unblocks full rules in editor |
+| P2 | Phase 1: compendium importer + `alter_ego.db` | Unblocks full rules in editor |
 | P3 | GM DELETE character endpoint | Optional cleanup |
 | P3 | SSE instead of 4 s polling | Nicer “instant” UX |
 | P3 | Game editor MVP (`src/game/`) + editor deep-link | [game-editor.md](game-editor.md) G2–G3 |

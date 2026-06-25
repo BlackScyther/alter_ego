@@ -2,7 +2,7 @@
 
 This file describes purpose, data source, architecture, and implementation phases for **Alter Ego**: an offline-capable toolkit for D&D 4th Edition with a local compendium, party character management (3–7 players), and a DM surface for combat and initiative.
 
-**Status:** Active project — specification (`PROJECT.md`) plus a working web app under `src/` (character sheet, generator, GM, party). Compendium import (`data/alter_eger.db`) is still pending (phase 1).
+**Status:** Active project — specification (`PROJECT.md`) plus a working web app under `src/` (character sheet, generator, GM, party). Compendium import (`data/alter_ego.db`) is still pending (phase 1).
 
 ---
 
@@ -118,7 +118,7 @@ flowchart LR
     parse[JSONP Parser]
     normalize[Normalization]
   end
-  subgraph local [alter_eger.db]
+  subgraph local [alter_ego.db]
     categories[categories]
     entries[entries]
     fts[Full text]
@@ -132,7 +132,7 @@ flowchart LR
   normalize --> fts
 ```
 
-**Importer runtime:** one-off on a modern machine; copy resulting `data/alter_eger.db` to the DM laptop via USB.
+**Importer runtime:** one-off on a modern machine; copy resulting `data/alter_ego.db` to the DM laptop via USB.
 
 ---
 
@@ -387,7 +387,7 @@ flowchart TB
 
 | Layer | Recommendation |
 |-------|----------------|
-| **Data** | SQLite — single file `data/alter_eger.db`, backup = copy file |
+| **Data** | SQLite — single file `data/alter_ego.db`, backup = copy file |
 | **UI** | Static HTML + CSS + vanilla JS (optional minimal jQuery like iws.mx) |
 | **Launch** | `file://` or local mini-server; **no** cloud account |
 | **Importer** | Python script under `tools/importer/` (one-off, not at the table) |
@@ -415,7 +415,7 @@ Alter_Ego/
 ├── scripts/            ← PDF export, party index
 ├── data/
 │   ├── samples/        ← compendium stub until phase 1
-│   └── alter_eger.db   ← after import (phase 1)
+│   └── alter_ego.db   ← after import (phase 1)
 └── tools/
     └── importer/       ← JSONP → SQLite (phase 1)
 ```
@@ -464,5 +464,5 @@ Earlier work lived at `C:\Users\masch\Projects\dnd4e-character-sheet` — conten
 | Date | Change |
 |------|--------|
 | 2026-05-21 | Phase 0 initial version: specification from project plan, iws.mx catalog validation |
-| 2026-05-23 | Consolidation: web app from `dnd4e-character-sheet` into `Alter_Eger`; updated structure and phase status |
+| 2026-05-23 | Consolidation: web app from `dnd4e-character-sheet` into `Alter_Ego`; updated structure and phase status |
 | 2026-06-04 | Full translation of this file to English |

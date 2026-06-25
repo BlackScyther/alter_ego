@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const metaPath = join(root, 'metadata', 'universal-actions.json');
-const dbPath = join(root, 'data', 'alter_eger.db');
+const dbPath = join(root, 'data', 'alter_ego.db');
 
 const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
 const allNames = meta.groups.flatMap((g) =>

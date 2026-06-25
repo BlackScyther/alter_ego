@@ -9,7 +9,7 @@
  * `normalize_warnings` (a data-quality item) rather than a live rendering bug.
  *
  * Usage:
- *   node tools/normalize/normalize.mjs                  # normalize data/alter_eger.db in place
+ *   node tools/normalize/normalize.mjs                  # normalize data/alter_ego.db in place
  *   node tools/normalize/normalize.mjs --src path.db    # read a different denormalized DB
  *   node tools/normalize/normalize.mjs --out other.db   # write normalized tables elsewhere
  *   node tools/normalize/normalize.mjs --from-stub      # build a dev DB from the JSON stub, then normalize
@@ -32,7 +32,7 @@ import { getParentRaceId, inferParentFromName, isSubraceId } from '../../src/cha
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..', '..');
-const DEFAULT_DB = resolve(projectRoot, 'data/alter_eger.db');
+const DEFAULT_DB = resolve(projectRoot, 'data/alter_ego.db');
 const STUB_PATH = resolve(projectRoot, 'data/samples/compendium-stub.json');
 const SCHEMA_PATH = resolve(__dirname, 'schema.sql');
 const SOURCE_BOOKS_PATH = resolve(projectRoot, 'metadata/source-books.json');

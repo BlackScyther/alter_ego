@@ -1,6 +1,6 @@
 # Normalized compendium schema
 
-The compendium ships as a single SQLite file (`data/alter_eger.db`). The external
+The compendium ships as a single SQLite file (`data/alter_ego.db`). The external
 iws.mx importer writes the **denormalized** `entries` table (`id`,
 `category_slug`, `listing_fields` JSON, `body_html`, `index_text`, `source`).
 The normalizer adds **structured tables derived from `entries`**, so mechanics
@@ -26,8 +26,8 @@ iws.mx JSONP  ->  entries (denormalized)  ->  tools/normalize/normalize.mjs  -> 
 
 | Command | Effect |
 |---------|--------|
-| `npm run normalize` | Normalize `data/alter_eger.db` in place (run after the importer). |
-| `npm run normalize:stub` | Build a dev DB from the JSON stub at `data/alter_eger.dev.db` and print a warnings report. |
+| `npm run normalize` | Normalize `data/alter_ego.db` in place (run after the importer). |
+| `npm run normalize:stub` | Build a dev DB from the JSON stub at `data/alter_ego.dev.db` and print a warnings report. |
 | `node tools/normalize/normalize.mjs --src a.db --out b.db` | Read one DB, write normalized tables to another. |
 | `node tools/normalize/normalize.mjs --report` | Print the warnings summary. |
 | build:app | Runs `normalize --if-exists` before `post-build-app.mjs`, so the normalized DB ships in `dist/app`. |

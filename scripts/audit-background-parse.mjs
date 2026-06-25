@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { parseBackgroundEntry } from '../src/character/background-parse.js';
 
-const db = new Database('./data/alter_eger.db', { readonly: true });
+const db = new Database('./data/alter_ego.db', { readonly: true });
 const rows = db
   .prepare(`SELECT id, listing_fields, body_html FROM entries WHERE category_slug = 'background' LIMIT 800`)
   .all();

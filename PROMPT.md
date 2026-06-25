@@ -65,5 +65,5 @@ npm run party:index
 
 ## Current phase notes
 
-- Compendium: stub JSON until `data/alter_eger.db` + importer complete  
+- Compendium: stub JSON until `data/alter_ego.db` + importer complete  
 - Tests: manual checklist in `doc/tests.md`; no unit runner yet  

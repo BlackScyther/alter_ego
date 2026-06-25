@@ -18,12 +18,12 @@ Copy this block into your password manager or a private note. Agents and docs re
 | SSH user | `________________` |
 | SSH port | `22` (or `____`) |
 | Web root (document root) | `/home/____/public_html` or `____` |
-| App install path (repo on server) | `/home/____/alter-eger` |
-| SQLite data directory (writable) | `/home/____/data/alter-eger` |
+| App install path (repo on server) | `/home/____/alter-ego` |
+| SQLite data directory (writable) | `/home/____/data/alter-ego` |
 | Node.js on server? | Yes / No — version: `____` |
 | Process manager | systemd / PM2 / panel “Node app” / none |
 | Reverse proxy | Apache / nginx / panel only |
-| Git remote on host (if used) | `git@____:repos/alter-eger.git` |
+| Git remote on host (if used) | `git@____:repos/alter-ego.git` |
 | Git deploy branch | `main` |
 | `TOKEN_PEPPER` (generate once, store safely) | `________________` (min. 32 random chars) |
 | Support ticket / docs URL | `________________` |
@@ -67,7 +67,7 @@ Do these on your **PC** and in the **hoster control panel** (no SSH required yet
 
 ### 1.2 Local project readiness
 
-- [ ] `git clone` / pull latest `Alter_Eger` on your dev machine
+- [ ] `git clone` / pull latest `Alter_Ego` on your dev machine
 - [ ] `npm install`
 - [ ] `npm run build:app` — succeeds, `dist/app/` exists
 - [ ] `npm run test:api` — passes (API smoke test)
@@ -106,9 +106,9 @@ Run when SSH works. Fill the [hosting profile](#hosting-profile-fill-in-once).
 ### 2.2 Paths and permissions
 
 - [ ] Confirm **web root** exists and is writable for static files: `________________`
-- [ ] Create **app directory**: `mkdir -p ~/alter-eger` (or path from profile)
-- [ ] Create **data directory** for SQLite (outside web root): `mkdir -p ~/data/alter-eger && chmod 700 ~/data/alter-eger`
-- [ ] Test write: `touch ~/data/alter-eger/.write-test && rm ~/data/alter-eger/.write-test`
+- [ ] Create **app directory**: `mkdir -p ~/alter-ego` (or path from profile)
+- [ ] Create **data directory** for SQLite (outside web root): `mkdir -p ~/data/alter-ego && chmod 700 ~/data/alter-ego`
+- [ ] Test write: `touch ~/data/alter-ego/.write-test && rm ~/data/alter-ego/.write-test`
 
 ### 2.3 HTTPS and `/api` routing
 
@@ -119,9 +119,9 @@ Run when SSH works. Fill the [hosting profile](#hosting-profile-fill-in-once).
 ### 2.4 Git on server (if method A or C)
 
 - [ ] `git --version` on server
-- [ ] Clone: `git clone <your-repo-url> ~/alter-eger` OR link panel Git to `~/alter-eger`
+- [ ] Clone: `git clone <your-repo-url> ~/alter-ego` OR link panel Git to `~/alter-ego`
 - [ ] Deploy key or HTTPS token configured (never commit tokens)
-- [ ] `git pull` works from `~/alter-eger`
+- [ ] `git pull` works from `~/alter-ego`
 
 ### 2.5 SFTP (sanity check)
 
@@ -132,24 +132,24 @@ Run when SSH works. Fill the [hosting profile](#hosting-profile-fill-in-once).
 
 ## 3. One-time server setup
 
-After inventory. Commands assume app in `~/alter-eger`; adjust paths.
+After inventory. Commands assume app in `~/alter-ego`; adjust paths.
 
 ### 3.1 Application files on server
 
 - [ ] Code on server (one of):
-  - [ ] `git clone …` / `git pull` in `~/alter-eger`
+  - [ ] `git clone …` / `git pull` in `~/alter-ego`
   - [ ] SFTP sync of project (exclude `node_modules`; run `npm install` on server)
-- [ ] `cd ~/alter-eger && npm install --omit=dev` (production deps only)
+- [ ] `cd ~/alter-ego && npm install --omit=dev` (production deps only)
 - [ ] `npm run build:app` on server **or** upload prebuilt `dist/app/` from PC
 
 ### 3.2 Environment variables
 
-Create `~/alter-eger/.env` or use panel “Environment” (not in Git):
+Create `~/alter-ego/.env` or use panel “Environment” (not in Git):
 
 | Variable | Example / your value |
 |----------|----------------------|
 | `PORT` | `3000` |
-| `DATABASE_PATH` | `/home/____/data/alter-eger/campaigns.db` |
+| `DATABASE_PATH` | `/home/____/data/alter-ego/campaigns.db` |
 | `CORS_ORIGIN` | `https://________________` |
 | `PUBLIC_APP_URL` | `https://________________` |
 | `TOKEN_PEPPER` | (from hosting profile) |
@@ -162,15 +162,15 @@ Create `~/alter-eger/.env` or use panel “Environment” (not in Git):
 The build (`npm run build:app`) produces a **self-contained** `dist/app/` that already
 includes `metadata/` and `data/` (the `post-build-app` step copies them in). The app
 loads these at runtime via relative paths (e.g. `../../metadata/editor.json`,
-`../../data/alter_eger.db`). They are served by the **static host**, not the API.
+`../../data/alter_ego.db`). They are served by the **static host**, not the API.
 
-- [ ] Upload the **entire** `dist/app/` tree to **web root** **or** point vhost `root` to `~/alter-eger/dist/app`
-- [ ] Do **not** upload only `index.html` + `assets/` — include the `metadata/` and `data/` subfolders too (don't let an SFTP filter or size limit skip the large `data/alter_eger.db`)
+- [ ] Upload the **entire** `dist/app/` tree to **web root** **or** point vhost `root` to `~/alter-ego/dist/app`
+- [ ] Do **not** upload only `index.html` + `assets/` — include the `metadata/` and `data/` subfolders too (don't let an SFTP filter or size limit skip the large `data/alter_ego.db`)
 - [ ] Confirm `index.html` and assets load: `https://<domain>/`
 - [ ] GM path works: `https://<domain>/gm/` (built path; `index.html` is stripped from the URL)
 - [ ] **Supporting files reachable** (open each URL directly):
   - [ ] `https://<domain>/metadata/editor.json` → returns **JSON** (not the 404 HTML page)
-  - [ ] `https://<domain>/data/alter_eger.db` → downloads a **SQLite file** (or 404 only if you intentionally ship stub data)
+  - [ ] `https://<domain>/data/alter_ego.db` → downloads a **SQLite file** (or 404 only if you intentionally ship stub data)
 
 > If `metadata/editor.json` is missing or returns HTML, the character generator
 > aborts during startup and the **"Create new character" button does nothing**
@@ -179,7 +179,7 @@ loads these at runtime via relative paths (e.g. `../../metadata/editor.json`,
 
 ### 3.4 API process
 
-- [ ] Start test: `cd ~/alter-eger && npm run server` — listen on 3000
+- [ ] Start test: `cd ~/alter-ego && npm run server` — listen on 3000
 - [ ] From server: `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/health` (or campaigns route per [tests.md](tests.md))
 - [ ] Configure **PM2** / **systemd** / panel Node app so API survives logout and reboot
 - [ ] Reverse proxy: `https://<domain>/api/*` → `http://127.0.0.1:3000`
@@ -211,7 +211,7 @@ Repeat for each release (shortened after first time).
 
 **Git path:**
 
-- [ ] SSH → `cd ~/alter-eger && git pull`
+- [ ] SSH → `cd ~/alter-ego && git pull`
 - [ ] `npm install --omit=dev`
 - [ ] `npm run build:app` (or skip if you uploaded `dist/` from PC)
 - [ ] Restart API service (PM2/systemd/panel)
@@ -227,7 +227,7 @@ Repeat for each release (shortened after first time).
 ### 4.3 Post-deploy checks
 
 - [ ] `https://<domain>/` loads, no mixed-content errors (HTTPS only)
-- [ ] `https://<domain>/metadata/editor.json` returns JSON, and `https://<domain>/data/alter_eger.db` is reachable (see [§3.3](#33-static-frontend))
+- [ ] `https://<domain>/metadata/editor.json` returns JSON, and `https://<domain>/data/alter_ego.db` is reachable (see [§3.3](#33-static-frontend))
 - [ ] Open the generator in a **private/incognito window** (no cache, no prior session): the **"Create new character"** button opens the name step
 - [ ] Browser devtools → Network: `POST /api/...` returns **not** 502/404
 - [ ] `npm run test:api` against production URL (set `API_BASE` if script supports it) **or** manual steps in [tests.md](tests.md)
@@ -292,7 +292,7 @@ One session before the real session.
 
 | Symptom | Check |
 |---------|--------|
-| "Create new character" button does nothing (works for you, not testers) | `metadata/editor.json` / `data/alter_eger.db` reachable at web root? Open them directly. Usually `metadata/`+`data/` were not uploaded with `dist/app/`. Not auth — gate needs no token. Test in incognito. |
+| "Create new character" button does nothing (works for you, not testers) | `metadata/editor.json` / `data/alter_ego.db` reachable at web root? Open them directly. Usually `metadata/`+`data/` were not uploaded with `dist/app/`. Not auth — gate needs no token. Test in incognito. |
 | 502 on `/api` | API running? `PORT`? Proxy config? |
 | CORS error in browser | `CORS_ORIGIN` exact match `https://domain` (no trailing slash mismatch) |
 | Invite link wrong host | `PUBLIC_APP_URL` matches public URL |

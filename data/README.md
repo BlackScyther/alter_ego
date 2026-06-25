@@ -3,7 +3,7 @@
 After running the JSONP importer (see `metadata/import.json` and `tools/importer/`):
 
 ```
-data/alter_eger.db
+data/alter_ego.db
 ```
 
 The character editor reads this SQLite file via `src/data/compendium.js` (sql.js integration planned in a later phase).

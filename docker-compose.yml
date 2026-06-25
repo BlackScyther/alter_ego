@@ -6,7 +6,7 @@
 #   1) cp ops/env.example ops/server.env   (then edit secrets)
 #   2) docker compose up -d --build
 #   3) copy the compendium DB into the public volume (see doc/deploy-vps.md):
-#        docker cp data/alter_eger.db alter-ego:/data-public/alter_eger.db
+#        docker cp data/alter_ego.db alter-ego:/data-public/alter_ego.db
 
 services:
   alter-ego:

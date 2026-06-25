@@ -94,9 +94,9 @@ async function main() {
     process.exit(1);
   }
 
-  const dbPath = resolve(buildDir, 'data/alter_eger.db');
+  const dbPath = resolve(buildDir, 'data/alter_ego.db');
   if (!existsSync(dbPath)) {
-    console.error('Missing dist/app/data/alter_eger.db — full compendium DB required.');
+    console.error('Missing dist/app/data/alter_ego.db — full compendium DB required.');
     process.exit(1);
   }
 

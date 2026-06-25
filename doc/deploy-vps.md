@@ -15,7 +15,7 @@ Because both share one origin, there is no CORS to configure. Two persistent
 volumes hold data that must survive image rebuilds:
 
 - `/data-public` - served at `/data`. Holds the compendium DB
-  (`alter_eger.db`, ~77 MB) and samples. Public, read-only in practice.
+  (`alter_ego.db`, ~77 MB) and samples. Public, read-only in practice.
 - `/data-private` - never served. Holds `campaigns.db` (campaigns, homebrew,
   feedback).
 
@@ -110,24 +110,31 @@ Coolify once DNS resolves.
 
 ## Step 6 - Upload the compendium database
 
-The app shows compendium data only after `alter_eger.db` is in the public
+The app shows compendium data only after `alter_ego.db` is in the public
 volume. Build it locally first if needed (`npm run normalize`), then copy it up.
 
 From your PC, upload the file to the server:
 
 ```bash
-scp data/alter_eger.db deploy@SERVER_IP:/home/deploy/alter_eger.db
+scp data/alter_ego.db deploy@SERVER_IP:/home/deploy/alter_ego.db
 ```
 
 On the server, copy it into the running container's public volume. Find the
 container name with `docker ps` (it contains the app name), then:
 
 ```bash
-docker cp /home/deploy/alter_eger.db CONTAINER_NAME:/data-public/alter_eger.db
+docker cp /home/deploy/alter_ego.db CONTAINER_NAME:/data-public/alter_ego.db
 ```
 
 Reload the site; the compendium should now load. The file persists in the
 volume across future redeploys.
+
+If the server was set up before the DB was renamed, it may still hold the old
+`alter_eger.db`. Remove the stale file (the app now reads `alter_ego.db`):
+
+```bash
+docker exec CONTAINER_NAME rm -f /data-public/alter_eger.db
+```
 
 ## Step 7 - Verify
 
@@ -162,7 +169,7 @@ app directly. You still need a reverse proxy (such as Caddy) for HTTPS.
 ```bash
 cp ops/env.example ops/server.env   # then edit TOKEN_PEPPER and PUBLIC_APP_URL
 docker compose up -d --build
-docker cp data/alter_eger.db alter-ego:/data-public/alter_eger.db
+docker cp data/alter_ego.db alter-ego:/data-public/alter_ego.db
 ```
 
 The container listens on `127.0.0.1:3000`; point your reverse proxy at it.

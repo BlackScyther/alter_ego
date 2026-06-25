@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
-const dbPaths = ['data/alter_eger.db', 'dist/app/data/alter_eger.db'];
+const dbPaths = ['data/alter_ego.db', 'dist/app/data/alter_ego.db'];
 const dbPath = dbPaths.map((p) => path.join(root, p)).find((p) => fs.existsSync(p));
 if (!dbPath) {
   console.error('No compendium DB found. Import data first.');
