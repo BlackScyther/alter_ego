@@ -29,15 +29,25 @@ import {
   syncRaceNotesAndGrants,
   setRaceBuildChoice,
   setRaceBonusChoice,
+  setRacePowerAbilityChoice,
+  setRacePowerDamageChoice,
   validateRaceStep
 } from '../../character/race-selections.js';
-import { renderCombinedRacePreviewHtml } from '../../character/race-parse.js';
+import { renderCombinedRacePreviewHtml, extractFlavorFolds } from '../../character/race-parse.js';
+import { getCuratedMonsterRefs } from '../../character/monster-fluff.js';
 import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
 
 const BASE_PICKER_KEY = 'race-base';
 const SUBRACE_PICKER_KEY = 'race-subrace';
 const LIST_LIMIT = 100;
+
+// Sentinel "subrace" option that means "play the base race without a subrace".
+const NO_SUBRACE_ID = '__none__';
+const NO_SUBRACE_ENTRY = {
+  id: NO_SUBRACE_ID,
+  listing_fields: { Name: 'None (play the base race)' }
+};
 
 /** @type {'base' | 'subrace' | 'confirmed'} */
 let pickerPhase = 'base';
@@ -78,6 +88,42 @@ function attachPreviewBonusChoices(previewEl, onChange) {
     const group = wrap.dataset.choiceGroup;
     const value = select.value;
     if (kind && group && value) onChange(kind, group, value);
+  });
+}
+
+/**
+ * Wire the per-power ability-score dropdown inside racial-power grant folds.
+ * @param {HTMLElement} previewEl
+ * @param {(powerId: string, ability: string) => void} onChange
+ */
+function attachPreviewPowerAbility(previewEl, onChange) {
+  if (!previewEl || previewEl.dataset.powerAbilityDelegation) return;
+  previewEl.dataset.powerAbilityDelegation = 'true';
+  previewEl.addEventListener('change', (e) => {
+    const select = e.target.closest('.race-power-ability-combo');
+    if (!select) return;
+    const wrap = select.closest('.race-power-ability');
+    if (!wrap) return;
+    const powerId = wrap.dataset.powerId;
+    if (powerId) onChange(powerId, select.value);
+  });
+}
+
+/**
+ * Wire the per-power damage-type dropdown inside racial-power grant folds.
+ * @param {HTMLElement} previewEl
+ * @param {(powerId: string, damageType: string) => void} onChange
+ */
+function attachPreviewPowerDamage(previewEl, onChange) {
+  if (!previewEl || previewEl.dataset.powerDamageDelegation) return;
+  previewEl.dataset.powerDamageDelegation = 'true';
+  previewEl.addEventListener('change', (e) => {
+    const select = e.target.closest('.race-power-damage-combo');
+    if (!select) return;
+    const wrap = select.closest('.race-power-damage');
+    if (!wrap) return;
+    const powerId = wrap.dataset.powerId;
+    if (powerId) onChange(powerId, select.value);
   });
 }
 
@@ -251,7 +297,9 @@ export async function renderRaceStep(panel, ctx) {
 
   const { baseId, variantId } = resolveRacePair(character.selections.raceId);
   if (character.selections.raceId) {
-    pickerPhase = variantId || !parentHasSubraces(baseId ?? character.selections.raceId) ? 'confirmed' : 'subrace';
+    // A set raceId always means a final choice was made (a subrace, a base race
+    // without subraces, or a base race where the player picked "None").
+    pickerPhase = 'confirmed';
     pendingBaseId = baseId ?? character.selections.raceId;
   } else {
     pickerPhase = 'base';
@@ -272,7 +320,7 @@ export async function renderRaceStep(panel, ctx) {
         })}
       </div>
       <div id="picker-subrace-toolbar" class="picker-toolbar hidden">
-        <p class="race-subrace-intro">Choose a subrace for <strong id="picker-base-name"></strong>.</p>
+        <p class="race-subrace-intro">Choose a subrace for <strong id="picker-base-name"></strong>, or pick "None" to play the base race.</p>
         <div class="picker-toolbar-row">
           ${renderSourceComboHtml({ pickerKey: SUBRACE_PICKER_KEY, sourceBooks, groupLabel: 'Subrace source' })}
         </div>
@@ -342,29 +390,28 @@ export async function renderRaceStep(panel, ctx) {
     );
   }
 
+  function renderSubraceOptions(entries) {
+    // The "None" option is always listed first so the base race can be played
+    // without a subrace.
+    renderPickerOptions(
+      subraceListbox,
+      [NO_SUBRACE_ENTRY, ...entries],
+      character.selections.raceId,
+      onPickSubrace,
+      (e) => formatRaceListingMeta(e.listing_fields)
+    );
+  }
+
   async function refreshSubraceList(query = '') {
     if (!pendingBaseId) return;
     const q = query.trim();
     if (q.length > 0 && q.length < COMPENDIUM_SEARCH_MIN) {
       const pool = await loadRacePool('', SUBRACE_PICKER_KEY, false, pendingBaseId);
-      const narrowed = filterEntriesBySearch(pool, q);
-      renderPickerOptions(
-        subraceListbox,
-        narrowed,
-        character.selections.raceId,
-        onPickSubrace,
-        (e) => formatRaceListingMeta(e.listing_fields)
-      );
+      renderSubraceOptions(filterEntriesBySearch(pool, q));
       return;
     }
     const shown = await loadRacePool(q, SUBRACE_PICKER_KEY, false, pendingBaseId);
-    renderPickerOptions(
-      subraceListbox,
-      shown.slice(0, LIST_LIMIT),
-      character.selections.raceId,
-      onPickSubrace,
-      (e) => formatRaceListingMeta(e.listing_fields)
-    );
+    renderSubraceOptions(shown.slice(0, LIST_LIMIT));
   }
 
   async function loadRaceEntries() {
@@ -396,6 +443,68 @@ export async function renderRaceStep(panel, ctx) {
     return grantEntries;
   }
 
+  async function loadRaceReplacements() {
+    const pair = resolveRacePair(character.selections.raceId);
+    const variantId = pair.variantId && pair.variantId !== pair.baseId ? pair.variantId : null;
+    if (!variantId || typeof compendium.getRaceReplacements !== 'function') return null;
+    try {
+      return await compendium.getRaceReplacements(variantId);
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadMonsterFluffEntries() {
+    if (!baseEntry && !variantEntry) return [];
+    const raceEntry = variantEntry ?? baseEntry;
+    const raceName = raceEntry?.listing_fields?.Name ?? baseEntry?.listing_fields?.Name ?? '';
+    const curated = getCuratedMonsterRefs(raceEntry?.id, raceName);
+    if (curated.disabled) return [];
+
+    // Only supplement races whose own entry has little/no flavor (i.e. monster
+    // races); a curated mapping forces the lookup regardless.
+    const hasCurated = curated.monsterIds.length > 0 || curated.monsterNames.length > 0;
+    const ownFlavorCount =
+      (baseEntry ? extractFlavorFolds(baseEntry.body_html ?? '').length : 0) +
+      (variantEntry && variantEntry.id !== baseEntry?.id
+        ? extractFlavorFolds(variantEntry.body_html ?? '').length
+        : 0);
+    if (!hasCurated && ownFlavorCount > 0) return [];
+
+    const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const out = [];
+    const seenIds = new Set();
+    const addEntryById = async (id) => {
+      if (!id || seenIds.has(id)) return;
+      seenIds.add(id);
+      try {
+        const e = await compendium.getEntry(id);
+        if (e && e.body_html) out.push(e);
+      } catch {
+        /* ignore lookup failures; fluff is optional */
+      }
+    };
+
+    for (const id of curated.monsterIds) await addEntryById(id);
+
+    const names = curated.monsterNames.length ? curated.monsterNames : raceName ? [raceName] : [];
+    for (const nm of names) {
+      if (out.length >= 3) break;
+      if (!nm || nm.length < COMPENDIUM_SEARCH_MIN) continue;
+      let list = [];
+      try {
+        list = await compendium.listEntries('monster', { search: nm, limit: LIST_LIMIT });
+      } catch {
+        list = [];
+      }
+      // Exact-name match excludes named individuals ("Billy the Squire") and
+      // variants ("Bugbear Strangler").
+      const exact = (list ?? []).find((e) => norm(e.listing_fields?.Name) === norm(nm));
+      if (exact) await addEntryById(exact.id);
+    }
+    return out.slice(0, 3);
+  }
+
   async function refreshPreview() {
     await loadRaceEntries();
     const previewTerms = [];
@@ -404,11 +513,19 @@ export async function renderRaceStep(panel, ctx) {
       for (const t of d.previewTerms ?? []) previewTerms.push(t);
     }
     const grantEntries = await loadGrantEntriesForPreview();
+    const replacements = await loadRaceReplacements();
+    const monsterFlavor = await loadMonsterFluffEntries();
     const raceBonusChoices = character.selections?.raceBonusChoices ?? { ability: {}, skill: {} };
+    const racePowerAbilityChoices = character.selections?.racePowerAbilityChoices ?? {};
+    const racePowerDamageChoices = character.selections?.racePowerDamageChoices ?? {};
     const html = renderCombinedRacePreviewHtml(baseEntry, variantEntry, {
       previewTerms,
       grantEntries,
-      raceBonusChoices
+      raceBonusChoices,
+      racePowerAbilityChoices,
+      racePowerDamageChoices,
+      replacements,
+      monsterFlavor
     });
     if (linkIndex) renderLinkedEntryPreview(preview, html, linkIndex);
     else preview.innerHTML = html;
@@ -426,12 +543,26 @@ export async function renderRaceStep(panel, ctx) {
   async function syncRaceState(updateNotes = true) {
     await loadRaceEntries();
     if (updateNotes) {
+      const grantEntries = await loadGrantEntriesForPreview();
+      const grantNameById = new Map(
+        grantEntries.map((g) => [String(g.id).toLowerCase(), g.name])
+      );
+      const replacements = await loadRaceReplacements();
+      // Include both the previously-synced powers and the grant powers so the
+      // subrace's replacing power is available for the notes annotation.
+      const powerIdSet = new Set([
+        ...(character.selections.racePowerIds ?? []).map((id) => String(id)),
+        ...grantEntries.filter((g) => g.kind === 'power').map((g) => g.id)
+      ]);
       const powerEntries = [];
-      for (const pid of character.selections.racePowerIds ?? []) {
+      for (const pid of powerIdSet) {
         const e = await compendium.getEntry(pid);
         if (e) powerEntries.push(e);
       }
-      syncRaceNotesAndGrants(character, baseEntry, variantEntry, powerEntries);
+      syncRaceNotesAndGrants(character, baseEntry, variantEntry, powerEntries, {
+        replacements,
+        grantNameById
+      });
     }
     await refreshBonuses();
     await refreshPreview();
@@ -477,9 +608,12 @@ export async function renderRaceStep(panel, ctx) {
   }
 
   async function onPickSubrace(id, button) {
-    const entry = await compendium.getEntry(id);
+    // "None" → confirm the base race with no subrace applied.
+    const targetId = id === NO_SUBRACE_ID ? pendingBaseId : id;
+    if (!targetId) return;
+    const entry = await compendium.getEntry(targetId);
     if (!entry) return;
-    subraceSearch.value = entry.listing_fields?.Name ?? id;
+    subraceSearch.value = id === NO_SUBRACE_ID ? '' : entry.listing_fields?.Name ?? id;
     subraceCombobox.closeDropdown();
     await confirmRace(entry);
   }
@@ -494,6 +628,16 @@ export async function renderRaceStep(panel, ctx) {
 
   attachPreviewBonusChoices(preview, async (kind, group, value) => {
     setRaceBonusChoice(character, kind, group, value);
+    await syncRaceState(true);
+  });
+
+  attachPreviewPowerAbility(preview, async (powerId, ability) => {
+    setRacePowerAbilityChoice(character, powerId, ability);
+    await syncRaceState(true);
+  });
+
+  attachPreviewPowerDamage(preview, async (powerId, damageType) => {
+    setRacePowerDamageChoice(character, powerId, damageType);
     await syncRaceState(true);
   });
 

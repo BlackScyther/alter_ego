@@ -39,6 +39,7 @@ CREATE TABLE race (
   origin TEXT,
   size TEXT,
   speed TEXT,
+  speed_squares INTEGER,         -- parsed integer of `speed` (e.g. 6) when available
   vision TEXT,
   source_book TEXT,
   is_subrace INTEGER NOT NULL DEFAULT 0
@@ -77,6 +78,55 @@ CREATE TABLE race_subrace (
   subrace_race_id TEXT NOT NULL,
   PRIMARY KEY (parent_race_id, subrace_race_id)
 );
+
+-- Structured racial traits derived from the race body HTML. These feed the
+-- generator's "Racial Traits" fold and are applied to the matching character
+-- sheet fields (Languages, Resistances, Special Senses, Speed). They are
+-- best-effort parses; failures become normalize_warnings rather than missing UI.
+DROP TABLE IF EXISTS race_language;
+CREATE TABLE race_language (
+  race_id TEXT NOT NULL,
+  language TEXT NOT NULL,         -- a fixed language name, or 'choice' for a player pick
+  is_choice INTEGER NOT NULL DEFAULT 0,
+  choose_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_race_language ON race_language(race_id);
+
+DROP TABLE IF EXISTS race_resistance;
+CREATE TABLE race_resistance (
+  race_id TEXT NOT NULL,
+  damage_type TEXT NOT NULL,      -- 'fire' | 'cold' | 'necrotic' | ...
+  amount INTEGER,                 -- flat resist value when fixed, else null
+  scaling_json TEXT               -- optional tiered/level-scaling description
+);
+CREATE INDEX idx_race_resistance ON race_resistance(race_id);
+
+DROP TABLE IF EXISTS race_sense;
+CREATE TABLE race_sense (
+  race_id TEXT NOT NULL,
+  sense TEXT NOT NULL             -- 'Low-light vision' | 'Darkvision' | 'Tremorsense' | ...
+);
+CREATE INDEX idx_race_sense ON race_sense(race_id);
+
+DROP TABLE IF EXISTS race_trait;
+CREATE TABLE race_trait (
+  race_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  text TEXT                       -- the free-text trait body (may be empty)
+);
+CREATE INDEX idx_race_trait ON race_trait(race_id);
+
+-- Subrace replacements: a subrace trait/power that replaces a base-race one
+-- ("This trait replaces the dragonborn's X"). `race_id` is the subrace; the
+-- combined base+subrace view suppresses the named base trait/power/feat so only
+-- the subrace's version shows. Parsed from the subrace body + curated overrides.
+DROP TABLE IF EXISTS race_replacement;
+CREATE TABLE race_replacement (
+  race_id TEXT NOT NULL,          -- the subrace doing the replacing
+  replaces_name TEXT NOT NULL,    -- base trait/power/feat name (or entry id)
+  replaces_kind TEXT              -- 'trait' | 'power' | 'feat'
+);
+CREATE INDEX idx_race_replacement ON race_replacement(race_id);
 
 -- Classes ------------------------------------------------------------------
 DROP TABLE IF EXISTS class;
@@ -151,6 +201,29 @@ CREATE TABLE power (
 CREATE INDEX idx_power_class ON power(class_name);
 CREATE INDEX idx_power_type ON power(power_type);
 CREATE INDEX idx_power_level ON power(level);
+
+-- Powers that let the player choose which ability score the power uses (e.g.
+-- "Attack: Strength, Dexterity, or Constitution vs. AC"). One row per offered
+-- ability; the actual pick is a per-character selection, never stored here.
+DROP TABLE IF EXISTS power_ability_option;
+CREATE TABLE power_ability_option (
+  power_id TEXT NOT NULL,
+  choice_group TEXT NOT NULL,    -- groups options that belong to one decision
+  ability TEXT NOT NULL,         -- 'str' | 'con' | 'dex' | 'int' | 'wis' | 'cha'
+  role TEXT                      -- 'attack' | 'secondary' (context of the choice)
+);
+CREATE INDEX idx_power_ability_option ON power_ability_option(power_id);
+
+-- Powers that let the player choose the power's damage type (e.g. Dragon Breath:
+-- "choose the power's damage type: acid, cold, fire, lightning, or poison").
+-- One row per offered type; the actual pick is a per-character selection.
+DROP TABLE IF EXISTS power_damage_option;
+CREATE TABLE power_damage_option (
+  power_id TEXT NOT NULL,
+  choice_group TEXT NOT NULL,    -- groups options that belong to one decision
+  damage_type TEXT NOT NULL      -- 'acid' | 'cold' | 'fire' | 'lightning' | 'poison' | ...
+);
+CREATE INDEX idx_power_damage_option ON power_damage_option(power_id);
 
 -- Equipment ----------------------------------------------------------------
 DROP TABLE IF EXISTS item;

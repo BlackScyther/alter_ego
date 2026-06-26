@@ -1,0 +1,36 @@
+---
+description: SFTP deploy config and scripts for Alter Ego (shared-hosting push/pull)
+globs: scripts/*-live*.mjs,.env.deploy.local,.env.deploy.example,doc/deploy-*.md
+alwaysApply: false
+---
+
+# Alter Ego SFTP deploy (shared hosting)
+
+This rule covers the **SFTP shared-hosting** deploy path. For the Docker/Coolify
+VPS path on `server.masche.at` (different infrastructure), see `doc/deploy-vps.md`
+and the user-level **`server-masche-deploy`** skill. The same local
+`~/.ssh/id_ed25519` key is used for both (key setup/regeneration is documented in
+that skill).
+
+## Deploy config: `.env.deploy.local`
+
+Gitignored, read by `scripts/push-live.mjs`, `pull-live.mjs`,
+`pull-live-data.mjs`. Required keys:
+
+| Variable | Purpose |
+| --- | --- |
+| `DEPLOY_SSH_HOST` | SFTP host |
+| `DEPLOY_USER` | SSH user |
+| `DEPLOY_PATH` | Remote web root (default `public_html`) |
+| `SSH_KEY_PATH` | Absolute path to private key (`~/.ssh/id_ed25519`) |
+| `SSH_KEY_PASSPHRASE` | Leave empty for the unattended key |
+| `DEPLOY_PUBLIC_URL` | Public site URL (default `https://www.braincell.online`) |
+
+## Usage
+
+- Deploy app + data: `npm run deploy:live` (builds, then SFTP push).
+- Deploy app only (skip compendium DB): `npm run deploy:live:app`.
+- Pull live state back: `npm run pull:live`.
+- Auth is key-based SFTP; if a push fails with auth errors, confirm the public
+  key is in the server `authorized_keys` and `SSH_KEY_PATH` points at the
+  matching private key.

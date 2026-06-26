@@ -37,7 +37,11 @@ iws.mx JSONP  ->  entries (denormalized)  ->  tools/normalize/normalize.mjs  -> 
 | Table | Purpose |
 |-------|---------|
 | `source_books(code, title, release_date, edition_era)` | Date-ready source-book reference; `release_date` powers the GM's "filter source by date". Seeded from `metadata/source-books.json`; unknown dates are left null for the GM to fill in. |
-| `race`, `race_ability_bonus`, `race_skill_bonus`, `race_grant`, `race_subrace` | Race traits, structured ability/skill bonuses, power/feat grants, and the parent->subrace map (replaces the hand-maintained `metadata/race-subraces.json`). |
+| `race`, `race_ability_bonus`, `race_skill_bonus`, `race_grant`, `race_subrace` | Race traits, structured ability/skill bonuses, power/feat grants, and the parent->subrace map (replaces the hand-maintained `metadata/race-subraces.json`). `race.speed_squares` holds the parsed integer speed alongside the original `speed` string. |
+| `race_language`, `race_resistance`, `race_sense`, `race_trait` | Structured racial traits parsed from the race body (`race-parse.js`): fixed/choice languages, damage resistances (type + amount + optional scaling), senses/vision, and free-text named traits. Feed the generator's "Racial Traits" fold and the character sheet (Languages / Resistances / Special Senses). |
+| `race_replacement(race_id, replaces_name, replaces_kind)` | Subrace trait/power replacements: the base-race trait/power/feat (`replaces_name` = name or entry id, `replaces_kind` = trait/power/feat) that the subrace (`race_id`) replaces. Parsed from the subrace body (`parseRaceReplacements` in `race-parse.js`) merged with the curated overrides in `metadata/race-replacements.json`. The combined base+subrace preview, notes, grant tiles, and sheet suppress the named base item so only the subrace's version shows. A trait target that matches no base trait emits a `replacement-unmatched` warning. |
+| `power_ability_option(power_id, choice_group, ability, role)` | Powers that let the player choose the attack ability (e.g. "Strength, Dexterity, or Constitution vs. AC", or a `Special:` clause such as Dragon Breath); one row per offered ability. The pick itself is a per-character selection (`selections.racePowerAbilityChoices`), never stored here. |
+| `power_damage_option(power_id, choice_group, damage_type)` | Powers that let the player choose the power's damage type (e.g. Dragon Breath: "acid, cold, fire, lightning, or poison"); one row per offered type. The pick is a per-character selection (`selections.racePowerDamageChoices`), never stored here. |
 | `class`, `class_defense_bonus`, `class_trained_skill`, `class_build_option`, `class_build_suggested`, `class_proficiency` | Class traits incl. `is_hybrid`/`hybrid_parent_class_id`, defense bonuses, trained-skill pools, build options + suggestions, and armor/weapon/implement/shield proficiencies (used by the hybrid merge). |
 | `power(id, name, class_name, level, power_type, action, source_book)` | Normalized power filtering columns; `power_type` is the exact normalized value (At-Will/Encounter/Daily/Utility), retiring the `%enc.%`-style LIKE patterns. |
 | `item`, `item_level`, `armor_stats`, `weapon_stats` | Equipment listing fields plus materialized armor/weapon stats (retires the runtime PHB fallback table). `item.slot` (head/neck/arms/hands/waist/feet/ring) is derived from the item body's "<X> Slot" line — the `Type` field is empty for most wondrous items — so e.g. amulets and cloaks resolve to the neck slot authoritatively. `getEntry` attaches it to item entries; `getEligibleSlotsForEntry` prefers it over name guesses. |
@@ -53,7 +57,21 @@ tables are absent (older DB, stub, unavailable) every method returns
 null/empty and callers transparently fall back to the runtime parse path:
 
 - `usesNormalized()`, `getRaceSubraceMap()`, `getNormalizedClass(id)`,
-  `listNormalizedPowers(opts)`, `getNormalizedItemStats(id)`, `getSourceBookDates()`.
+  `listNormalizedPowers(opts)`, `getNormalizedItemStats(id)`,
+  `getNormalizedRaceTraits(id)`, `getPowerAbilityOptions(id)`,
+  `getPowerDamageOptions(id)`, `getRaceReplacements(id)`, `getSourceBookDates()`.
+- Subrace replacements also have a runtime fallback: `race-parse.js`
+  (`resolveReplacedBaseItems`) merges `parseRaceReplacements` with the curated
+  `metadata/race-replacements.json` (loaded by `race-replacements.js`), so
+  suppression works on the stub/older DBs without the `race_replacement` table.
+- Monster-race lore is resolved at runtime (preview-only, no new table): the
+  race step matches a flavor-less race to a Monster entry by exact name (or via
+  `metadata/race-monster-fluff.json` overrides, loaded by `monster-fluff.js`),
+  fetches it with `getEntry`, and `extractMonsterFlavorFolds` keeps prose while
+  stripping statistics. Exact-name matching excludes named individuals/variants.
+- Racial traits also have a synchronous runtime fallback: `race-selections.js`
+  applies them to the sheet by parsing the race entry HTML directly
+  (`getRaceStructuredTraits`), so the feature works on the stub/older DBs too.
 - `listEntries('power', ...)` filters via the `power` table when present
   (exact `power_type`/`level`/`class_name`) instead of `json_extract` LIKE.
 - `syncEquipmentToSheet` prefers `getNormalizedItemStats` over parsing.
@@ -91,6 +109,7 @@ Validated against the full production DB (≈9.4k powers, 3.7k items, 808 backgr
 - `class/hybrid-no-parent` (5): a few `Hybrid X` entries whose base name does not exactly match a class entry; refine the name match later.
 - `race_grant` is best-effort: it only captures inline `powerN`/`featN` id tokens, which the production race HTML largely does not use, so it is currently empty. Race powers/feats still load via the existing parse path.
 - `background_skill_bonus` is empty by design for choice-based backgrounds (skills are picked at selection time, not fixed bonuses).
+- `race_language`/`race_resistance`/`race_sense`/`race_trait`, `power_ability_option` and `power_damage_option` are best-effort text parses: races/powers whose wording does not match the patterns simply produce no rows (the runtime parse fallback still applies traits/options). `power_ability_option` fills for powers with an explicit attack-line ability "or"-list or a `Special:` "choose ... as the ability score" clause; `power_damage_option` fills for powers with a "damage type: ..." choice list.
 
 ## Hybrid characters (B-024)
 

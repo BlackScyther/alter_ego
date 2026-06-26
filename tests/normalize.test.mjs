@@ -35,7 +35,7 @@ test('normalizer creates the expected tables', () => {
     .prepare(`SELECT name FROM sqlite_master WHERE type='table'`)
     .all()
     .map((r) => r.name);
-  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'item', 'armor_stats', 'weapon_stats', 'background', 'normalize_warnings', 'norm_meta']) {
+  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'power_ability_option', 'power_damage_option', 'item', 'armor_stats', 'weapon_stats', 'background', 'normalize_warnings', 'norm_meta']) {
     assert.ok(names.includes(t), `missing table ${t}`);
   }
 });

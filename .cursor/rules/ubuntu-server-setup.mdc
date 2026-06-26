@@ -1,0 +1,61 @@
+---
+description: Ubuntu LTS VPS deploy specifics for Alter Ego (Coolify/Docker on server.masche.at)
+globs: ops/**,Dockerfile,docker-compose.yml,doc/deploy-vps.md,doc/deploy-online.md
+alwaysApply: false
+---
+
+# Alter Ego VPS deploy specifics
+
+Alter Ego runs as a single Docker container (frontend + Express API at one
+origin) on the `server.masche.at` Ubuntu VPS, managed by Coolify v4 + Docker.
+Canonical guide: `doc/deploy-vps.md`.
+
+For generic `server.masche.at` host management — SSH access, fresh-host
+bootstrap/hardening order, the Coolify deploy/redeploy flow, diagnosing failed
+deploys, and other day-2 operations — use the user-level **`server-masche-deploy`**
+skill. This rule only covers what is specific to Alter Ego.
+
+**Status:** live and healthy at `https://alter-ego.apps.masche.at`
+(Coolify v4.1.2); `/api/health` returns `"compendium":"sqlite"`.
+
+## App config
+
+- **Domain / public URL:** `alter-ego.apps.masche.at`. Set the Coolify domain
+  and `PUBLIC_APP_URL` to `https://alter-ego.apps.masche.at` (no trailing
+  slash). Switch to a final domain later by adding a proper record and updating
+  both.
+- **Required env vars:** `TOKEN_PEPPER` (`openssl rand -hex 32`) and
+  `PUBLIC_APP_URL`. Other defaults live in the `Dockerfile`. Never commit
+  secrets (`TOKEN_PEPPER`, private keys, `ops/server.env`).
+- **Scripts:** `ops/vps/bootstrap.sh` and `ops/vps/harden-ssh.sh` (run with
+  `DEPLOY_USER=masche`); `ops/env.example` → copy to `ops/server.env` for
+  plain-Docker runs. Keep both scripts pinned to the current Ubuntu LTS (OS
+  check, header comments, warnings).
+
+## Persistent volumes
+
+Two persistent volumes that must survive rebuilds:
+
+- `/data-public` — served at `/data`; holds `alter_ego.db` (~77 MB compendium,
+  not in Git). Upload the compendium DB once (see `doc/deploy-vps.md`); it
+  survives rebuilds, so only re-upload when the compendium content changes.
+- `/data-private` — never served; holds `campaigns.db`.
+
+The compendium DB lives at
+`/var/lib/docker/volumes/<app-uuid>-alter-ego-public/_data/alter_ego.db` on the
+host.
+
+## Dockerfile runtime files (critical)
+
+The runtime stage **must copy every directory the API imports at runtime**, not
+just `server/`. The Express API imports shared modules from `src/` (e.g.
+`server/apply-rewards.mjs` → `src/encounter/rewards.js`,
+`server/spawn-actor.mjs` → `src/character/actor-spawn.js`) and reads JSON config
+from `data/` and `metadata/` (e.g. `src/character/*-effects.js` →
+`data/*-effect-overrides.json`). If any is missing the container builds fine but
+crashes on boot with `ERR_MODULE_NOT_FOUND`, fails the healthcheck, and Coolify
+rolls back (leaving no app container). The runtime stage therefore copies
+`node_modules`, `dist`, `server`, `src`, `metadata`, `data`, `package.json`.
+The large SQLite DBs are kept out via `.dockerignore` (`data/*.db*`) and arrive
+through the `/data-public` volume instead. When adding a server→`src`/`data`
+import, confirm that directory is copied in the runtime stage.

@@ -5,6 +5,8 @@
 import { formatMechanicalValue } from '../shared/imperial-metric.js';
 import { escapeHtml as esc } from '../shared/escape-html.js';
 import { ABILITY_KEYS, bonusesFromEntry, parseRaceBonusDecisions } from './tutor.js';
+import { parsePowerAbilityOptions, parsePowerDamageOptions } from './power-ability-parse.js';
+import { getCuratedReplacements } from './race-replacements.js';
 
 const ABILITY_DISPLAY = {
   str: 'Strength',
@@ -638,6 +640,74 @@ export function extractFlavorFolds(html, previewTerms = []) {
 }
 
 /**
+ * True when a paragraph reads like a stat-block line (HP/AC/Speed/DC/attack…)
+ * rather than descriptive prose. Conservative: keep prose, drop numbers.
+ * @param {string} text
+ */
+function looksLikeMonsterStatLine(text) {
+  const t = String(text ?? '').trim();
+  if (!t) return true;
+  if (
+    /\b(HP|AC|Fortitude|Fort|Reflex|Ref|Will|Initiative|Init|Speed|Senses?|Perception|Insight|Immune|Resist|Vulnerable|Saving Throws?|Action Points?|Alignment|Languages?|Skills?|Equipment|XP|Recharge|Aura|Bloodied|Str|Dex|Con|Int|Wis|Cha)\b\s*[:\-]?\s*[+\-]?\d/i.test(t)
+  ) {
+    return true;
+  }
+  if (/\bDC\s*\d/i.test(t)) return true;
+  if (/\bvs\.?\s*(AC|Fortitude|Reflex|Will)\b/i.test(t)) return true;
+  if (/\b(Level|level)\s+\d+\b/.test(t) && t.length < 60) return true;
+  const digits = (t.match(/\d/g) || []).length;
+  if (t.length && digits / t.length > 0.15) return true;
+  return false;
+}
+
+/** Descriptive-prose test for a monster paragraph. */
+function isMonsterProseParagraph(text) {
+  const t = String(text ?? '').trim();
+  if (t.split(/\s+/).filter(Boolean).length < 6) return false;
+  return !looksLikeMonsterStatLine(t);
+}
+
+/**
+ * Extract FLAVOR-ONLY folds from a monster entry, for use as supplemental lore
+ * on a monster race's preview. Statistics, power/attack blocks, tables, and
+ * stat-line paragraphs are stripped; only descriptive prose is kept. Returns at
+ * most one collapsed fold, summarized by the monster name. Best-effort: returns
+ * [] when no prose is found.
+ * @param {{ listing_fields?: { Name?: string }, name?: string, body_html?: string } | null | undefined} monsterEntry
+ * @returns {Array<{ summary: string, bodyHtml: string }>}
+ */
+export function extractMonsterFlavorFolds(monsterEntry) {
+  if (!monsterEntry) return [];
+  const name = monsterEntry.listing_fields?.Name ?? monsterEntry.name ?? 'Monster';
+  let html = String(monsterEntry.body_html ?? '');
+  if (!html) return [];
+  html = stripPowerBlocks(html);
+  html = html.replace(/<table[\s\S]*?<\/table>/gi, '');
+
+  const kept = [];
+  const seen = new Set();
+  const pRe = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  let m;
+  while ((m = pRe.exec(html)) !== null) {
+    const text = stripHtml(m[1]);
+    if (!isMonsterProseParagraph(text)) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kept.push(`<p>${m[1]}</p>`);
+    if (kept.length >= 12) break;
+  }
+
+  if (!kept.length) return [];
+  return [
+    {
+      summary: `${name} (monster lore)`,
+      bodyHtml: `<div class="race-monster-flavor">${kept.join('')}</div>`
+    }
+  ];
+}
+
+/**
  * @param {object} decision
  * @param {string} picked
  */
@@ -746,17 +816,139 @@ function renderBenefitSectionsBlock(sections, raceBonusChoices = {}) {
 }
 
 /**
- * @param {Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>} grants
+ * Render the player's per-power ability-score choice (e.g. a racial power whose
+ * attack can use Strength, Dexterity, or Constitution). The available options
+ * come from the power entry; the pick is a per-character selection.
+ * @param {string} powerId
+ * @param {{ choiceGroup: string, options: Array<{ ability: string }> }} options
+ * @param {string} picked
  */
-function renderGrantFoldsBlock(grants) {
-  if (!grants?.length) return '';
+function renderPowerAbilityChoice(powerId, options, picked) {
+  if (!options?.options?.length) return '';
+  const selectId = `race-power-ability-${esc(powerId)}`;
+  const parts = [
+    `<div class="race-power-ability" data-power-id="${esc(powerId)}" data-choice-group="${esc(options.choiceGroup)}">`,
+    `<label class="race-power-ability-label" for="${selectId}">Power ability</label>`,
+    `<select class="race-choice-combo race-power-ability-combo" id="${selectId}" aria-label="Choose the ability score for this power">`,
+    `<option value="">Choose ability…</option>`
+  ];
+  for (const opt of options.options) {
+    const key = opt.ability;
+    const selected = picked === key ? ' selected' : '';
+    const label = ABILITY_DISPLAY[key] ?? String(key).toUpperCase();
+    parts.push(`<option value="${esc(key)}"${selected}>${esc(label)}</option>`);
+  }
+  parts.push('</select>', '</div>');
+  return parts.join('');
+}
+
+/**
+ * Render the player's per-power damage-type choice (e.g. Dragon Breath whose
+ * damage can be acid, cold, fire, lightning, or poison). Options come from the
+ * power entry; the pick is a per-character selection.
+ * @param {string} powerId
+ * @param {{ choiceGroup: string, options: Array<{ damageType: string }> }} options
+ * @param {string} picked
+ */
+function renderPowerDamageChoice(powerId, options, picked) {
+  if (!options?.options?.length) return '';
+  const selectId = `race-power-damage-${esc(powerId)}`;
+  const parts = [
+    `<div class="race-power-damage" data-power-id="${esc(powerId)}" data-choice-group="${esc(options.choiceGroup)}">`,
+    `<label class="race-power-damage-label" for="${selectId}">Power damage type</label>`,
+    `<select class="race-choice-combo race-power-damage-combo" id="${selectId}" aria-label="Choose the damage type for this power">`,
+    `<option value="">Choose damage type…</option>`
+  ];
+  for (const opt of options.options) {
+    const key = opt.damageType;
+    const selected = picked === key ? ' selected' : '';
+    const label = key ? key.charAt(0).toUpperCase() + key.slice(1) : '';
+    parts.push(`<option value="${esc(key)}"${selected}>${esc(label)}</option>`);
+  }
+  parts.push('</select>', '</div>');
+  return parts.join('');
+}
+
+/**
+ * @param {Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>} grants
+ * @param {Record<string, string>} [racePowerAbilityChoices]
+ * @param {object | null} [replaced]
+ * @param {Record<string, string>} [racePowerDamageChoices]
+ */
+function renderGrantFoldsBlock(
+  grants,
+  racePowerAbilityChoices = {},
+  replaced = null,
+  racePowerDamageChoices = {}
+) {
+  let list = grants ?? [];
+  if (replaced && (replaced.names?.size || replaced.ids?.size)) {
+    list = list.filter(
+      (g) =>
+        !replaced.names?.has(normalizeLabel(g.name)) &&
+        !replaced.ids?.has(String(g.id ?? '').toLowerCase())
+    );
+  }
+  if (!list.length) return '';
   const parts = ['<div class="race-grants">', '<h3 class="race-benefits-heading">Powers &amp; feats</h3>'];
-  for (const g of grants) {
+  for (const g of list) {
+    let choiceHtml = '';
+    if (g.kind === 'power' && g.bodyHtml) {
+      const key = String(g.id).toLowerCase();
+      const abilityOptions = parsePowerAbilityOptions({ id: g.id, body_html: g.bodyHtml });
+      if (abilityOptions) {
+        const picked = racePowerAbilityChoices?.[key] ?? '';
+        choiceHtml += renderPowerAbilityChoice(key, abilityOptions, picked);
+      }
+      const damageOptions = parsePowerDamageOptions({ id: g.id, body_html: g.bodyHtml });
+      if (damageOptions) {
+        const picked = racePowerDamageChoices?.[key] ?? '';
+        choiceHtml += renderPowerDamageChoice(key, damageOptions, picked);
+      }
+    }
     parts.push(
-      `<details class="race-grant-fold"><summary>${esc(g.name)}</summary><div class="race-grant-body">${g.bodyHtml ?? ''}</div></details>`
+      `<details class="race-grant-fold"><summary>${esc(g.name)}</summary><div class="race-grant-body">${choiceHtml}${g.bodyHtml ?? ''}</div></details>`
     );
   }
   parts.push('</div>');
+  return parts.join('');
+}
+
+/**
+ * Group the descriptive racial traits under one collapsed-by-default fold
+ * ("Racial Traits"), while keeping the ability-score choice visible above it so
+ * required decisions are not hidden behind a closed disclosure.
+ * @param {Array<{ heading: string, rows: Array<object> }>} sections
+ * @param {{ ability?: Record<string, string> }} [raceBonusChoices]
+ */
+function renderRaceTraitsBlock(sections, raceBonusChoices = {}) {
+  if (!sections?.length) return '';
+
+  /** @type {string[]} */
+  const abilityItems = [];
+  const descSections = sections
+    .map((sec) => {
+      const rows = [];
+      for (const row of sec.rows) {
+        if (row.abilityModel) abilityItems.push(renderAbilityScoreBenefitItem(row, raceBonusChoices));
+        else rows.push(row);
+      }
+      return { heading: sec.heading, rows };
+    })
+    .filter((sec) => sec.rows.length);
+
+  const parts = [];
+  if (abilityItems.length) {
+    parts.push(
+      `<div class="race-ability-choice"><ul class="race-benefits-list">${abilityItems.join('')}</ul></div>`
+    );
+  }
+  const inner = renderBenefitSectionsBlock(descSections, raceBonusChoices);
+  if (inner) {
+    parts.push(
+      `<details class="race-traits-fold"><summary>Racial Traits</summary>${inner}</details>`
+    );
+  }
   return parts.join('');
 }
 
@@ -842,18 +1034,39 @@ function compactMechanicalLinesFiltered(entry, previewTerms = []) {
   return compactMechanicalLines(entry, previewTerms).filter((line) => !/^Ability scores?:/i.test(line));
 }
 
+/** Normalize a replacement-name list into a Set of normalized labels. */
+function toReplacedNameSet(replacedNames) {
+  const set = new Set();
+  for (const n of replacedNames ?? []) {
+    const norm = normalizeLabel(n);
+    if (norm) set.add(norm);
+  }
+  return set;
+}
+
+/** Normalized label part of a "Label: value" compact note line. */
+function compactLineLabel(line) {
+  const s = String(line ?? '');
+  const idx = s.indexOf(':');
+  return normalizeLabel(idx >= 0 ? s.slice(0, idx) : s);
+}
+
 /**
  * @param {object | null | undefined} baseEntry
  * @param {object | null | undefined} variantEntry
- * @param {{ previewTerms?: string[], buildSummary?: string[], raceBonusChoices?: { ability?: Record<string, string> } }} [opts]
+ * @param {{ previewTerms?: string[], buildSummary?: string[], raceBonusChoices?: { ability?: Record<string, string> }, replacedNames?: string[] | Set<string> }} [opts]
  */
 export function buildRaceNotesText(baseEntry, variantEntry, opts = {}) {
   const previewTerms = opts.previewTerms ?? [];
   const raceBonusChoices = opts.raceBonusChoices ?? { ability: {}, skill: {} };
+  const replaced = toReplacedNameSet(opts.replacedNames);
   const lines = [];
 
   if (baseEntry) {
-    lines.push(...compactMechanicalLinesFiltered(baseEntry, previewTerms));
+    const baseLines = compactMechanicalLinesFiltered(baseEntry, previewTerms).filter(
+      (line) => !replaced.size || !replaced.has(compactLineLabel(line))
+    );
+    lines.push(...baseLines);
     const resolved = formatResolvedAbilityNotes(baseEntry, raceBonusChoices);
     if (resolved) lines.push(resolved);
   }
@@ -881,12 +1094,14 @@ export function buildRaceNotesText(baseEntry, variantEntry, opts = {}) {
 
 /**
  * @param {object | null | undefined} entry
- * @param {{ previewTerms?: string[], isVariant?: boolean, grantEntries?: Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>, raceBonusChoices?: { ability?: Record<string, string> } }} [opts]
+ * @param {{ previewTerms?: string[], isVariant?: boolean, grantEntries?: Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>, raceBonusChoices?: { ability?: Record<string, string> }, racePowerAbilityChoices?: Record<string, string>, racePowerDamageChoices?: Record<string, string> }} [opts]
  */
 export function renderRacePreviewHtml(entry, opts = {}) {
   if (!entry) return '';
   const previewTerms = opts.previewTerms ?? [];
   const raceBonusChoices = opts.raceBonusChoices ?? { ability: {}, skill: {} };
+  const racePowerAbilityChoices = opts.racePowerAbilityChoices ?? {};
+  const racePowerDamageChoices = opts.racePowerDamageChoices ?? {};
   let html = entry.body_html ?? '';
   if (opts.isVariant) {
     html = stripMatchingH3Sections(html, previewTerms);
@@ -910,17 +1125,26 @@ export function renderRacePreviewHtml(entry, opts = {}) {
   const flavorFolds = extractFlavorFolds(html, previewTerms);
   const grants = buildGrantEntries(opts.grantEntries ?? [], grantNameMap);
 
-  return `<div class="race-preview"><h2 class="race-preview-title">${esc(name)}</h2>${renderBenefitSectionsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
+  return `<div class="race-preview"><h2 class="race-preview-title">${esc(name)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, null, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
 }
 
 /**
  * @param {object | null | undefined} baseEntry
  * @param {object | null | undefined} variantEntry
- * @param {{ previewTerms?: string[], grantEntries?: Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>, raceBonusChoices?: { ability?: Record<string, string> } }} [opts]
+ * @param {{ previewTerms?: string[], grantEntries?: Array<{ id: string, name: string, bodyHtml?: string, kind?: string }>, raceBonusChoices?: { ability?: Record<string, string> }, racePowerAbilityChoices?: Record<string, string>, racePowerDamageChoices?: Record<string, string>, replacedNames?: string[] | Set<string>, replacedIds?: string[] | Set<string>, replacements?: Array<{ replacesName: string, replacesKind?: string }> | null, monsterFlavor?: Array<{ listing_fields?: { Name?: string }, name?: string, body_html?: string }> }} [opts]
  */
 export function renderCombinedRacePreviewHtml(baseEntry, variantEntry, opts = {}) {
   const previewTerms = opts.previewTerms ?? [];
   const raceBonusChoices = opts.raceBonusChoices ?? { ability: {}, skill: {} };
+  const racePowerAbilityChoices = opts.racePowerAbilityChoices ?? {};
+  const racePowerDamageChoices = opts.racePowerDamageChoices ?? {};
+  const replacedNames = toReplacedNameSet(opts.replacedNames);
+  const replacedIds = new Set([...(opts.replacedIds ?? [])].map((id) => String(id).toLowerCase()));
+  // Auto-detect subrace replacements (parser + curated + normalized rows) and
+  // merge with any explicitly-provided sets.
+  const auto = resolveReplacedBaseItems(baseEntry, variantEntry, { normalized: opts.replacements });
+  for (const n of auto.names) replacedNames.add(n);
+  for (const id of auto.ids) replacedIds.add(id);
   if (!baseEntry && !variantEntry) return '';
 
   let baseHtml = baseEntry?.body_html ?? '';
@@ -943,15 +1167,22 @@ export function renderCombinedRacePreviewHtml(baseEntry, variantEntry, opts = {}
   /** @type {ReturnType<typeof extractBenefitSections>} */
   const benefitSections = [];
   if (baseEntry) {
-    benefitSections.push(
-      ...extractBenefitSections(baseHtml, {
-        raceName: baseName || 'Race',
-        grantNameMap,
-        entry: baseEntry,
-        raceBonusChoices,
-        applyAbilityModel: true
-      })
-    );
+    let baseSections = extractBenefitSections(baseHtml, {
+      raceName: baseName || 'Race',
+      grantNameMap,
+      entry: baseEntry,
+      raceBonusChoices,
+      applyAbilityModel: true
+    });
+    if (replacedNames.size) {
+      baseSections = baseSections
+        .map((sec) => ({
+          ...sec,
+          rows: sec.rows.filter((row) => row.abilityModel || !replacedNames.has(normalizeLabel(row.label)))
+        }))
+        .filter((sec) => sec.rows.length);
+    }
+    benefitSections.push(...baseSections);
   }
   if (variantEntry && variantEntry.id !== baseEntry?.id) {
     benefitSections.push(
@@ -970,10 +1201,300 @@ export function renderCombinedRacePreviewHtml(baseEntry, variantEntry, opts = {}
   if (variantEntry && variantEntry.id !== baseEntry?.id) {
     flavorFolds.push(...extractFlavorFolds(variantHtml, previewTerms));
   }
+  // Supplemental flavor from related monster entries (monster races like
+  // Bugbear); statistics are stripped, prose stays in collapsed folds.
+  for (const mf of opts.monsterFlavor ?? []) {
+    flavorFolds.push(...extractMonsterFlavorFolds(mf));
+  }
 
   const grants = buildGrantEntries(opts.grantEntries ?? [], grantNameMap);
 
-  return `<div class="race-preview race-preview--combined"><h2 class="race-preview-title">${esc(title)}</h2>${renderBenefitSectionsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
+  const replaced = { names: replacedNames, ids: replacedIds };
+  return `<div class="race-preview race-preview--combined"><h2 class="race-preview-title">${esc(title)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, replaced, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
+}
+
+// --- Structured racial traits --------------------------------------------
+// These turn the race body HTML into structured languages / resistances /
+// senses / speed / free-text traits. They are reused by the normalizer
+// (tools/normalize/normalize.mjs) and by the sheet application in
+// race-selections.js, so the same parse drives both the build-time tables and
+// the runtime fallback. All are best-effort; callers surface gaps as warnings.
+
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+const GRANT_VALUE_RE = /^(power\d+|feat\d+)$/i;
+
+function wordToNumber(text) {
+  const digit = String(text ?? '').match(/\b(\d+)\b/);
+  if (digit) return Number(digit[1]);
+  for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+    if (new RegExp(`\\b${word}\\b`, 'i').test(String(text ?? ''))) return n;
+  }
+  return null;
+}
+
+function findPairValue(entry, norm) {
+  const { pairs } = parseRaceMechanics(entry);
+  const hit = pairs.find((p) => p.norm === norm);
+  return hit ? hit.value : null;
+}
+
+/**
+ * @param {string | object | null | undefined} source
+ * @returns {{ fixed: string[], chooseCount: number }}
+ */
+export function parseRaceLanguages(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const value = findPairValue(entry, 'languages');
+  const out = { fixed: [], chooseCount: 0 };
+  if (!value) return out;
+
+  const tokens = String(value)
+    .split(/,|;|\band\b|\bplus\b/i)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  for (const tok of tokens) {
+    if (/choice|of your choice|one (?:other|additional|more)|any (?:one|other)|other language/i.test(tok)) {
+      out.chooseCount += wordToNumber(tok) ?? 1;
+      continue;
+    }
+    const name = tok.replace(/\blanguages?\b/gi, '').replace(/\bchoose\b/gi, '').trim();
+    if (name) out.fixed.push(name);
+  }
+  return out;
+}
+
+/**
+ * @param {string | object | null | undefined} source
+ * @returns {Array<{ damageType: string, amount: number | null, scaling: string | null }>}
+ */
+export function parseRaceResistances(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const { headHtml } = parseRaceMechanics(entry);
+  const text = stripHtml(headHtml || entry.body_html || '');
+  /** @type {Map<string, { damageType: string, amount: number | null, scaling: string | null }>} */
+  const byType = new Map();
+
+  const add = (type, amount) => {
+    const damageType = String(type ?? '').toLowerCase();
+    if (!damageType) return;
+    if (!byType.has(damageType)) {
+      byType.set(damageType, {
+        damageType,
+        amount: Number.isFinite(amount) ? amount : null,
+        scaling: null
+      });
+    }
+  };
+
+  let m;
+  const resistFirst = /resist(?:ance)?\s+(\d+)\s+([a-z]+)/gi;
+  while ((m = resistFirst.exec(text)) !== null) add(m[2], Number(m[1]));
+  const typeFirst = /\b([a-z]+)\s+resistance\s+(\d+)/gi;
+  while ((m = typeFirst.exec(text)) !== null) add(m[1], Number(m[2]));
+
+  return [...byType.values()];
+}
+
+/**
+ * @param {string | object | null | undefined} source
+ * @returns {string[]}
+ */
+export function parseRaceSenses(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const visionValue = findPairValue(entry, 'vision') ?? '';
+  const { headHtml } = parseRaceMechanics(entry);
+  const text = `${visionValue} ${stripHtml(headHtml || entry.body_html || '')}`;
+  const senses = new Set();
+  const canon = (raw) => {
+    const v = raw.toLowerCase();
+    if (v.startsWith('low-light')) return 'Low-light vision';
+    if (v.startsWith('darkvision')) return 'Darkvision';
+    if (v.startsWith('blindsight')) return 'Blindsight';
+    if (v.startsWith('tremorsense')) return 'Tremorsense';
+    if (v.startsWith('truesight')) return 'Truesight';
+    return null;
+  };
+  const re = /\b(low-light vision|low-light|darkvision|blindsight|tremorsense|truesight)\b/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const c = canon(m[1]);
+    if (c) senses.add(c);
+  }
+  return [...senses];
+}
+
+/**
+ * @param {string | object | null | undefined} source
+ * @returns {number | null}
+ */
+export function parseSpeedSquares(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const value = findPairValue(entry, 'speed');
+  const n = parseInt(String(value ?? '').match(/\d+/)?.[0] ?? '', 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Free-text racial traits (named features that are not structured elsewhere).
+ * @param {string | object | null | undefined} source
+ * @returns {Array<{ name: string, text: string }>}
+ */
+export function parseRaceTraits(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const { features } = parseRaceMechanics(entry);
+  const out = [];
+  for (const f of features) {
+    const value = String(f.displayValue ?? f.value ?? '').trim();
+    if (GRANT_VALUE_RE.test(value)) continue;
+    out.push({ name: f.label, text: value });
+  }
+  return out;
+}
+
+/**
+ * Detect base-race traits/powers a subrace replaces, parsed from phrases like
+ * "This trait replaces the dragonborn's Dragon Breath racial trait" or
+ * "instead of the X power". Best-effort; the curated override map
+ * (race-replacements.js) backstops anything this misses.
+ * @param {string | object | null | undefined} source
+ * @returns {Array<{ targetName: string, kind: string }>}
+ */
+export function parseRaceReplacements(source) {
+  const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
+  const text = stripHtml(entry.body_html ?? '');
+  /** @type {Array<{ targetName: string, kind: string }>} */
+  const out = [];
+  const seen = new Set();
+
+  const push = (rawName, keyword) => {
+    let name = String(rawName ?? '')
+      .replace(/’/g, "'")
+      // Drop a leading possessive race token, e.g. "Dragonborn's Dragon Breath".
+      .replace(/^[A-Za-z][A-Za-z']+'s\s+/, '')
+      .replace(/^\s*(?:[Tt]he|[Yy]our|[Aa]n?)\s+/, '')
+      .trim();
+    if (!name || name.length < 3) return;
+    const kind = /power/i.test(keyword) ? 'power' : /feat/i.test(keyword) ? 'feat' : 'trait';
+    const key = `${kind}:${name.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ targetName: name, kind });
+  };
+
+  // NOTE: no `i` flag, so [A-Z] stays a real capital and anchors on the proper
+  // name (e.g. "Dragon Breath") rather than swallowing "the dragonborn's".
+  // "... replaces (the|your) <Title Words> (racial trait|trait|power|feat)"
+  const reReplace =
+    /[Rr]eplaces?\b[^.]*?\b([A-Z][A-Za-z'’]*(?:\s+[A-Z][A-Za-z'’]*)*)\s+(?:racial\s+)?(trait|power|feat)\b/g;
+  // "instead of / in place of <Title Words> (trait|power|feat)"
+  const reInstead =
+    /(?:[Ii]nstead of|[Ii]n place of)\b[^.]*?\b([A-Z][A-Za-z'’]*(?:\s+[A-Z][A-Za-z'’]*)*)\s+(?:racial\s+)?(trait|power|feat)\b/g;
+
+  let m;
+  while ((m = reReplace.exec(text)) !== null) push(m[1], m[2]);
+  while ((m = reInstead.exec(text)) !== null) push(m[1], m[2]);
+
+  return out;
+}
+
+/**
+ * Resolve which base-race trait names / grant ids a subrace replaces, merging
+ * the auto-parsed replacements, the curated override map, and any normalized
+ * `race_replacement` rows the caller passes in.
+ * @param {object | null | undefined} baseEntry
+ * @param {object | null | undefined} variantEntry
+ * @param {{ normalized?: Array<{ replacesName: string, replacesKind?: string }> | null }} [opts]
+ * @returns {{ names: Set<string>, ids: Set<string> }}
+ */
+export function resolveReplacedBaseItems(baseEntry, variantEntry, opts = {}) {
+  const names = new Set();
+  const ids = new Set();
+  if (!variantEntry || (baseEntry && variantEntry.id === baseEntry.id)) {
+    return { names, ids };
+  }
+
+  const addToken = (token) => {
+    const raw = String(token ?? '').trim();
+    if (!raw) return;
+    if (GRANT_ID_RE.test(raw)) ids.add(raw.toLowerCase());
+    else {
+      const norm = normalizeLabel(raw);
+      if (norm) names.add(norm);
+    }
+  };
+
+  for (const r of parseRaceReplacements(variantEntry)) addToken(r.targetName);
+
+  const curated = getCuratedReplacements(variantEntry.id);
+  for (const t of curated.traits) addToken(t);
+  for (const pid of curated.powerIds) ids.add(String(pid).toLowerCase());
+  for (const fid of curated.featIds) ids.add(String(fid).toLowerCase());
+
+  for (const row of opts.normalized ?? []) addToken(row.replacesName);
+
+  return { names, ids };
+}
+
+/**
+ * Merge structured traits across a base race and an optional subrace.
+ * @param {object | null | undefined} baseEntry
+ * @param {object | null | undefined} variantEntry
+ */
+export function getRaceStructuredTraits(baseEntry, variantEntry) {
+  const entries = [baseEntry, variantEntry].filter(Boolean);
+  const fixedLanguages = [];
+  let chooseCount = 0;
+  /** @type {Map<string, { damageType: string, amount: number | null, scaling: string | null }>} */
+  const resistances = new Map();
+  const senses = new Set();
+  const traits = [];
+  let speedSquares = null;
+
+  for (const entry of entries) {
+    const langs = parseRaceLanguages(entry);
+    for (const l of langs.fixed) if (!fixedLanguages.includes(l)) fixedLanguages.push(l);
+    chooseCount = Math.max(chooseCount, langs.chooseCount);
+    for (const r of parseRaceResistances(entry)) if (!resistances.has(r.damageType)) resistances.set(r.damageType, r);
+    for (const s of parseRaceSenses(entry)) senses.add(s);
+    for (const t of parseRaceTraits(entry)) traits.push(t);
+    const sq = parseSpeedSquares(entry);
+    if (sq != null) speedSquares = sq;
+  }
+
+  return {
+    languages: { fixed: fixedLanguages, chooseCount },
+    resistances: [...resistances.values()],
+    senses: [...senses],
+    speedSquares,
+    traits
+  };
+}
+
+/** @param {{ fixed: string[], chooseCount: number }} languages */
+export function formatRaceLanguagesText(languages) {
+  const parts = [...(languages?.fixed ?? [])];
+  const n = languages?.chooseCount ?? 0;
+  if (n > 0) {
+    const word = Object.keys(NUMBER_WORDS).find((k) => NUMBER_WORDS[k] === n) ?? String(n);
+    parts.push(`${word} of your choice`);
+  }
+  return parts.join(', ');
+}
+
+/** @param {Array<{ damageType: string, amount: number | null }>} resistances */
+export function formatRaceResistancesText(resistances) {
+  return (resistances ?? [])
+    .map((r) => {
+      const type = r.damageType ? r.damageType.charAt(0).toUpperCase() + r.damageType.slice(1) : '';
+      return r.amount != null ? `Resist ${r.amount} ${type}`.trim() : `Resist ${type}`.trim();
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
+/** @param {string[]} senses */
+export function formatRaceSensesText(senses) {
+  return (senses ?? []).join(', ');
 }
 
 export { stripHtml, truncateFlavor };

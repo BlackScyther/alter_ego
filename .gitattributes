@@ -1,0 +1,21 @@
+# Normalize line endings. Keep shell scripts LF so they run on Linux servers
+# even when copied straight from a Windows checkout (CRLF breaks bash:
+# "$'\r': command not found", "set: pipefail: invalid option name").
+* text=auto eol=lf
+*.sh text eol=lf
+ops/** text eol=lf
+
+# Windows-specific scripts stay CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Treat the compendium DB and other binaries as binary.
+*.db binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.ico binary

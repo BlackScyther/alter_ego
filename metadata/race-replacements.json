@@ -1,0 +1,4 @@
+{
+  "_comment": "Curated overrides for subrace trait/power replacements. Keyed by subrace entry id. Each entry may list base trait/power/feat NAMES (replacesTraits) and/or base entry IDS (replacesPowerIds/replacesFeatIds) that the subrace replaces. These are merged with the auto-parsed replacements from the subrace body. Add entries here when the parser misses a 'replaces ...' wording. Example: \"race67\": { \"replacesTraits\": [\"Dragon Breath\"], \"replacesPowerIds\": [], \"replacesFeatIds\": [] }",
+  "replacementsByRace": {}
+}

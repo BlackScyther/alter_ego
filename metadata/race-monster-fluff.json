@@ -1,0 +1,5 @@
+{
+  "_comment": "Curated race -> monster flavor mappings. Many 'monster races' (e.g. Bugbear) have little or no flavor text in their Race compendium entry; the descriptive lore lives in the matching Monster entry. The generator supplements the race preview with FLAVOR ONLY (no statistics) from that monster, shown as collapsed folds. By default the race Name is matched against an exact monster Name (which naturally excludes named individuals like 'Billy the Squire' and variants like 'Bugbear Strangler'). Use this file only to override that default: keyed by race id (byRaceId) or race Name (byRaceName), each record may set monsterIds (exact entry ids), monsterNames (exact monster names to match), or disabled:true to suppress monster fluff for that race. Example: \"Bugbear\": { \"monsterNames\": [\"Bugbear\"] }, \"race99\": { \"monsterIds\": [\"monster123\"] }, \"Human\": { \"disabled\": true }",
+  "byRaceId": {},
+  "byRaceName": {}
+}

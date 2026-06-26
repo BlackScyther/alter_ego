@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Bootstrap a fresh Ubuntu 24.04 LTS VPS into a secure, multi-project host.
+# Bootstrap a fresh Ubuntu 26.04 LTS VPS into a secure, multi-project host.
 #
 # What it does (idempotent - safe to re-run):
 #   1. Updates the OS and installs base tools.
@@ -42,8 +42,8 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Ubuntu 24.04" /etc/os-release 2>/dev/null; then
-  warn "This script targets Ubuntu 24.04 LTS. Detected a different OS; continuing anyway."
+if ! grep -q "Ubuntu 26.04" /etc/os-release 2>/dev/null; then
+  warn "This script targets Ubuntu 26.04 LTS. Detected a different OS; continuing anyway."
 fi
 
 export DEBIAN_FRONTEND=noninteractive
@@ -119,9 +119,12 @@ ufw status verbose || true
 
 # --- fail2ban ---------------------------------------------------------------
 log "Enabling fail2ban (SSH protection)"
+# Ubuntu 26.04 ships without rsyslog, so /var/log/auth.log may not exist.
+# Read SSH auth events from the systemd journal instead of a log file.
 cat >/etc/fail2ban/jail.local <<'EOF'
 [sshd]
 enabled = true
+backend = systemd
 maxretry = 5
 bantime = 1h
 findtime = 10m

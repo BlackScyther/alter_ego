@@ -27,8 +27,20 @@ import { parseClassEntry, parseBuildSuggestedSkills, parseBuildSuggestedPowerNam
 import { getEquipmentStats } from '../../src/character/equipment-stats.js';
 import { normalizePowerType } from '../../src/editor/power-filter.js';
 import { bonusesFromEntry } from '../../src/character/tutor.js';
-import { parseRaceMechanics, extractPowerIdsFromRaceHtml, extractFeatIdsFromRaceHtml } from '../../src/character/race-parse.js';
+import {
+  parseRaceMechanics,
+  extractPowerIdsFromRaceHtml,
+  extractFeatIdsFromRaceHtml,
+  parseRaceLanguages,
+  parseRaceResistances,
+  parseRaceSenses,
+  parseRaceTraits,
+  parseSpeedSquares,
+  parseRaceReplacements
+} from '../../src/character/race-parse.js';
+import { parsePowerAbilityOptions, parsePowerDamageOptions } from '../../src/character/power-ability-parse.js';
 import { getParentRaceId, inferParentFromName, isSubraceId } from '../../src/character/race-subraces.js';
+import { getCuratedReplacements } from '../../src/character/race-replacements.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..', '..');
@@ -295,7 +307,7 @@ function normalizeSourceBooks(db, byCategory, warnings) {
 function normalizeRaces(db, byCategory, warnings) {
   const races = byCategory.get('race') ?? [];
   const insRace = db.prepare(
-    `INSERT OR REPLACE INTO race (id, name, origin, size, speed, vision, source_book, is_subrace) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT OR REPLACE INTO race (id, name, origin, size, speed, speed_squares, vision, source_book, is_subrace) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insAbil = db.prepare(
     `INSERT INTO race_ability_bonus (race_id, ability, amount, choice_group, alternatives_json, note) VALUES (?, ?, ?, ?, ?, ?)`
@@ -303,17 +315,33 @@ function normalizeRaces(db, byCategory, warnings) {
   const insSkill = db.prepare(`INSERT INTO race_skill_bonus (race_id, skill, amount) VALUES (?, ?, ?)`);
   const insGrant = db.prepare(`INSERT INTO race_grant (race_id, kind, entry_id) VALUES (?, ?, ?)`);
   const insSub = db.prepare(`INSERT OR REPLACE INTO race_subrace (parent_race_id, subrace_race_id) VALUES (?, ?)`);
+  const insLang = db.prepare(
+    `INSERT INTO race_language (race_id, language, is_choice, choose_count) VALUES (?, ?, ?, ?)`
+  );
+  const insResist = db.prepare(
+    `INSERT INTO race_resistance (race_id, damage_type, amount, scaling_json) VALUES (?, ?, ?, ?)`
+  );
+  const insSense = db.prepare(`INSERT INTO race_sense (race_id, sense) VALUES (?, ?)`);
+  const insTrait = db.prepare(`INSERT INTO race_trait (race_id, name, text) VALUES (?, ?, ?)`);
+  const insRepl = db.prepare(
+    `INSERT INTO race_replacement (race_id, replaces_name, replaces_kind) VALUES (?, ?, ?)`
+  );
+
+  const raceById = new Map(races.map((r) => [r.id, r]));
+  const norm = (s) => String(s ?? '').trim().toLowerCase();
 
   const tx = db.transaction(() => {
     for (const e of races) {
       const lf = e.listing_fields ?? {};
       const subraceFlag = isSubraceId(e.id) ? 1 : 0;
+      const speedSquares = parseSpeedSquares(e);
       insRace.run(
         e.id,
         lf.Name ?? e.id,
         lf.Origin ?? null,
         lf.Size ?? findMechanicPair(e, ['size']),
         findMechanicPair(e, ['speed']),
+        speedSquares,
         findMechanicPair(e, ['vision']),
         lf.SourceBook ?? null,
         subraceFlag
@@ -336,16 +364,114 @@ function normalizeRaces(db, byCategory, warnings) {
         warnings.add('race', e.id, 'no-ability-bonus', `Race "${lf.Name ?? e.id}" produced no ability bonuses.`);
       }
 
+      // Structured racial traits (best-effort; feed the generator + sheet).
+      const langs = parseRaceLanguages(e);
+      for (const l of langs.fixed) insLang.run(e.id, l, 0, 0);
+      if (langs.chooseCount > 0) insLang.run(e.id, 'choice', 1, langs.chooseCount);
+
+      for (const r of parseRaceResistances(e)) {
+        insResist.run(e.id, r.damageType, r.amount ?? null, r.scaling ? JSON.stringify(r.scaling) : null);
+      }
+      for (const s of parseRaceSenses(e)) insSense.run(e.id, s);
+      for (const t of parseRaceTraits(e)) insTrait.run(e.id, t.name, t.text ?? '');
+
       for (const pid of extractPowerIdsFromRaceHtml(e.body_html)) insGrant.run(e.id, 'power', pid);
       for (const fid of extractFeatIdsFromRaceHtml(e.body_html)) insGrant.run(e.id, 'feat', fid);
 
       // Subrace -> parent mapping (static map first, then name inference).
       const parent = getParentRaceId(e.id) ?? inferParentFromName(e, races);
       if (parent && parent !== e.id) insSub.run(parent, e.id);
+
+      // Subrace trait/power replacements: auto-parsed from the body + curated
+      // override map. Stored on the subrace; the combined view suppresses the
+      // named base item. Warn when a trait target does not match any base
+      // trait name so unmatched targets are visible, not silently dropped.
+      if (subraceFlag || (parent && parent !== e.id)) {
+        const curated = getCuratedReplacements(e.id);
+        /** @type {Array<{ name: string, kind: string }>} */
+        const repl = [];
+        const seen = new Set();
+        const add = (name, kind) => {
+          const key = `${kind}:${norm(name)}`;
+          if (!name || seen.has(key)) return;
+          seen.add(key);
+          repl.push({ name: String(name), kind });
+        };
+        for (const r of parseRaceReplacements(e)) add(r.targetName, r.kind);
+        for (const t of curated.traits) add(t, 'trait');
+        for (const pid of curated.powerIds) add(pid, 'power');
+        for (const fid of curated.featIds) add(fid, 'feat');
+
+        const parentEntry = parent ? raceById.get(parent) : null;
+        const baseTraitNames = new Set(
+          parentEntry ? parseRaceTraits(parentEntry).map((t) => norm(t.name)) : []
+        );
+        for (const r of repl) {
+          insRepl.run(e.id, r.name, r.kind);
+          if (r.kind === 'trait' && parentEntry && !baseTraitNames.has(norm(r.name))) {
+            warnings.add(
+              'race',
+              e.id,
+              'replacement-unmatched',
+              `Subrace "${lf.Name ?? e.id}" replacement target "${r.name}" did not match any base trait of "${parentEntry.listing_fields?.Name ?? parent}".`
+            );
+          }
+        }
+      }
     }
   });
   tx();
   return races.length;
+}
+
+/**
+ * Detect powers that offer a player choice of attack ability (e.g.
+ * "Attack: Strength, Dexterity, or Constitution vs. AC") and store the offered
+ * abilities. The pick itself is per-character and never stored here.
+ */
+function normalizePowerAbilityOptions(db, byCategory, warnings) {
+  const powers = byCategory.get('power') ?? [];
+  const ins = db.prepare(
+    `INSERT INTO power_ability_option (power_id, choice_group, ability, role) VALUES (?, ?, ?, ?)`
+  );
+  let count = 0;
+  const tx = db.transaction(() => {
+    for (const e of powers) {
+      const parsed = parsePowerAbilityOptions(e);
+      if (!parsed) continue;
+      for (const opt of parsed.options) {
+        ins.run(e.id, parsed.choiceGroup, opt.ability, opt.role ?? null);
+      }
+      count += 1;
+    }
+  });
+  tx();
+  return count;
+}
+
+/**
+ * Detect powers that offer a player choice of damage type (e.g. Dragon Breath:
+ * "choose the power's damage type: acid, cold, fire, lightning, or poison") and
+ * store the offered types. The pick itself is per-character, never stored here.
+ */
+function normalizePowerDamageOptions(db, byCategory, warnings) {
+  const powers = byCategory.get('power') ?? [];
+  const ins = db.prepare(
+    `INSERT INTO power_damage_option (power_id, choice_group, damage_type) VALUES (?, ?, ?)`
+  );
+  let count = 0;
+  const tx = db.transaction(() => {
+    for (const e of powers) {
+      const parsed = parsePowerDamageOptions(e);
+      if (!parsed) continue;
+      for (const opt of parsed.options) {
+        ins.run(e.id, parsed.choiceGroup, opt.damageType);
+      }
+      count += 1;
+    }
+  });
+  tx();
+  return count;
 }
 
 function resolveHybridParent(entry, classEntries) {
@@ -641,6 +767,8 @@ function main() {
     race: normalizeRaces(db, byCategory, warnings),
     class: normalizeClasses(db, byCategory, warnings),
     power: normalizePowers(db, byCategory, warnings),
+    power_ability_option: normalizePowerAbilityOptions(db, byCategory, warnings),
+    power_damage_option: normalizePowerDamageOptions(db, byCategory, warnings),
     item: normalizeEquipment(db, byCategory, warnings),
     background: normalizeBackgrounds(db, byCategory)
   };

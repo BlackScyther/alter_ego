@@ -2422,7 +2422,8 @@ body.player-editor #gate-lead {
 }
 
 .race-grant-fold,
-.race-flavor-fold {
+.race-flavor-fold,
+.race-traits-fold {
   margin-top: 8px;
   border: 1px solid var(--editor-border);
   border-radius: 8px;
@@ -2430,8 +2431,31 @@ body.player-editor #gate-lead {
 }
 
 .race-grant-fold summary,
-.race-flavor-fold summary {
+.race-flavor-fold summary,
+.race-traits-fold summary {
   cursor: pointer;
+  color: var(--editor-muted);
+}
+
+.race-traits-fold summary {
+  font-weight: 700;
+}
+
+.race-ability-choice {
+  margin-top: 4px;
+}
+
+.race-power-ability,
+.race-power-damage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.race-power-ability-label,
+.race-power-damage-label {
+  font-size: 0.85rem;
   color: var(--editor-muted);
 }
 

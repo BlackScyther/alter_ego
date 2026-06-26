@@ -631,6 +631,94 @@ export class CompendiumProvider {
   }
 
   /**
+   * Structured racial traits (languages, resistances, senses, free-text traits,
+   * and parsed speed in squares) for a race id, else null when absent.
+   * @param {string} raceId
+   */
+  async getNormalizedRaceTraits(raceId) {
+    await this.ready();
+    if (!this._hasTable('race')) return null;
+    const base = this._queryAll(`SELECT speed_squares FROM race WHERE id = ? LIMIT 1`, [raceId]);
+    if (!base.length) return null;
+    return {
+      speedSquares: base[0].speed_squares ?? null,
+      languages: this._hasTable('race_language')
+        ? this._queryAll(
+            `SELECT language, is_choice, choose_count FROM race_language WHERE race_id = ?`,
+            [raceId]
+          )
+        : [],
+      resistances: this._hasTable('race_resistance')
+        ? this._queryAll(
+            `SELECT damage_type, amount, scaling_json FROM race_resistance WHERE race_id = ?`,
+            [raceId]
+          )
+        : [],
+      senses: this._hasTable('race_sense')
+        ? this._queryAll(`SELECT sense FROM race_sense WHERE race_id = ?`, [raceId]).map((r) => r.sense)
+        : [],
+      traits: this._hasTable('race_trait')
+        ? this._queryAll(`SELECT name, text FROM race_trait WHERE race_id = ?`, [raceId])
+        : []
+    };
+  }
+
+  /**
+   * Base-race traits/powers a subrace replaces, else null when the table is
+   * absent (caller falls back to runtime parse + curated map).
+   * @param {string} raceId — the subrace id
+   * @returns {Promise<Array<{ replacesName: string, replacesKind: string }> | null>}
+   */
+  async getRaceReplacements(raceId) {
+    await this.ready();
+    if (!this._hasTable('race_replacement')) return null;
+    const rows = this._queryAll(
+      `SELECT replaces_name, replaces_kind FROM race_replacement WHERE race_id = ?`,
+      [raceId]
+    );
+    return rows.map((r) => ({ replacesName: r.replaces_name, replacesKind: r.replaces_kind }));
+  }
+
+  /**
+   * Per-power ability-score options (e.g. attack with Str/Dex/Con) for a power
+   * id, else null when the power offers no choice or the table is absent.
+   * @param {string} powerId
+   */
+  async getPowerAbilityOptions(powerId) {
+    await this.ready();
+    if (!this._hasTable('power_ability_option')) return null;
+    const rows = this._queryAll(
+      `SELECT choice_group, ability, role FROM power_ability_option WHERE power_id = ?`,
+      [powerId]
+    );
+    if (!rows.length) return null;
+    return {
+      choiceGroup: rows[0].choice_group,
+      options: rows.map((r) => ({ ability: r.ability, role: r.role }))
+    };
+  }
+
+  /**
+   * Per-power damage-type options (e.g. Dragon Breath: acid/cold/fire/lightning/
+   * poison) for a power id, else null when the power offers no choice or the
+   * table is absent.
+   * @param {string} powerId
+   */
+  async getPowerDamageOptions(powerId) {
+    await this.ready();
+    if (!this._hasTable('power_damage_option')) return null;
+    const rows = this._queryAll(
+      `SELECT choice_group, damage_type FROM power_damage_option WHERE power_id = ?`,
+      [powerId]
+    );
+    if (!rows.length) return null;
+    return {
+      choiceGroup: rows[0].choice_group,
+      options: rows.map((r) => ({ damageType: r.damage_type }))
+    };
+  }
+
+  /**
    * Normalized power rows (exact power_type/level/class_name columns), else null.
    * @param {{ className?: string, level?: number, powerType?: string, limit?: number }} [opts]
    */

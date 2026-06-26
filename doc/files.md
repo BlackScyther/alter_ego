@@ -42,8 +42,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `PROMPT.md` | Agent instructions and doc-maintenance contract |
 | `package.json` | npm scripts: `dev`, `build:app`, `deploy:live`, `pull:live`, `tauri:dev`, `tauri:build`, `pdf`, `party:index` |
 | `vite.config.js` | Vite multi-page build → `dist/app/` |
-| `Dockerfile` | Multi-stage single-container build (frontend + API); compendium DB provided via volume |
-| `.dockerignore` | Keeps the Docker build context small and secret-free |
+| `Dockerfile` | Multi-stage single-container build (frontend + API); runtime stage copies `src/`, `metadata/`, `data/` (the API imports them at runtime), compendium DB provided via volume |
+| `.dockerignore` | Keeps the Docker build context small and secret-free (excludes `data/*.db*`) |
+| `.gitattributes` | Line-ending normalization: LF for `*.sh`/`ops/**` so shell scripts run on Linux from a Windows checkout; CRLF for `*.ps1`/`*.bat`/`*.cmd`; marks binaries |
 | `docker-compose.yml` | Standalone single-host run (localhost:3000 + two data volumes) |
 | `app-icon.png` | Source for `npx tauri icon` (desktop icons) |
 | `package-lock.json` | Locked dependency versions (Playwright) |
@@ -55,7 +56,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `ops/env.example` | Server env template; copy to gitignored `ops/server.env` |
-| `ops/vps/bootstrap.sh` | Fresh Ubuntu 24.04 hardening + Docker + Coolify install |
+| `ops/vps/bootstrap.sh` | Fresh Ubuntu 26.04 hardening + Docker + Coolify install |
 | `ops/vps/harden-ssh.sh` | Disable SSH passwords / root-password login (run after key login works) |
 
 ## `metadata/`
@@ -64,6 +65,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 |------|------|
 | `editor.json` | Character editor wizard: steps, compendium categories, `writesTo` paths |
 | `race-subraces.json` | Parent race → subrace id map (Dragonborn, Dwarf, Eladrin, Elf, Gnome) |
+| `race-replacements.json` | Curated subrace→base trait/power replacement overrides (keyed by subrace id; merged with auto-parsed replacements) |
+| `race-monster-fluff.json` | Curated race→monster flavor overrides (keyed by race id/name): `monsterIds`/`monsterNames` to source lore from, or `disabled` to suppress; default is exact race-name → monster-name match |
 | `race-build-options.json` | Dragonborn / Genasi build-choice definitions (power picks) |
 | `starting-equipment.json` | Level-1 starting equipment kits by class/build (PHB Fighter kits; stub Fighter fallback) |
 | `equipment-stats-overrides.json` | PHB mundane armor/weapon stats for sheet sync when compendium body lacks parseable fields |
@@ -115,6 +118,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `normalize.test.mjs` | Normalizer ETL: tables created, race/subrace split, exact `power_type`, armor/weapon stats, multi-tier `item_level` split + parent cost, source-book dates, meta counts |
 | `hybrid-merge.test.mjs` | PH3 hybrid merge math, proficiency intersection/union, pairing rule, power coverage |
 | `subrace-hydrate.test.mjs` | `race-subraces.js` static default + DB hydration (`setSubraceMap`/`hydrateSubracesFromProvider`) |
+| `race-replacements.test.mjs` | Subrace replacement parsing + suppression: `parseRaceReplacements`, `resolveReplacedBaseItems`, preview/grant/notes suppression |
+| `monster-fluff.test.mjs` | Monster-race lore: `extractMonsterFlavorFolds` keeps prose/drops stats, combined preview appends a collapsed fold, curated `getCuratedMonsterRefs` overrides |
 | `hybrid-sheet.test.mjs` | Hybrid HP/surge wiring: `computeMaxHp` prefers `selections.hybridMerged` when hybrid; `applyHybridClassStats` merges both classes onto the sheet |
 | `equipment-slot.test.mjs` | Worn-item slot eligibility prefers the normalized `item.slot` (amulet/cloak → neck, ring → ring1/ring2), with name-heuristic fallback |
 | `feedback-api.test.mjs` | Feedback API: public POST + validation (required/enum/length), GM-only list/stats/PATCH/DELETE, stats aggregation |
@@ -240,8 +245,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
 | `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking, and level-up ability score increases (`ASI_PAIR_LEVELS`/`ASI_ALL_LEVELS`, `abilityLevelIncreases`, `setLevelIncrease`, `pendingAbilityIncreaseLevels`) |
 | `race-subraces.js` | Core/subrace map helpers and base-race filtering; runtime map is hydratable from the normalized `race_subrace` table (`setSubraceMap`/`hydrateSubracesFromProvider`), defaulting to `metadata/race-subraces.json` |
-| `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices) |
-| `race-selections.js` | Race step validation, build/bonus choices, grant sync |
+| `race-replacements.js` | Curated subrace→base trait/power replacement overrides (`getCuratedReplacements`), loaded from `metadata/race-replacements.json`; merged with the auto-parsed replacements and hydratable from the `race_replacement` table |
+| `monster-fluff.js` | Curated race→monster flavor map (`getCuratedMonsterRefs`), loaded from `metadata/race-monster-fluff.json`; drives the monster-races lore lookup (supports `monsterIds`/`monsterNames`/`disabled`) |
+| `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices); structured trait parsers (`parseRaceLanguages`/`parseRaceResistances`/`parseRaceSenses`/`parseRaceTraits`/`parseSpeedSquares`, `getRaceStructuredTraits`) + formatters; subrace replacement parsing (`parseRaceReplacements`, `resolveReplacedBaseItems`) that suppresses replaced base trait rows + grant folds in the combined preview; `extractMonsterFlavorFolds` pulls lore-only prose (strips stats/powers/tables) from a related Monster entry into a collapsed fold; renders descriptive traits in one collapsed "Racial Traits" fold (ability choice stays visible) and a per-power ability `<select>` inside racial-power grant folds |
+| `power-ability-parse.js` | `parsePowerAbilityOptions(entry)` — detects an attack-line ability "or"-list (e.g. "Strength, Dexterity, or Constitution vs. AC") or a `Special:` "choose ... as the ability score" clause (Dragon Breath); `parsePowerDamageOptions(entry)` — detects a "damage type: acid, cold, fire, lightning, or poison" choice list. Both return the offered keys/types |
+| `race-selections.js` | Race step validation, build/bonus choices, grant sync; subraces are optional (`validateRaceStep`/`raceSubraceComplete` treat any set `raceId` — a subrace or the base race chosen via "None" — as complete), `setRacePowerAbilityChoice`/`setRacePowerDamageChoice` (per-power ability + damage picks, recorded as required reqs and annotated in notes e.g. `Dragon Breath (Dexterity, fire)`, enforced by `validateRaceStep`), `applyRaceTraitsToSheet`/`clearRaceTraitsFromSheet` (write Languages/Resistances/Special Senses/Speed with manual-vs-derived precedence); drops base power/feat grants and trait note lines a subrace replaces (`collectRaceGrantIds`/`syncRaceNotesAndGrants` honor the replacement set) |
 | `background-parse.js` | Parse background HTML (iws.mx inline skills + raw narrative), preview fold, skill picker, compact notes |
 | `background-selections.js` | Background associated-skill +2/+1 choices and step validation |
 | `background-effects.js` | HP substitute, initiative misc, and other composable background effects |
@@ -279,7 +287,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts and all four `${def}-enh` parts are readonly (auto-derived from ability scores / equipped enhancement items: magic armor → AC enh, neck items → Fort/Ref/Will enh) |
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
 | `print-cards-dialog.js` | Native `<dialog>` shown when clicking "Print cards": per-category checkboxes (Powers/Feats/Rituals — universal actions are excluded; they live on the Resources page) limited to categories the character has; remembers the last selection in `sessionStorage` (`editor.printCards.categories`); resolves to the chosen keys or `null` on cancel |
-| `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link |
+| `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; the subrace list shows a "None (play the base race)" option first so subrace-bearing races can be played without one (subraces are optional); build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link; for monster races with no own flavor, pulls lore-only folds from the matching Monster entry (exact name match + `metadata/race-monster-fluff.json` overrides) |
 | `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
@@ -287,7 +295,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field; inline **Item level** control on equipped level-scaled defense items (Amulet of Protection) and inline **Magic bonus** selector (None/+1/+2/+3) on equipped base weapons/armor/implements (shows derived name "+2 Chainmail", item level, and price) |
 | `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat, equipment); opt-in "released on/before" date filter (`showDate`) with `resolveSourceBooksByDate(dateMap, cutoff)` (used by the GM Workshop duplicate picker) |
 | `choice-guide.js` | Sequential pending-choice highlight, scroll, and focus (race + class steps) |
-| `steps/race-grants-panel.js` | Racial power/feat tile cards on race step |
+| `steps/race-grants-panel.js` | Racial power/feat tile cards on race step; per-power ability `<select>` for powers offering an ability-score choice and a per-power damage-type `<select>` for powers offering a damage choice (persist `selections.racePowerAbilityChoices` / `selections.racePowerDamageChoices`) |
 
 ## `src/shared/`
 
@@ -363,7 +371,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew`; normalized-first read methods (`usesNormalized`, `getRaceSubraceMap`, `getNormalizedClass`, `listNormalizedPowers`, `getNormalizedItemStats`, `getSourceBookDates`) with parse fallback; power filtering uses the normalized `power` table when present |
+| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew`; normalized-first read methods (`usesNormalized`, `getRaceSubraceMap`, `getNormalizedClass`, `listNormalizedPowers`, `getNormalizedItemStats`, `getNormalizedRaceTraits`, `getPowerAbilityOptions`, `getPowerDamageOptions`, `getSourceBookDates`) with parse fallback; power filtering uses the normalized `power` table when present |
 
 ## `src/party/`
 
