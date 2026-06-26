@@ -35,6 +35,9 @@ ENV NODE_ENV=production \
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+# The API imports shared modules from src/ at runtime (e.g.
+# server/apply-rewards.mjs -> src/encounter/rewards.js), so ship src/ too.
+COPY --from=builder /app/src ./src
 COPY --from=builder /app/metadata ./metadata
 COPY --from=builder /app/data/samples ./data/samples
 COPY --from=builder /app/package.json ./package.json

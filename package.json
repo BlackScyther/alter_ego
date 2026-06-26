@@ -1,6 +1,6 @@
 {
   "name": "alter-ego",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "private": true,
   "description": "Alter Ego — offline D&D 4e compendium, character tools, and DM party surface",
   "type": "module",
