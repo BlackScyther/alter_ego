@@ -39,7 +39,9 @@ COPY --from=builder /app/server ./server
 # server/apply-rewards.mjs -> src/encounter/rewards.js), so ship src/ too.
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/metadata ./metadata
-COPY --from=builder /app/data/samples ./data/samples
+# Copy the whole data/ tree (config JSON like *-effect-overrides.json + samples).
+# The large SQLite DBs are excluded by .dockerignore and come via a volume.
+COPY --from=builder /app/data ./data
 COPY --from=builder /app/package.json ./package.json
 
 # Public data (compendium DB, samples) and private data (campaigns.db) live on
