@@ -9,3 +9,5 @@ data/alter_ego.db
 The character editor reads this SQLite file via `src/data/compendium.js` (sql.js integration planned in a later phase).
 
 Until import completes, the editor uses `data/samples/compendium-stub.json` for races, classes, and a few feats.
+
+**Git policy:** `alter_ego.db` and other large compendium artifacts are gitignored and must not be committed. Full separation policy: [../doc/data.md](../doc/data.md).

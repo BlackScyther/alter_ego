@@ -5,6 +5,14 @@ Offline-capable **D&D 4th Edition** toolkit for a private group: character sheet
 - **Master spec**: [PROJECT.md](PROJECT.md)
 - **Project description**: [doc/project.md](doc/project.md)
 
+## License
+
+Alter Ego source code is licensed under [GPL-3.0-or-later](LICENSE). See [doc/legal.md](doc/legal.md) for trademarks and unofficial fan notices.
+
+## Compendium data
+
+The full D&D 4e compendium database is **not** in Git. Build or supply `data/alter_ego.db` locally. See [doc/data.md](doc/data.md).
+
 ## Quick start
 
 ```bash

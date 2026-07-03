@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-06-20 (item_level tiers + GM source-date filter/editor)
+**Last updated:** 2026-07-03 (GPL license, legal.md, data.md)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -16,6 +16,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `roadmap.md` | Phases, completed online-campaign plan, backlog |
 | `todos.md` | Host, developer, and agent checklists |
 | `architecture.md` | Stack, API, data flows |
+| `legal.md` | Trademarks, unofficial fan notice, GPL scope |
+| `data.md` | Compendium data not in Git; import policy and git safeguards |
 | `compendium-schema.md` | Normalized compendium schema + ETL pipeline (tools/normalize), read path, hybrid (B-024) rules |
 | `game-editor.md` | GM encounters: rest mode, initiative, rewards ([game-editor.md](game-editor.md)) |
 | `deploy-online.md` | VPS deploy: static app + Node API |
@@ -39,11 +41,13 @@ One-line role for each tracked file. Update this table when the tree changes.
 |------|------|
 | `index.html` | Redirect to `/src/` (dev entry when serving repo root) |
 | `README.md` | User-facing quick start, formulas summary, print/PDF |
+| `LICENSE` | GNU GPL v3.0-or-later — application source code only |
 | `PROMPT.md` | Agent instructions and doc-maintenance contract |
-| `package.json` | npm scripts: `dev`, `build:app`, `deploy:live`, `pull:live`, `tauri:dev`, `tauri:build`, `pdf`, `party:index` |
+| `package.json` | npm scripts: `dev`, `build:app`, `deploy:live`, `pull:live`, `check:legal`, `tauri:dev`, `tauri:build`, `pdf`, `party:index` |
 | `vite.config.js` | Vite multi-page build → `dist/app/` |
 | `Dockerfile` | Multi-stage single-container build (frontend + API); runtime stage copies `src/`, `metadata/`, `data/` (the API imports them at runtime), compendium DB provided via volume |
-| `.dockerignore` | Keeps the Docker build context small and secret-free (excludes `data/*.db*`) |
+| `.dockerignore` | Keeps the Docker build context small and secret-free (excludes `data/**/*.db*`, import cache) |
+| `.gitignore` | Excludes compendium DBs, import cache, `sync-from-live/`, secrets, build output |
 | `.gitattributes` | Line-ending normalization: LF for `*.sh`/`ops/**` so shell scripts run on Linux from a Windows checkout; CRLF for `*.ps1`/`*.bat`/`*.cmd`; marks binaries |
 | `docker-compose.yml` | Standalone single-host run (localhost:3000 + two data volumes) |
 | `app-icon.png` | Source for `npx tauri icon` (desktop icons) |
@@ -100,6 +104,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `audit-background-parse.mjs` | Dev audit: background HTML patterns vs parser coverage |
 | `audit-race-subraces.mjs` | Dev audit: benefit-only race entries vs `race-subraces.json` (exit 1 if unmapped) |
 | `bump-version.mjs` | Increments the `package.json` patch version by 1 (run by the `pre-commit` hook; skip with `ALTER_EGO_SKIP_BUMP=1`) |
+| `check-no-db-tracked.mjs` | Fails if Git tracks `*.db` or `sync-from-live/` (`npm run check:legal`) |
 
 ## `tests/`
 
@@ -168,7 +173,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `pre-commit` | Runs `scripts/bump-version.mjs` then stages `package.json`, so every commit auto-bumps the patch version. Enabled via `git config core.hooksPath .githooks` |
+| `pre-commit` | Blocks staged compendium `.db` files and `sync-from-live/`; then runs `scripts/bump-version.mjs` and stages `package.json`. Skip DB check: `ALTER_EGO_SKIP_DB_CHECK=1`; skip bump: `ALTER_EGO_SKIP_BUMP=1`. Enable: `git config core.hooksPath .githooks` |
 
 ## `.github/workflows/`
 

@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-06-20
+**Last updated:** 2026-07-03
 
 ## Automation status
 
@@ -11,6 +11,7 @@
 | Unit tests | **Node test runner** | `tests/*.test.mjs` (no extra devDependency) |
 | Web build | **Script** | `npm run build:app` (runs `normalize --if-exists` then post-build) |
 | Compendium normalize | **Script** | `npm run normalize` (real DB), `npm run normalize:stub` (dev DB from JSON stub) |
+| Compendium not in Git | **Script** | `npm run check:legal` |
 | Desktop app | **Manual** | `npm run tauri:dev`, `npm run tauri:build` (requires Rust) |
 | PDF export | **Manual / script** | `npm run pdf`, `npm run pdf:levels` |
 | Party index | **Dev script** | `npm run party:index` |

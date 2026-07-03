@@ -1,9 +1,31 @@
 #!/bin/sh
-# Auto-increment the patch version before every commit, then stage package.json
-# so the new version is part of the commit. See scripts/bump-version.mjs.
+# Pre-commit: block compendium DBs from Git, then auto-bump patch version.
+# Enable: git config core.hooksPath .githooks
 #
-# To skip the bump for a single commit:
-#   ALTER_EGO_SKIP_BUMP=1 git commit -m "..."
+# Skip DB check:  ALTER_EGO_SKIP_DB_CHECK=1 git commit ...
+# Skip version bump: ALTER_EGO_SKIP_BUMP=1 git commit ...
 
-node scripts/bump-version.mjs || exit 1
-git add package.json
+if [ -z "$ALTER_EGO_SKIP_DB_CHECK" ]; then
+  blocked=$(git diff --cached --name-only --diff-filter=ACM | while IFS= read -r f; do
+    case "$f" in
+      *.db|*.db-wal|*.db-shm) echo "$f" ;;
+      sync-from-live/*) echo "$f" ;;
+      data/import-cache/*) echo "$f" ;;
+      data/iws-mx/*) echo "$f" ;;
+    esac
+  done)
+
+  if [ -n "$blocked" ]; then
+    echo "pre-commit: refusing to commit compendium database or live-mirror files:" >&2
+    echo "$blocked" | sed 's/^/  - /' >&2
+    echo "" >&2
+    echo "See doc/data.md. Compendium data must stay out of Git." >&2
+    echo "Emergency skip: ALTER_EGO_SKIP_DB_CHECK=1 git commit ..." >&2
+    exit 1
+  fi
+fi
+
+if [ -z "$ALTER_EGO_SKIP_BUMP" ]; then
+  node scripts/bump-version.mjs || exit 1
+  git add package.json
+fi

@@ -6,9 +6,16 @@ package-lock.json
 .env*
 ops/*.env
 
-# Local databases (SQLite + WAL/SHM)
-data/*.db
-data/*.db-*
+# Local databases (SQLite + WAL/SHM) — never commit
+data/**/*.db
+data/**/*.db-*
+
+# Compendium import cache / pulled shards (never commit)
+data/import-cache/
+data/iws-mx/
+
+# Dev DB from stub normalizer
+data/alter_ego.dev.db
 
 # Build / deploy outputs
 dist/

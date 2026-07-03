@@ -1,10 +1,12 @@
 # Project description — Alter Ego
 
-**Last updated:** 2026-06-17
+**Last updated:** 2026-07-03
 
 ## What this is
 
 **Alter Ego** is the umbrella project for a private D&D 4e campaign (3–7 players). This repository holds the specification ([PROJECT.md](../PROJECT.md)) and **character tools** — generator, sheet (page 1, US Letter), and GM party view. Numbers follow standard 4e formulas.
+
+Application source is licensed under [GPL-3.0-or-later](../LICENSE). The full compendium database is **not** in Git; see [data.md](data.md) and [legal.md](legal.md).
 
 ## Who it is for
 

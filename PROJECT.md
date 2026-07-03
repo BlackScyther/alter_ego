@@ -64,14 +64,14 @@ flowchart TB
 | **Public source** | [https://iws.mx/dnd](https://iws.mx/dnd) |
 | **Upstream** | [Sheep-y/trpg-dnd-4e-db](https://github.com/Sheep-y/trpg-dnd-4e-db) (fan remake of the D&D Insider compendium) |
 | **Viewer version** | 3.6.x (HTML/JS under `4e_database_files/res/`) |
-| **Program license** | GNU **AGPL v3** |
-| **Content** | Wizards of the Coast fan content / compendium data |
+| **Program license** | GNU **GPL v3** (or later); see [LICENSE](../LICENSE), [doc/legal.md](doc/legal.md) |
+| **Content** | Wizards of the Coast fan content / compendium data — not redistributed in Git; see [doc/data.md](doc/data.md) |
 
 ### Intended use (project scope)
 
 - **Local, private use only** at the game table.
-- **No redistribution** of imported compendium raw data without your own license review.
-- If the app is published later: comply with AGPL obligations and fan content guidelines.
+- **No redistribution** of imported compendium raw data in Git; users build `data/alter_ego.db` locally ([doc/data.md](doc/data.md)).
+- Published source code: comply with GPL-3 obligations and [fan content guidelines](https://company.wizards.com/en/legal/fancontentpolicy) ([doc/legal.md](doc/legal.md)).
 
 ---
 
@@ -446,7 +446,7 @@ Earlier work lived at `C:\Users\masch\Projects\dnd4e-character-sheet` — conten
 |------|------------|
 | iws.mx schema drift | Parse columns from `_listing.js`, do not hardcode (reference: section 5.2) |
 | HTML in entries | Store `body_html` raw; structured parsing later |
-| AGPL + Wizards IP | Document private use; no raw data redistribution |
+| GPL + Wizards IP | Source on GPL-3; compendium data out of Git ([doc/data.md](doc/data.md), [doc/legal.md](doc/legal.md)) |
 | Homebrew vs. re-import | Replace only `source=compendium` |
 | Old browser | Vanilla JS, progressive enhancement, test on DM OS |
 
