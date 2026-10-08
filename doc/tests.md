@@ -46,13 +46,15 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
 | `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks; level→enhancement mapping; Amulet of Protection → Fort/Ref/Will enh by item level; magic weapon → atk/dmg enh and magic armor → AC enh; magic implement → its bonus on the attack lines + `implement-enh` card field, melee line uses max(weapon, implement); `isEnhanceableEntry` (incl. implements)/`magicDisplayName`/`magicTierForBonus`/`magicTotalCostGp` + enhancement clamping |
 | `tests/defense-formulas.test.mjs` | `defenseAbilityMod` (higher of two ability mods per defense); feeds defense total (FORT level-3 example = 18) |
-| `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort |
+| `tests/combat-helpers.test.mjs` | Encounter initiative: static, total, tie-break sort; printed monster defenses without `10 + ½level` inflation |
 | `tests/encounter-rewards.test.mjs` | GM rewards POST; encounter phase PATCH; player token rejected |
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
 | `tests/feedback-api.test.mjs` | Feedback API: public `POST` + validation (required fields, category/area enums, length caps), GM-only `GET`/`GET /stats`/`PATCH`/`DELETE` (401/403 without GM token), stats aggregation by category/area |
 | `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
 | `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback |
-| `tests/normalize.test.mjs` | Runs the normalizer ETL into a temp DB: tables created, race/subrace split, exact `power_type`, materialized armor/weapon stats, multi-tier `item_level` split (Amulet of Protection → 6 ascending tiers, parent `cost_gp` = lowest tier) + single-level items → one tier, source-book release dates, `norm_meta` counts |
+| `tests/normalize.test.mjs` | Runs the normalizer ETL into a temp DB: tables created, race/subrace split, exact `power_type`, materialized armor/weapon stats, multi-tier `item_level` split (Amulet of Protection → 6 ascending tiers, parent `cost_gp` = lowest tier) + single-level items → one tier, source-book release dates, `norm_meta` counts, monster/feat/ritual stub rows |
+| `tests/monster-parse.test.mjs` | Monster stat-line parsing and spawn stat resolution |
+| `tests/feat-parse.test.mjs` | Feat listing, prerequisite atoms, skill bonuses, grants |
 | `tests/hybrid-merge.test.mjs` | PH3 hybrid merge: HP/surge math, skills (any three), armor/shield intersection + weapon/implement union, `hybridPairAllowed`, `hybridPowerCoverage` |
 | `tests/subrace-hydrate.test.mjs` | `race-subraces.js` static default plus DB hydration via `setSubraceMap`/`hydrateSubracesFromProvider` |
 

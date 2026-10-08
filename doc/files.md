@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-07-03 (GPL license, legal.md, data.md)
+**Last updated:** 2026-07-03 (full compendium category normalization)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -19,6 +19,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `legal.md` | Trademarks, unofficial fan notice, GPL scope |
 | `data.md` | Compendium data not in Git; import policy and git safeguards |
 | `compendium-schema.md` | Normalized compendium schema + ETL pipeline (tools/normalize), read path, hybrid (B-024) rules |
+| `normalize-warnings-expert-brief.md` | Non-technical briefing on full-DB normalize warnings (2,999 items) for 4e rules experts; copy to Google Docs for workshops |
 | `game-editor.md` | GM encounters: rest mode, initiative, rewards ([game-editor.md](game-editor.md)) |
 | `deploy-online.md` | VPS deploy: static app + Node API |
 | `mac-build-ohne-mac.md` | macOS CI builds without a Mac |
@@ -120,7 +121,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `race-parse.test.mjs` | Race HTML parsing, metric helpers, notes compaction, power-card stripping |
 | `race-selections.test.mjs` | Race build decisions: powers gated behind manifestation choice |
 | `compendium-links.test.mjs` | Compendium term linking (longest-first, boundaries) |
-| `normalize.test.mjs` | Normalizer ETL: tables created, race/subrace split, exact `power_type`, armor/weapon stats, multi-tier `item_level` split + parent cost, source-book dates, meta counts |
+| `normalize.test.mjs` | Normalizer ETL: tables created, race/subrace split, exact `power_type`, armor/weapon stats, multi-tier `item_level` split + parent cost, source-book dates, meta counts, monster/feat/ritual stub rows |
+| `monster-parse.test.mjs` | Monster stat-line parsing and spawn stat resolution |
+| `feat-parse.test.mjs` | Feat listing, prerequisites, bonuses, ritual-caster grant |
 | `hybrid-merge.test.mjs` | PH3 hybrid merge math, proficiency intersection/union, pairing rule, power coverage |
 | `subrace-hydrate.test.mjs` | `race-subraces.js` static default + DB hydration (`setSubraceMap`/`hydrateSubracesFromProvider`) |
 | `race-replacements.test.mjs` | Subrace replacement parsing + suppression: `parseRaceReplacements`, `resolveReplacedBaseItems`, preview/grant/notes suppression |
@@ -270,6 +273,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
 | `power-card-values.js` | Per-character attack/damage math for printable power cards: `buildPowerCardContext` (ability mods, half level, synced weapon proficiency, and per-source magic enhancement: `weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`), `attackTotalFor` (half + ability + weapon proficiency + enhancement + inline bonus), `damageModFor` (ability + enhancement), `abilityKeyFromName`, `formatSigned`. Weapon powers use the weapon's enhancement (per line), implement powers use the implement's |
 | `hybrid-merge.js` | PH3 hybrid-character combination from two normalized class records: HP/surge math, combined skills (any three), armor/shield proficiency intersection + weapon/implement union, `hybridPairAllowed` (no two subclasses of one class), `hybridPowerCoverage` (one power of each type from both) |
+| `monster-parse.js` | Parse monster listing + stat-line HTML → combat stats, abilities, skills, resistances, powers, traits; `resolveMonsterSpawnStats` for GM spawn |
+| `feat-parse.js` | Parse feat listing, prerequisite atoms, skill/ability bonuses, grants (Ritual Caster), benefit text |
+| `ritual-parse.js` | Ritual listing; `extractRitualIdsFromHtml` for class ritual grants |
+| `path-parse.js` | Paragon path, epic destiny, and theme listing passthrough |
+| `reference-parse.js` | Trap/companion/deity/disease/poison/glossary listing + `extractCompendiumLinks` for `entry_links` |
 | `party-loader.js` | Loads party JSON for GM console |
 
 ## `src/playlist/`
@@ -397,7 +405,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `normalize.mjs` | Compendium ETL: reads denormalized `entries`, writes normalized tables into the same SQLite file; reuses existing parsers; emits `normalize_warnings`. `parseItemTiers` splits level-scaled items into `item_level` rows and sets the parent `item.cost_gp` to the lowest tier. Flags `--src`/`--out`/`--from-stub`/`--report`/`--if-exists`. Scripts: `npm run normalize`, `npm run normalize:stub` |
+| `normalize.mjs` | Compendium ETL: reads denormalized `entries`, writes normalized tables into the same SQLite file; reuses existing parsers (race, class, power, item, background, monster, feat, ritual, path, reference); emits `normalize_warnings`. Schema version 2. Flags `--src`/`--out`/`--from-stub`/`--report`/`--if-exists`. Scripts: `npm run normalize`, `npm run normalize:stub` |
 | `schema.sql` | Normalized table DDL (`source_books`, `race*`, `class*`, `power`, `item`/`item_level`/`armor_stats`/`weapon_stats`, `background*`, `norm_meta`, `normalize_warnings`) |
 
 ## URLs (dev server `npm start`)

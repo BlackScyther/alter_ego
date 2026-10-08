@@ -1,4 +1,5 @@
 import { createCharacter } from './model.js';
+import { resolveMonsterSpawnStats } from './monster-parse.js';
 
 /**
  * @param {object} partial
@@ -31,10 +32,11 @@ export function spawnFromCompendiumEntry(entry, ctx) {
   const fields = entry.listing_fields || {};
   const name = String(fields.Name || entry.id || 'Creature').trim();
   const level = Math.min(30, Math.max(1, Number(fields.Level) || 1));
-  const hpMax = Math.max(1, Number(fields.HP) || level * 8 + 10);
-  const ac = Number(fields.AC) || 10 + Math.floor(level / 2);
   const category = entry.category_slug || ctx.categorySlug || 'monster';
   const actorKind = category === 'monster' ? 'monster' : 'npc';
+
+  const normalized = entry.normalizedCombatStats ?? null;
+  const combat = resolveMonsterSpawnStats(entry, normalized);
 
   const doc = createActorDocument({
     identity: {
@@ -46,14 +48,14 @@ export function spawnFromCompendiumEntry(entry, ctx) {
       role: fields.CombatRole || fields.GroupRole || ''
     },
     sheet: {
-      hp: { max: hpMax, current: hpMax, temp: 0, surgesPerDay: 0, surgeUses: 0 },
+      hp: { max: combat.hp, current: combat.hp, temp: 0, surgesPerDay: 0, surgeUses: 0 },
       defenses: {
-        ac: { abil: 0, class: ac, feat: 0, enh: 0, misc: 0, armor: 0 },
-        fort: { abil: 0, class: Number(fields.Fort) || ac - 2, feat: 0, enh: 0, misc: 0 },
-        ref: { abil: 0, class: Number(fields.Ref) || ac - 2, feat: 0, enh: 0, misc: 0 },
-        will: { abil: 0, class: Number(fields.Will) || ac - 2, feat: 0, enh: 0, misc: 0 }
+        ac: { abil: 0, class: combat.ac, feat: 0, enh: 0, misc: 0, armor: 0 },
+        fort: { abil: 0, class: combat.fort, feat: 0, enh: 0, misc: 0 },
+        ref: { abil: 0, class: combat.ref, feat: 0, enh: 0, misc: 0 },
+        will: { abil: 0, class: combat.will, feat: 0, enh: 0, misc: 0 }
       },
-      initMisc: Number(fields.Initiative) || 0
+      initMisc: combat.initiative
     },
     meta: {
       encounterId: ctx.encounterId,

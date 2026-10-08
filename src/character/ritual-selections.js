@@ -3,7 +3,7 @@
  */
 
 import classRitualGrantsMeta from '../../metadata/class-ritual-grants.json' with { type: 'json' };
-import { extractPowerIdsFromClassHtml } from './class-parse.js';
+import { extractRitualIdsFromHtml } from './ritual-parse.js';
 
 const RITUAL_CASTER_FEAT_ID = 'feat159';
 const GRANTS_BY_ID = classRitualGrantsMeta.byClassId ?? {};
@@ -26,19 +26,7 @@ export function getRitualSlotsForLevel(characterLevel) {
   return slots;
 }
 
-/**
- * @param {string} html
- * @returns {string[]}
- */
-export function extractRitualIdsFromHtml(html) {
-  const ids = new Set();
-  const re = /\b(ritual\d+)\b/gi;
-  let m;
-  while ((m = re.exec(html ?? '')) !== null) {
-    ids.add(m[1].toLowerCase());
-  }
-  return [...ids];
-}
+export { extractRitualIdsFromHtml } from './ritual-parse.js';
 
 /**
  * @param {object | null | undefined} classEntry
@@ -90,11 +78,17 @@ export function syncRitualIdsFromSelections(character) {
 /**
  * @param {object} character
  * @param {object | null | undefined} classEntry
+ * @param {{ getClassRitualGrants?: (id: string) => Promise<string[] | null> }} [compendium]
  */
-export function syncGrantedRitualIds(character, classEntry) {
+export async function syncGrantedRitualIds(character, classEntry, compendium = null) {
   ensureRitualSelectionsShape(character);
   if (classEntry) {
-    character.selections.grantedRitualIds = collectGrantedRitualIds(classEntry);
+    const ids = new Set(collectGrantedRitualIds(classEntry));
+    if (compendium?.getClassRitualGrants) {
+      const dbIds = await compendium.getClassRitualGrants(classEntry.id);
+      if (dbIds) for (const rid of dbIds) ids.add(String(rid).toLowerCase());
+    }
+    character.selections.grantedRitualIds = [...ids];
   }
   syncRitualIdsFromSelections(character);
   return character;
@@ -152,6 +146,20 @@ export function syncRitualNotesFromSelections(character, nameById = {}) {
 }
 
 /**
+ * @param {import('../data/compendium.js').CompendiumProvider} compendium
+ * @param {string} featId
+ */
+async function featGrantsRitualCaster(compendium, featId) {
+  if (!featId) return false;
+  if (String(featId).toLowerCase() === RITUAL_CASTER_FEAT_ID) return true;
+  if (typeof compendium.getNormalizedFeat === 'function') {
+    const norm = await compendium.getNormalizedFeat(featId);
+    if (norm?.grants?.some((g) => g.kind === 'ritual_caster')) return true;
+  }
+  return false;
+}
+
+/**
  * @param {object} character
  * @param {import('../data/compendium.js').CompendiumProvider} compendium
  */
@@ -164,11 +172,11 @@ export async function hasRitualCaster(character, compendium) {
 
   const featMap = character.selections?.featSelections ?? {};
   for (const fid of Object.values(featMap)) {
-    if (fid && String(fid).toLowerCase() === RITUAL_CASTER_FEAT_ID) return true;
+    if (await featGrantsRitualCaster(compendium, fid)) return true;
   }
 
   for (const fid of character.selections?.raceFeatIds ?? []) {
-    if (String(fid).toLowerCase() === RITUAL_CASTER_FEAT_ID) return true;
+    if (await featGrantsRitualCaster(compendium, fid)) return true;
   }
 
   return false;

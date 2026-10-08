@@ -76,6 +76,20 @@ test('parseClassEntry handles Fighter without build options', () => {
   assert.equal(parsed.buildOptions.length, 0);
 });
 
+test('parseClassEntry reads HP when colon is outside bold tag (PHB2 Barbarian layout)', () => {
+  const parsed = parseClassEntry({
+    id: 'class148',
+    listing_fields: { Name: 'Barbarian', RoleName: 'Striker', PowerSourceText: 'Primal' },
+    body_html:
+      '<blockquote><b>Hit Points at 1st Level</b>: 15+ Constitution Score.<br>' +
+      '<b>Hit Points per Level Gained</b>: 6<br>' +
+      '<b>Healing Surges per Day</b>: 8+ Constitution Modifier.<br></blockquote>'
+  });
+  assert.equal(parsed.hpAt1Base, 15);
+  assert.equal(parsed.hpPerLevel, 6);
+  assert.equal(parsed.surgesBase, 8);
+});
+
 test('parseClassEntry reads italic Class Skills list (Ardent)', () => {
   const parsed = parseClassEntry(ardentEntry);
   assert.equal(parsed.trainedSkills.kind, 'choice');

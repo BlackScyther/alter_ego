@@ -548,6 +548,10 @@ export class CompendiumProvider {
           const slotRow = this._queryAll(`SELECT slot FROM item WHERE id = ? LIMIT 1`, [id]);
           if (slotRow[0]?.slot) entry.slot = slotRow[0].slot;
         }
+        if (entry?.category_slug === 'monster' && this._hasTable('monster_combat_stats')) {
+          const stats = await this.getNormalizedMonsterStats(id);
+          if (stats) entry.normalizedCombatStats = stats;
+        }
         return entry;
       }
     }
@@ -790,6 +794,120 @@ export class CompendiumProvider {
       }
     }
     return null;
+  }
+
+  /**
+   * Normalized monster combat stats for spawn, else null.
+   * @param {string} monsterId
+   */
+  async getNormalizedMonsterStats(monsterId) {
+    await this.ready();
+    if (!this._hasTable('monster_combat_stats')) return null;
+    const r = this._queryAll(`SELECT * FROM monster_combat_stats WHERE monster_id = ? LIMIT 1`, [
+      monsterId
+    ])[0];
+    if (!r) return null;
+    return {
+      hp: r.hp,
+      bloodiedHp: r.bloodied_hp,
+      ac: r.ac,
+      fort: r.fort,
+      ref: r.ref,
+      will: r.will,
+      initiative: r.initiative,
+      speedSquares: r.speed_squares,
+      perception: r.perception,
+      xp: r.xp
+    };
+  }
+
+  /**
+   * @returns {Promise<Map<string, Array<{ kind: string, target: string | null, min_value: number | null, logic_group: number }>> | null>}
+   */
+  async getFeatPrerequisiteMap() {
+    await this.ready();
+    if (!this._hasTable('feat_prerequisite')) return null;
+    const rows = this._queryAll(
+      `SELECT feat_id, kind, target, min_value, logic_group FROM feat_prerequisite ORDER BY feat_id, logic_group`
+    );
+    /** @type {Map<string, object[]>} */
+    const map = new Map();
+    for (const r of rows) {
+      const list = map.get(r.feat_id) ?? [];
+      list.push({
+        kind: r.kind,
+        target: r.target,
+        min_value: r.min_value,
+        logic_group: r.logic_group
+      });
+      map.set(r.feat_id, list);
+    }
+    return map;
+  }
+
+  /**
+   * @param {string} featId
+   */
+  async getNormalizedFeat(featId) {
+    await this.ready();
+    if (!this._hasTable('feat')) return null;
+    const row = this._queryAll(`SELECT * FROM feat WHERE id = ? LIMIT 1`, [featId])[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name,
+      tier: row.tier,
+      prerequisiteRaw: row.prerequisite_raw,
+      sourceBook: row.source_book,
+      benefitText: row.benefit_text,
+      prerequisites: this._hasTable('feat_prerequisite')
+        ? this._queryAll(
+            `SELECT kind, target, min_value, logic_group FROM feat_prerequisite WHERE feat_id = ?`,
+            [featId]
+          )
+        : [],
+      skillBonuses: this._hasTable('feat_skill_bonus')
+        ? this._queryAll(`SELECT skill, amount, bonus_type FROM feat_skill_bonus WHERE feat_id = ?`, [
+            featId
+          ])
+        : [],
+      abilityBonuses: this._hasTable('feat_ability_bonus')
+        ? this._queryAll(
+            `SELECT ability, amount, choice_group, excludes_item_bonus FROM feat_ability_bonus WHERE feat_id = ?`,
+            [featId]
+          )
+        : [],
+      grants: this._hasTable('feat_grant')
+        ? this._queryAll(`SELECT kind, value FROM feat_grant WHERE feat_id = ?`, [featId])
+        : []
+    };
+  }
+
+  /**
+   * @param {{ maxLevel?: number }} [opts]
+   */
+  async listNormalizedRituals(opts = {}) {
+    await this.ready();
+    if (!this._hasTable('ritual')) return [];
+    const maxLevel = opts.maxLevel != null ? Number(opts.maxLevel) : null;
+    if (maxLevel != null && !Number.isNaN(maxLevel)) {
+      return this._queryAll(
+        `SELECT id, name, level, source_book FROM ritual WHERE level IS NULL OR level <= ? ORDER BY name`,
+        [maxLevel]
+      );
+    }
+    return this._queryAll(`SELECT id, name, level, source_book FROM ritual ORDER BY name`);
+  }
+
+  /**
+   * @param {string} classId
+   */
+  async getClassRitualGrants(classId) {
+    await this.ready();
+    if (!this._hasTable('class_ritual_grant')) return null;
+    return this._queryAll(`SELECT ritual_id FROM class_ritual_grant WHERE class_id = ?`, [classId]).map(
+      (r) => r.ritual_id
+    );
   }
 
   /**

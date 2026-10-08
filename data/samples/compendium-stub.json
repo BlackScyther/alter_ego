@@ -144,6 +144,79 @@
           "listing_fields": { "Name": "Religion Expertise", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
           "body_html": "<p><b>Skill Bonus:</b> +1 Religion (Feat type — stacks with Skill-type background bonus).</p>",
           "skill_bonuses": [{ "skill": "religion", "amount": 1, "bonusType": "feat" }]
+        },
+        {
+          "id": "feat159",
+          "listing_fields": { "Name": "Ritual Caster", "Tier": "Heroic", "Prerequisite": "—", "SourceBook": "PHB" },
+          "body_html": "<p>You can master and perform rituals. You gain the Ritual Caster feat.</p>"
+        }
+      ]
+    },
+    "ritual": {
+      "displayName": "Ritual",
+      "entries": [
+        {
+          "id": "ritual1",
+          "listing_fields": {
+            "Name": "Comprehend Language",
+            "Level": "1",
+            "ComponentCost": "10 gp",
+            "Price": "50 gp",
+            "KeySkillDescription": "Arcana",
+            "SourceBook": "PHB"
+          },
+          "body_html": "<p>Understand a language you hear or read.</p>",
+          "index_text": "Comprehend Language ritual"
+        }
+      ]
+    },
+    "trap": {
+      "displayName": "Trap",
+      "entries": [
+        {
+          "id": "trap1",
+          "listing_fields": { "Name": "Crossbow Trap", "Type": "Trap", "GroupRole": "Standard", "Level": "1", "SourceBook": "DMG" },
+          "body_html": "<p>A triggered crossbow.</p>"
+        }
+      ]
+    },
+    "companion": {
+      "displayName": "Companion",
+      "entries": [
+        {
+          "id": "companion1",
+          "listing_fields": { "Name": "Wolf", "Type": "Beast", "Size": "Medium", "CreatureType": "Beast", "SourceBook": "MM" },
+          "body_html": "<p>Loyal wolf companion.</p>"
+        }
+      ]
+    },
+    "deity": {
+      "displayName": "Deity",
+      "entries": [
+        {
+          "id": "deity1",
+          "listing_fields": { "Name": "Bahamut", "Domains": "Hope, Justice", "Alignment": "Lawful Good", "SourceBook": "DMG" },
+          "body_html": "<p>Platinum dragon god.</p>"
+        }
+      ]
+    },
+    "disease": {
+      "displayName": "Disease",
+      "entries": [
+        {
+          "id": "disease1",
+          "listing_fields": { "Name": "Blinding Sickness", "Level": "3", "SourceBook": "DMG" },
+          "body_html": "<p>A debilitating disease.</p>"
+        }
+      ]
+    },
+    "poison": {
+      "displayName": "Poison",
+      "entries": [
+        {
+          "id": "poison1",
+          "listing_fields": { "Name": "Carrion Crawler Brain Juice", "Level": "5", "Cost": "50 gp", "SourceBook": "DMG" },
+          "body_html": "<p>Contact poison.</p>"
         }
       ]
     },
@@ -187,6 +260,20 @@
           },
           "body_html": "<p>Quick goblin skirmisher for API smoke tests.</p>",
           "index_text": "Goblin Cutthroat skirmisher"
+        },
+        {
+          "id": "monster_bugbear",
+          "listing_fields": {
+            "Name": "Bugbear Warrior",
+            "Level": "5",
+            "CombatRole": "Brute",
+            "GroupRole": "Standard",
+            "Size": "Medium",
+            "CreatureType": "Humanoid",
+            "SourceBook": "MM"
+          },
+          "body_html": "<h1 class=monster>Bugbear Warrior</h1><p class=flavor>HP 75; Bloodied 37; AC 19, Fortitude 17, Reflex 16, Will 14</p><p>Speed 6; Initiative +5; Perception +4</p><p>Bugbears are towering goblinoids.</p>",
+          "index_text": "Bugbear brute"
         }
       ]
     },

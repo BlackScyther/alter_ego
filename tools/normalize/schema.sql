@@ -298,3 +298,242 @@ CREATE TABLE background_skill_bonus (
   bonus_type TEXT
 );
 CREATE INDEX idx_bg_skill ON background_skill_bonus(background_id);
+
+-- Monsters -----------------------------------------------------------------
+DROP TABLE IF EXISTS monster;
+CREATE TABLE monster (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  level INTEGER,
+  combat_role TEXT,
+  group_role TEXT,
+  size TEXT,
+  creature_type TEXT,
+  source_book TEXT
+);
+CREATE INDEX idx_monster_level ON monster(level);
+
+DROP TABLE IF EXISTS monster_combat_stats;
+CREATE TABLE monster_combat_stats (
+  monster_id TEXT PRIMARY KEY,
+  hp INTEGER,
+  bloodied_hp INTEGER,
+  ac INTEGER,
+  fort INTEGER,
+  ref INTEGER,
+  will INTEGER,
+  initiative INTEGER,
+  speed_squares INTEGER,
+  perception INTEGER,
+  xp INTEGER
+);
+
+DROP TABLE IF EXISTS monster_ability;
+CREATE TABLE monster_ability (
+  monster_id TEXT NOT NULL,
+  ability TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  PRIMARY KEY (monster_id, ability)
+);
+
+DROP TABLE IF EXISTS monster_skill;
+CREATE TABLE monster_skill (
+  monster_id TEXT NOT NULL,
+  skill TEXT NOT NULL,
+  bonus INTEGER NOT NULL
+);
+CREATE INDEX idx_monster_skill ON monster_skill(monster_id);
+
+DROP TABLE IF EXISTS monster_resistance;
+CREATE TABLE monster_resistance (
+  monster_id TEXT NOT NULL,
+  damage_type TEXT NOT NULL,
+  amount INTEGER,
+  is_immunity INTEGER NOT NULL DEFAULT 0,
+  is_vulnerability INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_monster_resist ON monster_resistance(monster_id);
+
+DROP TABLE IF EXISTS monster_power;
+CREATE TABLE monster_power (
+  monster_id TEXT NOT NULL,
+  sort_order INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  usage TEXT,
+  action TEXT,
+  attack_line TEXT,
+  hit TEXT,
+  effect TEXT,
+  PRIMARY KEY (monster_id, sort_order)
+);
+
+DROP TABLE IF EXISTS monster_trait;
+CREATE TABLE monster_trait (
+  monster_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  trait_type TEXT,
+  text TEXT
+);
+CREATE INDEX idx_monster_trait ON monster_trait(monster_id);
+
+-- Feats --------------------------------------------------------------------
+DROP TABLE IF EXISTS feat;
+CREATE TABLE feat (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tier TEXT NOT NULL,
+  prerequisite_raw TEXT,
+  source_book TEXT,
+  benefit_text TEXT
+);
+CREATE INDEX idx_feat_tier ON feat(tier);
+
+DROP TABLE IF EXISTS feat_prerequisite;
+CREATE TABLE feat_prerequisite (
+  feat_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT,
+  min_value INTEGER,
+  logic_group INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_feat_prereq ON feat_prerequisite(feat_id);
+
+DROP TABLE IF EXISTS feat_skill_bonus;
+CREATE TABLE feat_skill_bonus (
+  feat_id TEXT NOT NULL,
+  skill TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  bonus_type TEXT
+);
+CREATE INDEX idx_feat_skill ON feat_skill_bonus(feat_id);
+
+DROP TABLE IF EXISTS feat_ability_bonus;
+CREATE TABLE feat_ability_bonus (
+  feat_id TEXT NOT NULL,
+  ability TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  choice_group TEXT,
+  excludes_item_bonus INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_feat_ability ON feat_ability_bonus(feat_id);
+
+DROP TABLE IF EXISTS feat_grant;
+CREATE TABLE feat_grant (
+  feat_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  value TEXT
+);
+CREATE INDEX idx_feat_grant ON feat_grant(feat_id);
+
+-- Rituals ------------------------------------------------------------------
+DROP TABLE IF EXISTS ritual;
+CREATE TABLE ritual (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  level INTEGER,
+  component_cost TEXT,
+  price TEXT,
+  key_skill_description TEXT,
+  source_book TEXT
+);
+CREATE INDEX idx_ritual_level ON ritual(level);
+
+DROP TABLE IF EXISTS class_ritual_grant;
+CREATE TABLE class_ritual_grant (
+  class_id TEXT NOT NULL,
+  ritual_id TEXT NOT NULL,
+  PRIMARY KEY (class_id, ritual_id)
+);
+
+-- Glossary and cross-links ---------------------------------------------------
+DROP TABLE IF EXISTS glossary;
+CREATE TABLE glossary (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT,
+  type TEXT,
+  source_book TEXT
+);
+CREATE INDEX idx_glossary_name ON glossary(name);
+
+DROP TABLE IF EXISTS entry_links;
+CREATE TABLE entry_links (
+  from_entry_id TEXT NOT NULL,
+  to_entry_id TEXT NOT NULL,
+  link_text TEXT,
+  link_type TEXT,
+  PRIMARY KEY (from_entry_id, to_entry_id, link_text)
+);
+CREATE INDEX idx_entry_links_from ON entry_links(from_entry_id);
+
+-- Paragon paths, epic destinies, themes ------------------------------------
+DROP TABLE IF EXISTS paragonpath;
+CREATE TABLE paragonpath (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  prerequisite_raw TEXT,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS epicdestiny;
+CREATE TABLE epicdestiny (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  prerequisite_raw TEXT,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS theme;
+CREATE TABLE theme (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  prerequisite_raw TEXT,
+  source_book TEXT
+);
+
+-- Reference categories (listing passthrough) ---------------------------------
+DROP TABLE IF EXISTS trap;
+CREATE TABLE trap (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT,
+  group_role TEXT,
+  level INTEGER,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS companion;
+CREATE TABLE companion (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT,
+  size TEXT,
+  creature_type TEXT,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS deity;
+CREATE TABLE deity (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  domains TEXT,
+  alignment TEXT,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS disease;
+CREATE TABLE disease (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  level INTEGER,
+  source_book TEXT
+);
+
+DROP TABLE IF EXISTS poison;
+CREATE TABLE poison (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  level INTEGER,
+  cost REAL,
+  source_book TEXT
+);

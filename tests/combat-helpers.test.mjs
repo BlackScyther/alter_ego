@@ -7,7 +7,9 @@ import {
   totalInitiative,
   sortCombatants,
   applyInitiativeRoll,
-  usesPrintedInitiativeBonus
+  usesPrintedInitiativeBonus,
+  usesPrintedDefenses,
+  defenseTotals
 } from '../src/encounter/combat-helpers.js';
 
 describe('combat-helpers', () => {
@@ -84,5 +86,24 @@ describe('combat-helpers', () => {
     };
     const sorted = sortCombatants([low, high]);
     assert.equal(sorted[0].character.identity.characterName, 'High');
+  });
+
+  it('defenseTotals for compendium spawn uses printed defenses without 10+halfLevel', () => {
+    const monster = createActorDocument({
+      identity: { level: 5 },
+      sheet: {
+        defenses: {
+          ac: { abil: 0, class: 19, feat: 0, enh: 0, misc: 0, armor: 0 },
+          fort: { abil: 0, class: 17, feat: 0, enh: 0, misc: 0 },
+          ref: { abil: 0, class: 16, feat: 0, enh: 0, misc: 0 },
+          will: { abil: 0, class: 14, feat: 0, enh: 0, misc: 0 }
+        }
+      },
+      meta: { templateCompendiumId: 'monster_bugbear', actorKind: 'monster' }
+    });
+    assert.equal(usesPrintedDefenses(monster), true);
+    const totals = defenseTotals(monster, 5);
+    assert.equal(totals.ac, 19);
+    assert.equal(totals.fort, 17);
   });
 });

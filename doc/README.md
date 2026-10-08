@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-07-03 — Added GPL-3.0-or-later [LICENSE](../LICENSE), [legal.md](legal.md) (unofficial fan notice, trademarks), and [data.md](data.md) (compendium separation, git safeguards). Hardened `.gitignore`/`.dockerignore`, pre-commit DB guard, and `npm run check:legal`. Updated [PROJECT.md](../PROJECT.md) program license from AGPL to GPL v3.
+**Last agent sync:** 2026-07-03 — Class HP parser fix (colon-outside-bold iws.mx layout); normalize warnings 2999 → 2955.

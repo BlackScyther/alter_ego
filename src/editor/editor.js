@@ -699,7 +699,7 @@ async function refreshBonusesFromSelections() {
   ensureAbilityShape(character);
   syncBonusesFromSelections(character, entries, featEntries);
   syncRaceBonusChoicesToBonuses(character);
-  if (entries.class) syncGrantedRitualIds(character, entries.class);
+  if (entries.class) await syncGrantedRitualIds(character, entries.class, compendium);
   cachedClassEntry = entries.class ?? null;
   try {
     await syncEquipmentToSheet(character, compendium, { classEntry: cachedClassEntry });

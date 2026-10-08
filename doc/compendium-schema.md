@@ -14,9 +14,10 @@ iws.mx JSONP  ->  entries (denormalized)  ->  tools/normalize/normalize.mjs  -> 
 
 - ETL: [tools/normalize/normalize.mjs](../tools/normalize/normalize.mjs) reuses
   the existing parser modules (`class-parse.js`, `equipment-stats.js`,
-  `power-filter.js`, `tutor.js`, `race-parse.js`, `race-subraces.js`) so logic
-  is not duplicated. A failed parse becomes a row in `normalize_warnings`
-  (a data-quality item) instead of a live rendering bug.
+  `power-filter.js`, `tutor.js`, `race-parse.js`, `race-subraces.js`,
+  `monster-parse.js`, `feat-parse.js`, `ritual-parse.js`, `path-parse.js`,
+  `reference-parse.js`) so logic is not duplicated. A failed parse becomes a row
+  in `normalize_warnings` (a data-quality item) instead of a live rendering bug.
 - DDL: [tools/normalize/schema.sql](../tools/normalize/schema.sql).
 - Normalized tables live in the **same file** as `entries`, so the in-browser
   `sql.js` load, the `better-sqlite3` server read, and the Tauri bundle keep
@@ -47,7 +48,13 @@ iws.mx JSONP  ->  entries (denormalized)  ->  tools/normalize/normalize.mjs  -> 
 | `item`, `item_level`, `armor_stats`, `weapon_stats` | Equipment listing fields plus materialized armor/weapon stats (retires the runtime PHB fallback table). `item.slot` (head/neck/arms/hands/waist/feet/ring) is derived from the item body's "<X> Slot" line — the `Type` field is empty for most wondrous items — so e.g. amulets and cloaks resolve to the neck slot authoritatively. `getEntry` attaches it to item entries; `getEligibleSlotsForEntry` prefers it over name guesses. |
 | `item_level(item_id, tier, level, cost_gp, enhancement)` | Per-level tiers for level-scaled items (e.g. Amulet of Protection's six +1..+6 versions). The source packs tiers into one entry's compound `Level`/`Cost` (a leading "1+" / "360+ gp" summary token then positionally-aligned, scrambled level/cost pairs); the ETL drops the summary, zips and sorts the pairs, and writes one row per tier. `enhancement` is the generic `1 + floor((level-1)/5)` (only meaningful for enhancement items). The parent `item.cost_gp` is set to the lowest tier (previously null for these). |
 | `background`, `background_skill_bonus` | Background skill bonuses. |
-| `norm_meta`, `normalize_warnings` | Generation metadata (counts, schema version) and per-entry parse warnings. |
+| `monster`, `monster_combat_stats`, `monster_ability`, `monster_skill`, `monster_resistance`, `monster_power`, `monster_trait` | Monster listing fields plus combat stat line (HP, defenses, initiative, speed, perception, XP), ability scores, skills, resistances, and best-effort power/trait blocks from `body_html`. GM spawn reads `monster_combat_stats` first (`getNormalizedMonsterStats`); printed defenses skip the `10 + ½level` base (`usesPrintedDefenses`). |
+| `feat`, `feat_prerequisite`, `feat_skill_bonus`, `feat_ability_bonus`, `feat_grant` | Feat listing, structured prerequisite atoms, skill/ability bonuses (from `tutor.js` patterns), and grants (e.g. Ritual Caster). Feat picker uses `feat_prerequisite` when present (`getFeatPrerequisiteMap`); falls back to regex heuristics. |
+| `ritual`, `class_ritual_grant` | Ritual listing and class-granted ritual ids (replaces hard-coded `feat159` scan). |
+| `glossary`, `entry_links` | Glossary listing and cross-reference links extracted from `body_html` (glossary terms, `powerN`/`featN` tokens). |
+| `paragonpath`, `epicdestiny`, `theme` | Paragon path, epic destiny, and theme listing passthrough (prerequisite text for future prereq engine). |
+| `trap`, `companion`, `deity`, `disease`, `poison` | Reference-category listing passthrough (no body parse in v1). |
+| `norm_meta`, `normalize_warnings` | Generation metadata (counts, schema version **2**) and per-entry parse warnings. |
 
 ## Read path (normalized-first, parse fallback)
 
@@ -59,7 +66,9 @@ null/empty and callers transparently fall back to the runtime parse path:
 - `usesNormalized()`, `getRaceSubraceMap()`, `getNormalizedClass(id)`,
   `listNormalizedPowers(opts)`, `getNormalizedItemStats(id)`,
   `getNormalizedRaceTraits(id)`, `getPowerAbilityOptions(id)`,
-  `getPowerDamageOptions(id)`, `getRaceReplacements(id)`, `getSourceBookDates()`.
+  `getPowerDamageOptions(id)`, `getRaceReplacements(id)`, `getSourceBookDates()`,
+  `getNormalizedMonsterStats(id)`, `getNormalizedFeat(id)`, `getFeatPrerequisiteMap()`,
+  `listNormalizedRituals(opts)`, `getClassRitualGrants(classId)`.
 - Subrace replacements also have a runtime fallback: `race-parse.js`
   (`resolveReplacedBaseItems`) merges `parseRaceReplacements` with the curated
   `metadata/race-replacements.json` (loaded by `race-replacements.js`), so
@@ -75,6 +84,10 @@ null/empty and callers transparently fall back to the runtime parse path:
 - `listEntries('power', ...)` filters via the `power` table when present
   (exact `power_type`/`level`/`class_name`) instead of `json_extract` LIKE.
 - `syncEquipmentToSheet` prefers `getNormalizedItemStats` over parsing.
+- `spawnFromCompendiumEntry` (`actor-spawn.js`) prefers `getNormalizedMonsterStats` over level-based HP/AC fallbacks.
+- `defenseTotals` (`combat-helpers.js`) uses printed monster defenses without adding `10 + ½level` when `usesPrintedDefenses` is set.
+- `ritual-selections.js` uses `listNormalizedRituals`, `getClassRitualGrants`, and `feat_grant` for Ritual Caster detection.
+- `feat-prerequisite.js` evaluates `feat_prerequisite` atoms from `getFeatPrerequisiteMap` when structured rows exist; regex heuristics remain the fallback.
 - `race-subraces.js` is hydrated from `race_subrace` at editor bootstrap via
   `hydrateSubracesFromProvider(compendium)` (falls back to the static JSON).
 
@@ -102,11 +115,15 @@ route; the DB copy is the read-only fallback for static/Tauri builds.
 
 ## Known ETL gaps (data-quality, surfaced by warnings)
 
-Validated against the full production DB (≈9.4k powers, 3.7k items, 808 backgrounds, 77 classes, 55 races); 248 warnings:
+Validated against the full production DB (≈25.5k entries normalized across all categories); 2955 warnings:
 
+- `monster/no-stat-line` (2326): monster HTML lacks the standard HP/AC stat paragraph (minions, templates, or non-standard layout); spawn still uses level fallbacks for these.
+- `feat/unparsed-prerequisite` (406): prerequisite text did not map to structured atoms; feat picker falls back to regex heuristics.
 - `source_books/missing-date` (199): the GM dates the remaining books in `metadata/source-books.json` (expected manual work).
-- `class/missing-hp` (44): no complete structured class-HP source exists — `src/character/hp.js` itself relies on the partial `quick-build-presets.json`, which the normalizer reuses. Candidate for a future class-stats metadata table.
+- `glossary/duplicate-term` (17): multiple glossary entries share a display name; link resolution is ambiguous.
 - `class/hybrid-no-parent` (5): a few `Hybrid X` entries whose base name does not exactly match a class entry; refine the name match later.
+- `monster/ability-table-missing` (1), `monster/partial-stats` (1): edge-case stat blocks.
+- ~~`class/missing-hp`~~ fixed 2026-07-03: iws.mx often places the colon outside `</b>` (`<b>Hit Points at 1st Level</b>: 15+…`); `class-parse.js` now allows whitespace around colons. All 77 classes parse HP/surges where present in HTML.
 - `race_grant` is best-effort: it only captures inline `powerN`/`featN` id tokens, which the production race HTML largely does not use, so it is currently empty. Race powers/feats still load via the existing parse path.
 - `background_skill_bonus` is empty by design for choice-based backgrounds (skills are picked at selection time, not fixed bonuses).
 - `race_language`/`race_resistance`/`race_sense`/`race_trait`, `power_ability_option` and `power_damage_option` are best-effort text parses: races/powers whose wording does not match the patterns simply produce no rows (the runtime parse fallback still applies traits/options). `power_ability_option` fills for powers with an explicit attack-line ability "or"-list or a `Special:` "choose ... as the ability score" clause; `power_damage_option` fills for powers with a "damage type: ..." choice list.

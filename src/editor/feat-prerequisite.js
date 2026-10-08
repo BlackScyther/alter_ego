@@ -1,10 +1,16 @@
 /**
  * Heuristic feat prerequisite filtering from listing_fields.Prerequisite text.
+ * Uses normalized feat_prerequisite rows when available (ETL).
  */
 
 import { getRaceMatchTerms } from './background-prerequisite.js';
 import { filterEntriesBySearch, COMPENDIUM_SEARCH_MIN } from './picker/combobox-picker.js';
-const EMPTY_PREREQ = new Set(['', '—', '-', 'none', 'n/a']);
+import {
+  normalizePrerequisiteText,
+  isEmptyPrerequisite
+} from '../character/feat-parse.js';
+
+export { normalizePrerequisiteText, isEmptyPrerequisite };
 
 const ABILITY_ALIASES = {
   str: ['str', 'strength'],
@@ -15,27 +21,105 @@ const ABILITY_ALIASES = {
   cha: ['cha', 'charisma']
 };
 
-const MARTIAL_KEYWORDS = ['martial', 'weapon'];
-const DIVINE_KEYWORDS = ['divine', 'cleric', 'paladin'];
-const ARCANE_KEYWORDS = ['arcane', 'wizard', 'sorcerer', 'warlock'];
 const PREREQ_HINT_WORDS =
   /\b(prerequisite|must|requires?|trained|level|paragon|epic|heroic|feat|background|race|class)\b/i;
 
+const MARTIAL_KEYWORDS = ['martial', 'weapon'];
+const DIVINE_KEYWORDS = ['divine', 'cleric', 'paladin'];
+const ARCANE_KEYWORDS = ['arcane', 'wizard', 'sorcerer', 'warlock'];
+
 /**
- * @param {string} raw
+ * @param {Array<{ kind: string, target?: string | null, min_value?: number | null, logic_group?: number }>} atoms
  */
-export function normalizePrerequisiteText(raw) {
-  return String(raw ?? '')
-    .replace(/\s+/g, ' ')
-    .trim();
+export function atomsAreStructured(atoms) {
+  return Array.isArray(atoms) && atoms.length > 0 && atoms.every((a) => a.kind && a.kind !== 'other');
 }
 
 /**
- * @param {string} prereq
+ * @param {Array<{ kind: string, target?: string | null, min_value?: number | null }>} atoms
+ * @param {object} ctx
+ * @param {{ slotLevel: number }} slot
  */
-export function isEmptyPrerequisite(prereq) {
-  const n = normalizePrerequisiteText(prereq).toLowerCase();
-  return EMPTY_PREREQ.has(n);
+export function evaluateFeatPrerequisiteAtoms(atoms, ctx, slot) {
+  for (const atom of atoms) {
+    const kind = atom.kind;
+    const target = (atom.target ?? '').toLowerCase();
+    const minValue = atom.min_value ?? atom.minValue ?? null;
+
+    if (kind === 'level') {
+      const need = minValue ?? 1;
+      if ((ctx.level ?? 1) < need || (slot.slotLevel ?? 1) < need) return false;
+      continue;
+    }
+    if (kind === 'race') {
+      const terms = ctx.raceTerms ?? new Set();
+      let ok = false;
+      for (const t of terms) {
+        if (t && target && (t.includes(target) || target.includes(t))) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) return false;
+      continue;
+    }
+    if (kind === 'class') {
+      const cn = (ctx.classInfo?.className ?? '').toLowerCase();
+      if (!cn.includes(target)) return false;
+      continue;
+    }
+    if (kind === 'role') {
+      const role = (ctx.classInfo?.role ?? '').toLowerCase();
+      if (!role.includes(target)) return false;
+      continue;
+    }
+    if (kind === 'power_source') {
+      const ps = (ctx.classInfo?.powerSource ?? '').toLowerCase();
+      if (target === 'martial' && !MARTIAL_KEYWORDS.some((k) => ps.includes(k) || cnIncludes(ctx, k))) {
+        return false;
+      }
+      if (target === 'divine' && !DIVINE_KEYWORDS.some((k) => ps.includes(k) || cnIncludes(ctx, k))) {
+        return false;
+      }
+      if (target === 'arcane' && !ARCANE_KEYWORDS.some((k) => ps.includes(k) || cnIncludes(ctx, k))) {
+        return false;
+      }
+      continue;
+    }
+    if (kind === 'ability_min') {
+      const key = (target ?? '').slice(0, 3);
+      const have = ctx.abilityScores?.[key] ?? 10;
+      if (have < (minValue ?? 0)) return false;
+      continue;
+    }
+    if (kind === 'skill_trained') {
+      if (ctx.hasTrainingData && !ctx.trainedSkills?.has(target)) return false;
+      continue;
+    }
+    if (kind === 'background') {
+      const bg = (ctx.backgroundName ?? '').toLowerCase();
+      if (target && !bg.includes(target)) return false;
+      continue;
+    }
+    if (kind === 'feat') {
+      let ok = false;
+      for (const name of ctx.ownedFeatNames ?? []) {
+        if (name && target && name.toLowerCase().includes(target)) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok && (ctx.ownedFeatNames?.size ?? 0) > 0) return false;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+/** @param {object} ctx @param {string} kw */
+function cnIncludes(ctx, kw) {
+  return (ctx.classInfo?.className ?? '').toLowerCase().includes(kw);
 }
 
 /**
@@ -281,6 +365,11 @@ export function featPassesDefaultFilter(entry, ctx, slot, opts = {}) {
 
   if (isEmptyPrerequisite(prereq)) return true;
 
+  const atoms = ctx.featPrereqMap?.get(entry.id);
+  if (atomsAreStructured(atoms)) {
+    return evaluateFeatPrerequisiteAtoms(atoms, ctx, slot);
+  }
+
   if (!prereqPassesRace(prereq, ctx.raceTerms)) return false;
   if (!prereqPassesClass(prereq, ctx.classInfo)) return false;
   if (!prereqPassesBackground(prereq, ctx.backgroundName)) return false;
@@ -379,7 +468,11 @@ export async function buildFeatEligibilityContext(character, compendium, current
     trainedSkills,
     hasTrainingData,
     ownedFeatNames,
-    ownedFeatIds
+    ownedFeatIds,
+    featPrereqMap:
+      typeof compendium.getFeatPrerequisiteMap === 'function'
+        ? await compendium.getFeatPrerequisiteMap()
+        : null
   };
 }
 

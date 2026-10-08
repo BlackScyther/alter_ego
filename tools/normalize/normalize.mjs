@@ -41,6 +41,30 @@ import {
 import { parsePowerAbilityOptions, parsePowerDamageOptions } from '../../src/character/power-ability-parse.js';
 import { getParentRaceId, inferParentFromName, isSubraceId } from '../../src/character/race-subraces.js';
 import { getCuratedReplacements } from '../../src/character/race-replacements.js';
+import {
+  parseMonsterListing,
+  parseMonsterCombatStats,
+  parseMonsterAbilities,
+  parseMonsterSkills,
+  parseMonsterResistances,
+  parseMonsterPowers,
+  parseMonsterTraits
+} from '../../src/character/monster-parse.js';
+import {
+  parseFeatListing,
+  parseFeatPrerequisites,
+  parseFeatBonuses,
+  parseFeatGrants,
+  parseFeatBenefitText
+} from '../../src/character/feat-parse.js';
+import { parseRitualListing, parseClassRitualGrants } from '../../src/character/ritual-parse.js';
+import { parsePathListing, parseThemeListing } from '../../src/character/path-parse.js';
+import {
+  parseGlossaryListing,
+  parseReferenceListing,
+  extractExplicitEntryLinks,
+  extractGlossaryLinks
+} from '../../src/character/reference-parse.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..', '..');
@@ -711,6 +735,312 @@ function normalizeBackgrounds(db, byCategory) {
   return backgrounds.length;
 }
 
+function normalizeMonsters(db, byCategory, warnings) {
+  const monsters = byCategory.get('monster') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO monster (id, name, level, combat_role, group_role, size, creature_type, source_book) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const insStats = db.prepare(
+    `INSERT OR REPLACE INTO monster_combat_stats (monster_id, hp, bloodied_hp, ac, fort, ref, will, initiative, speed_squares, perception, xp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const insAbil = db.prepare(
+    `INSERT OR REPLACE INTO monster_ability (monster_id, ability, score) VALUES (?, ?, ?)`
+  );
+  const insSkill = db.prepare(`INSERT INTO monster_skill (monster_id, skill, bonus) VALUES (?, ?, ?)`);
+  const insResist = db.prepare(
+    `INSERT INTO monster_resistance (monster_id, damage_type, amount, is_immunity, is_vulnerability) VALUES (?, ?, ?, ?, ?)`
+  );
+  const insPower = db.prepare(
+    `INSERT OR REPLACE INTO monster_power (monster_id, sort_order, name, usage, action, attack_line, hit, effect) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const insTrait = db.prepare(
+    `INSERT INTO monster_trait (monster_id, name, trait_type, text) VALUES (?, ?, ?, ?)`
+  );
+
+  const tx = db.transaction(() => {
+    for (const e of monsters) {
+      const listing = parseMonsterListing(e);
+      ins.run(
+        e.id,
+        listing.name,
+        listing.level,
+        listing.combatRole,
+        listing.groupRole,
+        listing.size,
+        listing.creatureType,
+        listing.sourceBook
+      );
+
+      const stats = parseMonsterCombatStats(e);
+      const hasCore = stats.hp != null || stats.ac != null;
+      if (!hasCore) {
+        warnings.add('monster', e.id, 'no-stat-line', `Monster "${listing.name}" has no parseable HP/AC stat line.`);
+      } else if (stats.hp == null || stats.ac == null) {
+        warnings.add('monster', e.id, 'partial-stats', `Monster "${listing.name}" missing HP or AC (hp=${stats.hp}, ac=${stats.ac}).`);
+      }
+
+      insStats.run(
+        e.id,
+        stats.hp,
+        stats.bloodiedHp,
+        stats.ac,
+        stats.fort,
+        stats.ref,
+        stats.will,
+        stats.initiative,
+        stats.speedSquares,
+        stats.perception,
+        stats.xp
+      );
+
+      const abilities = parseMonsterAbilities(e.body_html ?? '');
+      let abilityCount = 0;
+      for (const [ability, score] of Object.entries(abilities)) {
+        if (score != null) {
+          insAbil.run(e.id, ability, score);
+          abilityCount++;
+        }
+      }
+      if (!abilityCount && hasCore) {
+        warnings.add('monster', e.id, 'ability-table-missing', `Monster "${listing.name}" has combat stats but no ability scores parsed.`);
+      }
+
+      for (const s of parseMonsterSkills(e.body_html ?? '')) {
+        insSkill.run(e.id, s.skill, s.bonus);
+      }
+
+      for (const r of parseMonsterResistances(e.body_html ?? '')) {
+        insResist.run(e.id, r.damageType, r.amount ?? null, r.immunity ? 1 : 0, r.vulnerability ? 1 : 0);
+      }
+
+      parseMonsterPowers(e.body_html ?? '').forEach((p, idx) => {
+        insPower.run(e.id, idx + 1, p.name, p.usage, p.action, p.attackLine, p.hit, p.effect);
+      });
+
+      for (const t of parseMonsterTraits(e.body_html ?? '')) {
+        insTrait.run(e.id, t.name, t.traitType, t.text);
+      }
+    }
+  });
+  tx();
+  return monsters.length;
+}
+
+function normalizeFeats(db, byCategory, warnings) {
+  const feats = byCategory.get('feat') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO feat (id, name, tier, prerequisite_raw, source_book, benefit_text) VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  const insPrereq = db.prepare(
+    `INSERT INTO feat_prerequisite (feat_id, kind, target, min_value, logic_group) VALUES (?, ?, ?, ?, ?)`
+  );
+  const insSkill = db.prepare(
+    `INSERT INTO feat_skill_bonus (feat_id, skill, amount, bonus_type) VALUES (?, ?, ?, ?)`
+  );
+  const insAbil = db.prepare(
+    `INSERT INTO feat_ability_bonus (feat_id, ability, amount, choice_group, excludes_item_bonus) VALUES (?, ?, ?, ?, ?)`
+  );
+  const insGrant = db.prepare(`INSERT INTO feat_grant (feat_id, kind, value) VALUES (?, ?, ?)`);
+
+  const tx = db.transaction(() => {
+    for (const e of feats) {
+      const listing = parseFeatListing(e);
+      if (!listing.tier) warnings.add('feat', e.id, 'no-tier', `Feat "${listing.name}" has no tier.`);
+      const benefit = parseFeatBenefitText(e.body_html ?? '');
+      if (!benefit) warnings.add('feat', e.id, 'no-benefit-text', `Feat "${listing.name}" has empty benefit text.`);
+
+      ins.run(e.id, listing.name, listing.tier, listing.prerequisiteRaw || null, listing.sourceBook, benefit || null);
+
+      const atoms = parseFeatPrerequisites(listing.prerequisiteRaw);
+      if (listing.prerequisiteRaw && atoms.length === 1 && atoms[0].kind === 'other') {
+        warnings.add('feat', e.id, 'unparsed-prerequisite', `Feat "${listing.name}" prerequisite not structured: "${listing.prerequisiteRaw.slice(0, 80)}".`);
+      }
+      for (const a of atoms) {
+        insPrereq.run(e.id, a.kind, a.target, a.minValue, a.logicGroup);
+      }
+
+      const { ability, skill } = parseFeatBonuses(e);
+      for (const b of skill) insSkill.run(e.id, b.skill, b.amount, b.bonusType);
+      for (const b of ability) insAbil.run(e.id, b.ability, b.amount, b.choiceGroup, b.excludesItemBonus);
+
+      for (const g of parseFeatGrants(e.body_html ?? '')) {
+        insGrant.run(e.id, g.kind, g.value);
+      }
+    }
+  });
+  tx();
+  return feats.length;
+}
+
+function normalizeRituals(db, byCategory, warnings) {
+  const rituals = byCategory.get('ritual') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO ritual (id, name, level, component_cost, price, key_skill_description, source_book) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  const tx = db.transaction(() => {
+    for (const e of rituals) {
+      const r = parseRitualListing(e);
+      if (r.level == null) warnings.add('ritual', e.id, 'invalid-level', `Ritual "${r.name}" has no level.`);
+      ins.run(e.id, r.name, r.level, r.componentCost, r.price, r.keySkillDescription, r.sourceBook);
+    }
+  });
+  tx();
+
+  const ritualIds = new Set(rituals.map((r) => r.id));
+  const classes = byCategory.get('class') ?? [];
+  const insGrant = db.prepare(`INSERT OR REPLACE INTO class_ritual_grant (class_id, ritual_id) VALUES (?, ?)`);
+  let grantCount = 0;
+  const grantTx = db.transaction(() => {
+    for (const c of classes) {
+      for (const rid of parseClassRitualGrants(c)) {
+        if (!ritualIds.has(rid)) {
+          warnings.add('class', c.id, 'ritual-grant-unresolved', `Class "${c.listing_fields?.Name ?? c.id}" references unknown ritual "${rid}".`);
+          continue;
+        }
+        insGrant.run(c.id, rid);
+        grantCount++;
+      }
+    }
+  });
+  grantTx();
+  return rituals.length;
+}
+
+function normalizeGlossary(db, byCategory, warnings) {
+  const entries = byCategory.get('glossary') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO glossary (id, name, category, type, source_book) VALUES (?, ?, ?, ?, ?)`
+  );
+  const seenNames = new Map();
+  const tx = db.transaction(() => {
+    for (const e of entries) {
+      const g = parseGlossaryListing(e);
+      const nameKey = String(g.name ?? '').toLowerCase();
+      if (nameKey && seenNames.has(nameKey)) {
+        warnings.add('glossary', e.id, 'duplicate-term', `Glossary term "${g.name}" duplicates "${seenNames.get(nameKey)}".`);
+      } else if (nameKey) {
+        seenNames.set(nameKey, g.name);
+      }
+      ins.run(e.id, g.name, g.category ?? null, g.type ?? null, g.sourceBook ?? null);
+    }
+  });
+  tx();
+  return entries.length;
+}
+
+function normalizeParagonPaths(db, byCategory) {
+  const paths = byCategory.get('paragonpath') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO paragonpath (id, name, prerequisite_raw, source_book) VALUES (?, ?, ?, ?)`
+  );
+  const tx = db.transaction(() => {
+    for (const e of paths) {
+      const p = parsePathListing(e);
+      ins.run(e.id, p.name, p.prerequisiteRaw || null, p.sourceBook);
+    }
+  });
+  tx();
+  return paths.length;
+}
+
+function normalizeEpicDestinies(db, byCategory) {
+  const entries = byCategory.get('epicdestiny') ?? [];
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO epicdestiny (id, name, prerequisite_raw, source_book) VALUES (?, ?, ?, ?)`
+  );
+  const tx = db.transaction(() => {
+    for (const e of entries) {
+      const p = parsePathListing(e);
+      ins.run(e.id, p.name, p.prerequisiteRaw || null, p.sourceBook);
+    }
+  });
+  tx();
+  return entries.length;
+}
+
+function normalizeThemes(db, byCategory) {
+  const themes = byCategory.get('theme') ?? [];
+  const ins = db.prepare(`INSERT OR REPLACE INTO theme (id, name, prerequisite_raw, source_book) VALUES (?, ?, ?, ?)`);
+  const tx = db.transaction(() => {
+    for (const e of themes) {
+      const t = parseThemeListing(e);
+      ins.run(e.id, t.name, t.prerequisiteRaw || null, t.sourceBook);
+    }
+  });
+  tx();
+  return themes.length;
+}
+
+function normalizeReferenceCategories(db, byCategory) {
+  const configs = [
+    { slug: 'trap', table: 'trap', cols: ['id', 'name', 'type', 'group_role', 'level', 'source_book'] },
+    { slug: 'companion', table: 'companion', cols: ['id', 'name', 'type', 'size', 'creature_type', 'source_book'] },
+    { slug: 'deity', table: 'deity', cols: ['id', 'name', 'domains', 'alignment', 'source_book'] },
+    { slug: 'disease', table: 'disease', cols: ['id', 'name', 'level', 'source_book'] },
+    { slug: 'poison', table: 'poison', cols: ['id', 'name', 'level', 'cost', 'source_book'] }
+  ];
+  /** @param {Record<string, unknown>} row @param {string[]} cols */
+  function rowValues(row, cols) {
+    const map = {
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      group_role: row.groupRole,
+      level: row.level,
+      source_book: row.sourceBook,
+      size: row.size,
+      creature_type: row.creatureType,
+      domains: row.domains,
+      alignment: row.alignment,
+      cost: row.cost
+    };
+    return cols.map((c) => map[c] ?? null);
+  }
+  let total = 0;
+  for (const cfg of configs) {
+    const entries = byCategory.get(cfg.slug) ?? [];
+    const placeholders = cfg.cols.map(() => '?').join(', ');
+    const ins = db.prepare(`INSERT OR REPLACE INTO ${cfg.table} (${cfg.cols.join(', ')}) VALUES (${placeholders})`);
+    const tx = db.transaction(() => {
+      for (const e of entries) {
+        const row = parseReferenceListing(e, cfg.slug);
+        ins.run(...rowValues(row, cfg.cols));
+      }
+    });
+    tx();
+    total += entries.length;
+  }
+  return total;
+}
+
+function extractEntryLinks(db, byCategory, warnings) {
+  const glossaryTerms = (byCategory.get('glossary') ?? []).map((e) => ({
+    id: e.id,
+    name: e.listing_fields?.Name ?? e.id
+  }));
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO entry_links (from_entry_id, to_entry_id, link_text, link_type) VALUES (?, ?, ?, ?)`
+  );
+  let count = 0;
+  const tx = db.transaction(() => {
+    for (const [, entries] of byCategory) {
+      for (const e of entries) {
+        const html = e.body_html ?? '';
+        const links = [
+          ...extractExplicitEntryLinks(html, e.id),
+          ...extractGlossaryLinks(html, e.id, glossaryTerms)
+        ];
+        for (const link of links) {
+          ins.run(link.fromEntryId, link.toEntryId, link.linkText, link.linkType);
+          count++;
+        }
+      }
+    }
+  });
+  tx();
+  return count;
+}
+
 function writeMeta(db, meta) {
   const ins = db.prepare(`INSERT OR REPLACE INTO norm_meta (key, value) VALUES (?, ?)`);
   const tx = db.transaction(() => {
@@ -770,13 +1100,22 @@ function main() {
     power_ability_option: normalizePowerAbilityOptions(db, byCategory, warnings),
     power_damage_option: normalizePowerDamageOptions(db, byCategory, warnings),
     item: normalizeEquipment(db, byCategory, warnings),
-    background: normalizeBackgrounds(db, byCategory)
+    background: normalizeBackgrounds(db, byCategory),
+    monster: normalizeMonsters(db, byCategory, warnings),
+    feat: normalizeFeats(db, byCategory, warnings),
+    ritual: normalizeRituals(db, byCategory, warnings),
+    glossary: normalizeGlossary(db, byCategory, warnings),
+    paragonpath: normalizeParagonPaths(db, byCategory),
+    epicdestiny: normalizeEpicDestinies(db, byCategory),
+    theme: normalizeThemes(db, byCategory),
+    reference: normalizeReferenceCategories(db, byCategory),
+    entry_links: extractEntryLinks(db, byCategory, warnings)
   };
 
   writeMeta(db, {
     generated_at: new Date().toISOString(),
     source: args.fromStub ? 'stub' : srcPath,
-    schema_version: 1,
+    schema_version: 2,
     ...Object.fromEntries(Object.entries(counts).map(([k, v]) => [`count_${k}`, v])),
     warnings: warnings.count
   });

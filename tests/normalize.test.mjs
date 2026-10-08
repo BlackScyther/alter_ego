@@ -35,7 +35,7 @@ test('normalizer creates the expected tables', () => {
     .prepare(`SELECT name FROM sqlite_master WHERE type='table'`)
     .all()
     .map((r) => r.name);
-  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'power_ability_option', 'power_damage_option', 'item', 'armor_stats', 'weapon_stats', 'background', 'normalize_warnings', 'norm_meta']) {
+  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'power_ability_option', 'power_damage_option', 'item', 'armor_stats', 'weapon_stats', 'background', 'monster', 'monster_combat_stats', 'feat', 'feat_skill_bonus', 'ritual', 'glossary', 'paragonpath', 'epicdestiny', 'theme', 'trap', 'normalize_warnings', 'norm_meta']) {
     assert.ok(names.includes(t), `missing table ${t}`);
   }
 });
@@ -104,5 +104,25 @@ test('source_books carries known release dates (date-ready for GM filter)', () =
 test('norm_meta records counts', () => {
   const meta = Object.fromEntries(db.prepare(`SELECT key, value FROM norm_meta`).all().map((r) => [r.key, r.value]));
   assert.equal(meta.count_power, '10');
-  assert.equal(meta.schema_version, '1');
+  assert.equal(meta.schema_version, '2');
+});
+
+test('monster combat stats parsed from bugbear stub body', () => {
+  const stats = db.prepare(`SELECT hp, ac, initiative FROM monster_combat_stats WHERE monster_id = 'monster_bugbear'`).get();
+  assert.ok(stats);
+  assert.equal(stats.hp, 75);
+  assert.equal(stats.ac, 19);
+  assert.equal(stats.initiative, 5);
+});
+
+test('feat skill bonuses normalized from stub', () => {
+  const row = db.prepare(`SELECT skill, amount FROM feat_skill_bonus WHERE feat_id = 'feat3'`).get();
+  assert.equal(row.skill, 'history');
+  assert.equal(row.amount, 2);
+});
+
+test('ritual listing normalized', () => {
+  const row = db.prepare(`SELECT name, level FROM ritual WHERE id = 'ritual1'`).get();
+  assert.equal(row.name, 'Comprehend Language');
+  assert.equal(row.level, 1);
 });

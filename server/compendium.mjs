@@ -79,7 +79,12 @@ function getFromSqlite(category, entryId) {
 
   if (!row) return null;
   if (category && row.category_slug !== category) return null;
-  return rowToEntry(row);
+  const entry = rowToEntry(row);
+  if (row.category_slug === 'monster') {
+    const stats = getNormalizedMonsterStats(entryId);
+    if (stats) entry.normalizedCombatStats = stats;
+  }
+  return entry;
 }
 
 /**
@@ -267,4 +272,119 @@ export function getNormalizedItemStats(entryId) {
     }
   }
   return null;
+}
+
+/**
+ * Normalized monster combat stats for spawn, else null.
+ * @param {string} monsterId
+ */
+export function getNormalizedMonsterStats(monsterId) {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('monster_combat_stats')) return null;
+  const r = database
+    .prepare(`SELECT * FROM monster_combat_stats WHERE monster_id = ? LIMIT 1`)
+    .get(monsterId);
+  if (!r) return null;
+  return {
+    hp: r.hp,
+    bloodiedHp: r.bloodied_hp,
+    ac: r.ac,
+    fort: r.fort,
+    ref: r.ref,
+    will: r.will,
+    initiative: r.initiative,
+    speedSquares: r.speed_squares,
+    perception: r.perception,
+    xp: r.xp
+  };
+}
+
+/**
+ * @returns {Map<string, Array<{ kind: string, target: string | null, min_value: number | null, logic_group: number }>> | null}
+ */
+export function getFeatPrerequisiteMap() {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('feat_prerequisite')) return null;
+  const rows = database
+    .prepare(`SELECT feat_id, kind, target, min_value, logic_group FROM feat_prerequisite ORDER BY feat_id, logic_group`)
+    .all();
+  /** @type {Map<string, object[]>} */
+  const map = new Map();
+  for (const r of rows) {
+    const list = map.get(r.feat_id) ?? [];
+    list.push({
+      kind: r.kind,
+      target: r.target,
+      min_value: r.min_value,
+      logic_group: r.logic_group
+    });
+    map.set(r.feat_id, list);
+  }
+  return map;
+}
+
+/**
+ * @param {string} featId
+ */
+export function getNormalizedFeat(featId) {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('feat')) return null;
+  const row = database.prepare(`SELECT * FROM feat WHERE id = ? LIMIT 1`).get(featId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    tier: row.tier,
+    prerequisiteRaw: row.prerequisite_raw,
+    sourceBook: row.source_book,
+    benefitText: row.benefit_text,
+    prerequisites: compendiumHasTable('feat_prerequisite')
+      ? database
+          .prepare(`SELECT kind, target, min_value, logic_group FROM feat_prerequisite WHERE feat_id = ?`)
+          .all(featId)
+      : [],
+    skillBonuses: compendiumHasTable('feat_skill_bonus')
+      ? database
+          .prepare(`SELECT skill, amount, bonus_type FROM feat_skill_bonus WHERE feat_id = ?`)
+          .all(featId)
+      : [],
+    abilityBonuses: compendiumHasTable('feat_ability_bonus')
+      ? database
+          .prepare(
+            `SELECT ability, amount, choice_group, excludes_item_bonus FROM feat_ability_bonus WHERE feat_id = ?`
+          )
+          .all(featId)
+      : [],
+    grants: compendiumHasTable('feat_grant')
+      ? database.prepare(`SELECT kind, value FROM feat_grant WHERE feat_id = ?`).all(featId)
+      : []
+  };
+}
+
+/**
+ * @param {{ maxLevel?: number }} [opts]
+ */
+export function listNormalizedRituals(opts = {}) {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('ritual')) return [];
+  const maxLevel = opts.maxLevel != null ? Number(opts.maxLevel) : null;
+  if (maxLevel != null && !Number.isNaN(maxLevel)) {
+    return database
+      .prepare(`SELECT id, name, level, source_book FROM ritual WHERE level IS NULL OR level <= ? ORDER BY name`)
+      .all(maxLevel);
+  }
+  return database.prepare(`SELECT id, name, level, source_book FROM ritual ORDER BY name`).all();
+}
+
+/**
+ * Class ritual grants from normalized ETL.
+ * @param {string} classId
+ */
+export function getClassRitualGrants(classId) {
+  const database = getCompendiumDb();
+  if (!database || !compendiumHasTable('class_ritual_grant')) return null;
+  return database
+    .prepare(`SELECT ritual_id FROM class_ritual_grant WHERE class_id = ?`)
+    .all(classId)
+    .map((r) => r.ritual_id);
 }

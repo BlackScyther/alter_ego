@@ -13,6 +13,14 @@ export function usesPrintedInitiativeBonus(character) {
 }
 
 /**
+ * Compendium-spawned monsters/NPCs store printed defense totals in defenses.*.class.
+ * @param {object} character
+ */
+export function usesPrintedDefenses(character) {
+  return usesPrintedInitiativeBonus(character);
+}
+
+/**
  * Static initiative — the value on the character board before the d20 roll.
  * @param {object} character
  */
@@ -63,6 +71,12 @@ export function defenseTotals(character, level = character?.identity?.level ?? 1
   const keys = ['ac', 'fort', 'ref', 'will'];
   /** @type {Record<string, number>} */
   const out = {};
+  if (usesPrintedDefenses(character)) {
+    for (const key of keys) {
+      out[key] = Number(defenses[key]?.class) || 0;
+    }
+    return out;
+  }
   for (const key of keys) {
     out[key] = defenseTotal(level, defenses[key] ?? {});
   }
