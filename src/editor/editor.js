@@ -60,7 +60,7 @@ import { renderPowerStep } from './steps/power-step.js';
 import { renderEquipmentStep } from './steps/equipment-step.js';
 import { renderRaceStep } from './steps/race-step.js';
 import { renderClassStep } from './steps/class-step.js';
-import { ensureRaceSelectionsShape } from '../character/race-selections.js';
+import { ensureRaceSelectionsShape, applyGenasiManifestationAbilities } from '../character/race-selections.js';
 import { resetBackgroundBonusChoices } from '../character/background-selections.js';
 import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
 import { getHpSubstituteTutorHint } from '../character/hp.js';
@@ -313,7 +313,8 @@ async function refreshRitualPicker(slotId, query = '') {
   const q = query.trim();
   const entries = await compendium.listEntries('ritual', {
     search: q.length >= COMPENDIUM_SEARCH_MIN ? q : '',
-    limit: 100
+    limit: 100,
+    maxLevel: level
   });
   const exclude = new Set(character.selections.ritualIds ?? []);
   const filtered = entries.filter((e) => {
@@ -698,6 +699,7 @@ async function refreshBonusesFromSelections() {
   }
   ensureAbilityShape(character);
   syncBonusesFromSelections(character, entries, featEntries);
+  applyGenasiManifestationAbilities(character, entries.race);
   syncRaceBonusChoicesToBonuses(character);
   if (entries.class) await syncGrantedRitualIds(character, entries.class, compendium);
   cachedClassEntry = entries.class ?? null;

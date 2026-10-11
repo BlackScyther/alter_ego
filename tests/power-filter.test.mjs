@@ -64,6 +64,15 @@ describe('power-filter', () => {
     assert.ok(!powerMatchesSlot({ Type: 'At-Will', Level: '1', ClassName: 'Wizard' }, slot, ctx));
   });
 
+  it('a level 3 encounter slot includes lower encounter powers and excludes higher ones', () => {
+    const slot = { id: 'power-encounter-3', slotLevel: 3, powerType: 'Encounter', label: 'x' };
+    const ctx = { className: 'Fighter', characterLevel: 3 };
+    assert.ok(powerMatchesSlot({ Type: 'Encounter', Level: '1', ClassName: 'Fighter' }, slot, ctx));
+    assert.ok(powerMatchesSlot({ Type: 'Encounter', Level: '3', ClassName: 'Fighter' }, slot, ctx));
+    assert.ok(!powerMatchesSlot({ Type: 'Encounter', Level: '7', ClassName: 'Fighter' }, slot, ctx));
+    assert.ok(!powerMatchesSlot({ Type: 'Daily', Level: '1', ClassName: 'Fighter' }, slot, ctx));
+  });
+
   it('showAll skips class match', () => {
     const slot = { id: 'power-atwill-1-a', slotLevel: 1, powerType: 'At-Will', label: 'x' };
     const ctx = { className: 'Fighter', characterLevel: 1 };
@@ -77,7 +86,7 @@ describe('power-filter', () => {
     );
   });
 
-  it('retrain allows power level at or below character level', () => {
+  it('retrain keeps the slot level as the ceiling', () => {
     const slot = { id: 'power-encounter-3', slotLevel: 3, powerType: 'Encounter', label: 'x' };
     const ctx = { className: 'Fighter', characterLevel: 7 };
     assert.ok(
@@ -89,8 +98,16 @@ describe('power-filter', () => {
       )
     );
     assert.ok(
+      powerMatchesSlot(
+        { Type: 'Encounter', Level: '3', ClassName: 'Fighter' },
+        slot,
+        ctx,
+        { retrain: true }
+      )
+    );
+    assert.ok(
       !powerMatchesSlot(
-        { Type: 'Encounter', Level: '11', ClassName: 'Fighter' },
+        { Type: 'Encounter', Level: '7', ClassName: 'Fighter' },
         slot,
         ctx,
         { retrain: true }

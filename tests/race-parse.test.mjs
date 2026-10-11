@@ -9,8 +9,12 @@ import {
   extractPowerIdsFromRaceHtml,
   mergeRaceMechanics,
   parseRaceMechanics,
-  renderCombinedRacePreviewHtml
+  renderCombinedRacePreviewHtml,
+  renderRaceAbilityChoicesHostHtml
 } from '../src/character/race-parse.js';
+import { createCharacter } from '../src/character/model.js';
+import { syncBonusesFromSelections } from '../src/character/tutor.js';
+import { setRaceBonusChoice } from '../src/character/race-selections.js';
 import {
   appendMetricHeight,
   appendMetricSpeed,
@@ -333,6 +337,40 @@ test('renderCombinedRacePreviewHtml shows chosen ability without buttons', () =>
   });
   assert.match(html, /\+2 Wisdom/);
   assert.doesNotMatch(html, /race-choice-btn/);
+});
+
+const genasiAbilityEntry = {
+  id: 'race33',
+  listing_fields: { Name: 'Genasi', Size: 'Medium' },
+  body_html:
+    '<blockquote><b>Ability scores</b>: +2 Intelligence, +2 Constitution or +2 Strength<br><b>Size</b>: Medium</blockquote>'
+};
+
+test('Genasi ability panel offers Intelligence plus Constitution or Strength', () => {
+  const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, { ability: {}, skill: {} });
+  assert.match(html, /Ability scores/);
+  assert.match(html, /Applied to your ability scores: \+2 Intelligence/);
+  assert.match(html, /data-value="con"/);
+  assert.match(html, /data-value="str"/);
+  assert.match(html, /Choose the other ability bonus/);
+});
+
+test('choosing Strength applies +2 Intelligence and +2 Strength', () => {
+  const character = createCharacter();
+  character.selections.raceId = 'race33';
+  syncBonusesFromSelections(character, { race: genasiAbilityEntry });
+  assert.equal(character.abilities.scores.int, 12);
+  assert.equal(character.abilities.scores.str, 10);
+  assert.equal(character.abilities.scores.con, 10);
+
+  setRaceBonusChoice(character, 'ability', 'race33-or', 'str');
+  assert.equal(character.abilities.scores.int, 12);
+  assert.equal(character.abilities.scores.str, 12);
+  assert.equal(character.abilities.scores.con, 10);
+
+  const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, character.selections.raceBonusChoices);
+  assert.match(html, /Applied to your ability scores: \+2 Intelligence and \+2 Strength/);
+  assert.match(html, /race-choice-btn--selected/);
 });
 
 test('buildRaceNotesText includes resolved ability picks', () => {

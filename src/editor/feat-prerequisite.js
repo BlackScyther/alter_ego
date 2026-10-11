@@ -362,6 +362,7 @@ export function featPassesDefaultFilter(entry, ctx, slot, opts = {}) {
     return false;
   }
   if (!prereqPassesLevelGate(prereq, ctx.level, slot.slotLevel)) return false;
+  if (!entryLevelAtMost(fields, ctx.level)) return false;
 
   if (isEmptyPrerequisite(prereq)) return true;
 
@@ -411,7 +412,23 @@ export function featPassesTierFilter(entry, ctx, slot, opts = {}) {
     return false;
   }
   if (!prereqPassesLevelGate(prereq, ctx.level, slot.slotLevel)) return false;
+  if (!entryLevelAtMost(fields, ctx.level)) return false;
   return true;
+}
+
+/**
+ * A listed level above the character's level is not available yet.
+ * Entries with no numeric level stay eligible.
+ * @param {Record<string, string> | undefined} fields
+ * @param {number} maxLevel
+ */
+export function entryLevelAtMost(fields, maxLevel) {
+  const raw = fields?.Level;
+  if (raw == null || String(raw).trim() === '') return true;
+  const n = parseInt(String(raw), 10);
+  if (Number.isNaN(n)) return true;
+  const cap = Math.floor(Number(maxLevel) || 1);
+  return n <= cap;
 }
 
 /**

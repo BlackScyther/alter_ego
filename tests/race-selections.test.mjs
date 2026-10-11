@@ -7,12 +7,17 @@ import {
   filterDecisionOptionsBySource,
   pruneRaceBuildChoicesForSource,
   setRaceBuildChoice,
+  setRaceBonusChoice,
   setRacePowerAbilityChoice,
   setRacePowerDamageChoice,
   raceSubraceComplete,
   syncRaceNotesAndGrants,
-  validateRaceStep
+  validateRaceStep,
+  applyGenasiManifestationAbilities,
+  genasiAbilityBenefitModel
 } from '../src/character/race-selections.js';
+import { syncBonusesFromSelections } from '../src/character/tutor.js';
+import { renderRaceAbilityChoicesHostHtml } from '../src/character/race-parse.js';
 import buildOptionsMeta from '../metadata/race-build-options.json' with { type: 'json' };
 
 const genasiEntry = {
@@ -183,6 +188,46 @@ test('playing a base race (None subrace) does not block the race step', () => {
   const errors = validateRaceStep(character, subraceParentEntry, null);
   assert.ok(!errors.includes('Choose a subrace for this race.'));
   assert.equal(raceSubraceComplete(character, subraceParentEntry), true);
+});
+
+const genasiAbilityEntry = {
+  id: 'race33',
+  listing_fields: { Name: 'Genasi', Size: 'Medium' },
+  body_html:
+    '<blockquote><b>Ability scores</b>: +2 Intelligence, +2 Constitution or +2 Strength<br></blockquote>'
+};
+
+test('Watersoul can take Intelligence instead of Constitution, with Strength', () => {
+  const character = genasiCharacter();
+  character.selections.raceBuildChoices.manifestation = 'watersoul';
+  syncBonusesFromSelections(character, { race: genasiAbilityEntry });
+  applyGenasiManifestationAbilities(character, genasiAbilityEntry);
+
+  assert.equal(character.abilities.scores.str, 12);
+  assert.equal(character.abilities.scores.int, 10);
+  assert.equal(character.abilities.scores.con, 10);
+
+  setRaceBonusChoice(character, 'ability', 'genasi-water-air', 'int');
+  applyGenasiManifestationAbilities(character, genasiAbilityEntry);
+  assert.equal(character.abilities.scores.str, 12);
+  assert.equal(character.abilities.scores.int, 12);
+  assert.equal(character.abilities.scores.con, 10);
+
+  const model = genasiAbilityBenefitModel(character, genasiAbilityEntry);
+  const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, character.selections.raceBonusChoices, model);
+  assert.match(html, /data-value="int"/);
+  assert.match(html, /data-value="con"/);
+  assert.doesNotMatch(html, /data-value="str"/);
+  assert.match(html, /Applied to your ability scores: \+2 Strength and \+2 Intelligence/);
+  assert.match(html, /focuses Strength and Intelligence/);
+});
+
+test('Windsoul uses the same Intelligence option as Watersoul', () => {
+  const character = genasiCharacter();
+  character.selections.raceBuildChoices.manifestation = 'windsoul';
+  assert.ok(genasiAbilityBenefitModel(character, genasiAbilityEntry));
+  character.selections.raceBuildChoices.manifestation = 'firesoul';
+  assert.equal(genasiAbilityBenefitModel(character, genasiAbilityEntry), null);
 });
 
 test('the race step still blocks until a race is chosen', () => {

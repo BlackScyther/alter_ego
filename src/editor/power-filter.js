@@ -88,11 +88,10 @@ export function powerMatchesSlot(fields, slot, ctx, opts = {}) {
   if (Number.isNaN(powerLevel)) return false;
 
   if (!opts.skipLevel) {
-    if (opts.retrain) {
-      if (powerLevel > ctx.characterLevel) return false;
-    } else if (powerLevel !== slot.slotLevel) {
-      return false;
-    }
+    // Same type at this slot's level and below. Higher powers stay out:
+    // the character cannot take them for this slot yet.
+    const cap = Math.min(slot.slotLevel, ctx.characterLevel);
+    if (powerLevel > cap) return false;
   }
 
   if (ctx.characterLevel < slot.slotLevel) return false;

@@ -31,9 +31,14 @@ import {
   setRaceBonusChoice,
   setRacePowerAbilityChoice,
   setRacePowerDamageChoice,
-  validateRaceStep
+  validateRaceStep,
+  genasiAbilityBenefitModel
 } from '../../character/race-selections.js';
-import { renderCombinedRacePreviewHtml, extractFlavorFolds } from '../../character/race-parse.js';
+import {
+  renderCombinedRacePreviewHtml,
+  renderRaceAbilityChoicesHostHtml,
+  extractFlavorFolds
+} from '../../character/race-parse.js';
 import { getCuratedMonsterRefs } from '../../character/monster-fluff.js';
 import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
@@ -201,16 +206,16 @@ function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, 
   const decisions = getRaceBuildDecisions(baseId ?? raceId, baseEntry?.listing_fields?.Name);
   if (!decisions.length) {
     container.querySelector('.race-build-choices-host')?.remove();
-    container.hidden = true;
     return;
   }
-  container.hidden = false;
   const choices = character.selections?.raceBuildChoices ?? {};
   let choicesHost = container.querySelector('.race-build-choices-host');
   if (!choicesHost) {
     choicesHost = document.createElement('div');
     choicesHost.className = 'race-build-choices-host';
-    container.appendChild(choicesHost);
+    const abilityHost = container.querySelector('.race-ability-choices-host');
+    if (abilityHost) container.insertBefore(choicesHost, abilityHost);
+    else container.appendChild(choicesHost);
   }
   choicesHost.innerHTML = `<h3 class="race-section-title">Build choices</h3>`;
   for (const d of decisions) {
@@ -266,6 +271,26 @@ function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, 
     }
     choicesHost.appendChild(fieldset);
   }
+}
+
+function renderAbilityChoices(container, entry, character) {
+  const html = renderRaceAbilityChoicesHostHtml(
+    entry,
+    character.selections?.raceBonusChoices,
+    genasiAbilityBenefitModel(character, entry)
+  );
+  const existing = container.querySelector('.race-ability-choices-host');
+  if (!html) {
+    existing?.remove();
+    return;
+  }
+  if (existing) existing.outerHTML = html;
+  else container.insertAdjacentHTML('beforeend', html);
+}
+
+function syncChoicesPanelVisibility(container) {
+  const hasChoice = container.querySelector('.race-build-choices-host, .race-ability-choices-host');
+  container.hidden = !hasChoice;
 }
 
 function setPhase(panel, phase) {
@@ -338,8 +363,8 @@ export async function renderRaceStep(panel, ctx) {
         </div>
         <p class="race-confirmed-hint hidden" id="picker-race-done-hint">All race choices complete — you can continue.</p>
       </div>
-      <div class="entry-preview" id="entry-preview"></div>
       <div id="race-build-choices" class="race-choices-panel" hidden></div>
+      <div class="entry-preview" id="entry-preview"></div>
     </div>`;
 
   const baseListbox = panel.querySelector('#picker-listbox-base');
@@ -525,7 +550,9 @@ export async function renderRaceStep(panel, ctx) {
       racePowerAbilityChoices,
       racePowerDamageChoices,
       replacements,
-      monsterFlavor
+      monsterFlavor,
+      interactiveAbilityChoices: false,
+      abilityModel: genasiAbilityBenefitModel(character, baseEntry ?? variantEntry)
     });
     if (linkIndex) renderLinkedEntryPreview(preview, html, linkIndex);
     else preview.innerHTML = html;
@@ -535,6 +562,8 @@ export async function renderRaceStep(panel, ctx) {
       applySelection('race', variantEntry ?? baseEntry);
       await syncRaceState(false);
     });
+    renderAbilityChoices(buildEl, baseEntry ?? variantEntry, character);
+    syncChoicesPanelVisibility(buildEl);
 
     updateDoneHint();
     if (pickerPhase === 'confirmed') applyChoiceGuide(panel);
@@ -627,6 +656,10 @@ export async function renderRaceStep(panel, ctx) {
   attachSourceCombo(panel, SUBRACE_PICKER_KEY, () => refreshSubraceList(subraceSearch.value));
 
   attachPreviewBonusChoices(preview, async (kind, group, value) => {
+    setRaceBonusChoice(character, kind, group, value);
+    await syncRaceState(true);
+  });
+  attachPreviewBonusChoices(buildEl, async (kind, group, value) => {
     setRaceBonusChoice(character, kind, group, value);
     await syncRaceState(true);
   });

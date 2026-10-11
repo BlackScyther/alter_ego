@@ -10,7 +10,8 @@ import {
   prereqPassesAbilities,
   featPassesDefaultFilter,
   featPassesTierFilter,
-  filterFeatEntries
+  filterFeatEntries,
+  entryLevelAtMost
 } from '../src/editor/feat-prerequisite.js';
 
 const fighterFeat = {
@@ -168,5 +169,35 @@ describe('feat-prerequisite', () => {
     const relaxed = filterFeatEntries([fighterFeat], ctx, slot, { enforcePrerequisites: false });
     assert.equal(strict.length, 0);
     assert.equal(relaxed.length, 1);
+  });
+
+  it('hides feats above the character level and keeps this level and below', () => {
+    assert.equal(entryLevelAtMost({ Level: '1' }, 3), true);
+    assert.equal(entryLevelAtMost({ Level: '3' }, 3), true);
+    assert.equal(entryLevelAtMost({ Level: '11' }, 3), false);
+    assert.equal(entryLevelAtMost({}, 3), true);
+
+    const high = {
+      id: 'feat-paragon',
+      listing_fields: { Name: 'Paragon Feat', Tier: 'Heroic', Level: '11', Prerequisite: '—', SourceBook: 'PHB' }
+    };
+    const low = {
+      id: 'feat-heroic',
+      listing_fields: { Name: 'Heroic Feat', Tier: 'Heroic', Level: '1', Prerequisite: '—', SourceBook: 'PHB' }
+    };
+    const ctx = {
+      level: 3,
+      raceTerms: [],
+      classInfo: { className: 'Fighter', role: '', powerSource: '' },
+      backgroundName: '',
+      abilityScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      trainedSkills: new Set(),
+      hasTrainingData: false,
+      ownedFeatNames: new Set(),
+      ownedFeatIds: new Set()
+    };
+    const slot = { id: 'feat-1', slotLevel: 1, tier: 'Heroic' };
+    const list = filterFeatEntries([high, low], ctx, slot, { enforcePrerequisites: false });
+    assert.deepEqual(list.map((e) => e.id), ['feat-heroic']);
   });
 });

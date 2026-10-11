@@ -754,7 +754,13 @@ function renderInlineChoiceButtons(decision, picked) {
  * @param {object} row
  * @param {{ ability?: Record<string, string> }} raceBonusChoices
  */
-function renderAbilityScoreBenefitItem(row, raceBonusChoices) {
+function chosenAbilityLine(decision, picked) {
+  const anyOpt = decision.options.find((o) => o.ability === 'any');
+  const amount = anyOpt?.amount ?? decision.options.find((o) => o.ability === picked)?.amount ?? 2;
+  return formatAbilityBonusLine(picked, amount);
+}
+
+function renderAbilityScoreBenefitItem(row, raceBonusChoices, interactive = true) {
   const model = row.abilityModel;
   const parts = [
     '<li class="race-benefit-item race-benefit-ability">',
@@ -773,17 +779,76 @@ function renderAbilityScoreBenefitItem(row, raceBonusChoices) {
     for (const d of model.decisions) {
       const picked = raceBonusChoices?.ability?.[d.choiceGroup] ?? '';
       if (picked) {
-        const anyOpt = d.options.find((o) => o.ability === 'any');
-        const amount = anyOpt?.amount ?? d.options.find((o) => o.ability === picked)?.amount ?? 2;
-        parts.push(`<li>${esc(formatAbilityBonusLine(picked, amount))}</li>`);
-      } else {
+        parts.push(`<li>${esc(chosenAbilityLine(d, picked))}</li>`);
+      } else if (interactive) {
         parts.push(`<li class="race-ability-choices-wrap">${renderInlineChoiceButtons(d, picked)}</li>`);
+      } else {
+        const labels = d.options
+          .filter((o) => o.ability && o.ability !== 'any')
+          .map((o) => formatAbilityBonusLine(o.ability, o.amount));
+        const pending = labels.length ? labels.join(' or ') : 'Choose one ability';
+        parts.push(`<li>${esc(pending)}</li>`);
       }
     }
   }
 
   parts.push('</ul>', '</li>');
   return parts.join('');
+}
+
+/**
+ * Ability-score choice shown above the race preview, next to build choices.
+ * Returns '' when the race has no ability bonuses.
+ * @param {object | null | undefined} entry
+ * @param {{ ability?: Record<string, string>, skill?: Record<string, string> }} [raceBonusChoices]
+ * @param {object | null} [abilityModel] parsed model, or a manifestation-specific override
+ */
+export function renderRaceAbilityChoicesHostHtml(entry, raceBonusChoices = {}, abilityModel = null) {
+  const model = abilityModel ?? buildAbilityScoreBenefitModel(entry, raceBonusChoices);
+  if (!model) return '';
+
+  /** @type {string[]} */
+  const applied = [];
+  /** @type {string[]} */
+  const controls = [];
+  let pending = false;
+
+  if (model.type === 'static') {
+    applied.push(...model.lines);
+  } else {
+    for (const f of model.fixed) applied.push(formatAbilityBonusLine(f.ability, f.amount));
+    for (const d of model.decisions) {
+      const picked = raceBonusChoices?.ability?.[d.choiceGroup] ?? '';
+      controls.push(renderInlineChoiceButtons(d, picked));
+      if (picked) applied.push(chosenAbilityLine(d, picked));
+      else pending = true;
+    }
+  }
+
+  if (!applied.length && !controls.length) return '';
+
+  const appliedHtml = applied.length
+    ? `<p class="race-ability-applied">Applied to your ability scores: ${esc(applied.join(' and '))}.</p>`
+    : '';
+  const pendingHtml = pending
+    ? `<p class="race-ability-applied">${
+        applied.length
+          ? 'Choose the other ability bonus. It is added with the bonus above.'
+          : 'Choose an ability bonus. It is applied to your ability scores.'
+      }</p>`
+    : '';
+  const hintHtml = model.hint ? `<p class="race-ability-applied">${esc(model.hint)}</p>` : '';
+
+  return `<div class="race-ability-choices-host">
+    <h3 class="race-section-title">Ability scores</h3>
+    <fieldset class="race-build-fieldset">
+      <legend>Racial ability bonuses</legend>
+      ${hintHtml}
+      ${controls.join('')}
+      ${appliedHtml}
+      ${pendingHtml}
+    </fieldset>
+  </div>`;
 }
 
 /**
@@ -921,7 +986,7 @@ function renderGrantFoldsBlock(
  * @param {Array<{ heading: string, rows: Array<object> }>} sections
  * @param {{ ability?: Record<string, string> }} [raceBonusChoices]
  */
-function renderRaceTraitsBlock(sections, raceBonusChoices = {}) {
+function renderRaceTraitsBlock(sections, raceBonusChoices = {}, interactiveAbility = true) {
   if (!sections?.length) return '';
 
   /** @type {string[]} */
@@ -930,7 +995,9 @@ function renderRaceTraitsBlock(sections, raceBonusChoices = {}) {
     .map((sec) => {
       const rows = [];
       for (const row of sec.rows) {
-        if (row.abilityModel) abilityItems.push(renderAbilityScoreBenefitItem(row, raceBonusChoices));
+        if (row.abilityModel) {
+          abilityItems.push(renderAbilityScoreBenefitItem(row, raceBonusChoices, interactiveAbility));
+        }
         else rows.push(row);
       }
       return { heading: sec.heading, rows };
@@ -1125,7 +1192,8 @@ export function renderRacePreviewHtml(entry, opts = {}) {
   const flavorFolds = extractFlavorFolds(html, previewTerms);
   const grants = buildGrantEntries(opts.grantEntries ?? [], grantNameMap);
 
-  return `<div class="race-preview"><h2 class="race-preview-title">${esc(name)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, null, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
+  const interactiveAbility = opts.interactiveAbilityChoices !== false;
+  return `<div class="race-preview"><h2 class="race-preview-title">${esc(name)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices, interactiveAbility)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, null, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
 }
 
 /**
@@ -1210,7 +1278,15 @@ export function renderCombinedRacePreviewHtml(baseEntry, variantEntry, opts = {}
   const grants = buildGrantEntries(opts.grantEntries ?? [], grantNameMap);
 
   const replaced = { names: replacedNames, ids: replacedIds };
-  return `<div class="race-preview race-preview--combined"><h2 class="race-preview-title">${esc(title)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, replaced, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
+  if (opts.abilityModel) {
+    for (const sec of benefitSections) {
+      for (const row of sec.rows) {
+        if (row.abilityModel) row.abilityModel = opts.abilityModel;
+      }
+    }
+  }
+  const interactiveAbility = opts.interactiveAbilityChoices !== false;
+  return `<div class="race-preview race-preview--combined"><h2 class="race-preview-title">${esc(title)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices, interactiveAbility)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, replaced, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
 }
 
 // --- Structured racial traits --------------------------------------------

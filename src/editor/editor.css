@@ -2213,6 +2213,23 @@ body.player-editor #gate-lead {
   color: var(--editor-muted);
 }
 
+.race-choices-panel {
+  margin: 0 0 12px;
+}
+
+.race-build-choices-host > .race-section-title {
+  margin-top: 0;
+}
+
+.race-ability-choices-host .race-section-title {
+  margin-top: 4px;
+}
+
+.race-ability-applied {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
 .race-section-title {
   margin: 16px 0 8px;
   font-size: 13px;

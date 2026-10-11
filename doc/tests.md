@@ -30,12 +30,14 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/gm-campaign-registry.test.mjs` | GM localStorage campaign registry: add, list, dedupe, corrupt storage |
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
-| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text |
+| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (+2 Intelligence, then Constitution or Strength) |
 | `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
 | `tests/character-collection.test.mjs` | Class grant collection; racial powers stay out of the class-powers sheet note |
 | `tests/power-card-values.test.mjs` | Printable power-card math: ability-name mapping, signed formatting, full to-hit (half level + ability + weapon proficiency + enhancement + inline bonus), implement omits proficiency, weapon/implement enhancement folded into attack+damage per source, damage modifier, proficiency defaults to 0 when unsynced |
-| `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations |
+| `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations; Watersoul and Windsoul ability swap (Strength, then Constitution or Intelligence) |
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
+| `tests/power-filter.test.mjs` | Power slot match: same type, slot level and lower, higher levels excluded |
+| `tests/feat-prerequisite.test.mjs` | Feat prerequisites; feats above the character's level are hidden |
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |

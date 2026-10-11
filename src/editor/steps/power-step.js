@@ -150,7 +150,7 @@ export async function renderPowerStep(panel, ctx) {
       </p>
       <p class="feat-step-hint">
         You can replace any class power by selecting its slot and picking a different one
-        (same type, level ≤ character level, prerequisites met). Use the
+        (same type, this slot's level and lower, prerequisites met). Use the
         <strong>×</strong> beside a filled slot to clear it. Type at least ${COMPENDIUM_SEARCH_MIN} letters to search.
       </p>
       <div class="feat-step-toolbar">
@@ -351,7 +351,7 @@ export async function renderPowerStep(panel, ctx) {
     };
 
     if (!showAllPowers) {
-      listOpts.level = slot.slotLevel;
+      listOpts.maxLevel = slot.slotLevel;
       if (ctxBase.className) listOpts.className = ctxBase.className;
     }
 

@@ -150,7 +150,7 @@ export async function renderFeatStep(panel, ctx) {
       </p>
       <p class="feat-step-hint">
         You can replace any feat by selecting its slot and picking a different one
-        (tier and prerequisites must match the slot). Use the
+        (this level and lower, tier and prerequisites must match). Use the
         <strong>×</strong> beside a filled slot to clear it. Type at least ${COMPENDIUM_SEARCH_MIN} letters to search.
       </p>
       <div class="feat-step-toolbar">
@@ -331,7 +331,7 @@ export async function renderFeatStep(panel, ctx) {
   async function loadFeatPool(query = '') {
     const q = query.trim();
     const sourceBooks = getActiveSourceBooksFromCombo(PICKER_KEY);
-    const cacheKey = `${showAllFeats}|${enforcePrerequisites}|${q}|${(sourceBooks ?? []).join(',')}`;
+    const cacheKey = `${showAllFeats}|${enforcePrerequisites}|${level}|${q}|${(sourceBooks ?? []).join(',')}`;
 
     if (showAllFeats && !q) {
       const cached = showAllCache.get(cacheKey);
@@ -342,7 +342,8 @@ export async function renderFeatStep(panel, ctx) {
     const entries = await compendium.listEntries('feat', {
       search: q.length >= COMPENDIUM_SEARCH_MIN ? q : '',
       limit,
-      sourceBooks: sourceBooks ?? undefined
+      sourceBooks: sourceBooks ?? undefined,
+      maxLevel: showAllFeats ? undefined : level
     });
 
     if (showAllFeats && !q) {

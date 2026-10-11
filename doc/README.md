@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-07-03 — Class HP parser fix (colon-outside-bold iws.mx layout); normalize warnings 2999 → 2955.
+**Last agent sync:** 2026-10-11 — Power, feat, and ritual pickers offer the current level and every level below it, and hide higher levels.

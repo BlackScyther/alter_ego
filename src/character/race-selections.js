@@ -598,4 +598,115 @@ export function validateRaceStep(character, baseEntry, variantEntry) {
   return errors;
 }
 
+const GENASI_WATER_AIR = new Set(['watersoul', 'windsoul']);
+const GENASI_WATER_AIR_GROUP = 'genasi-water-air';
+
+function isGenasi(character, entry) {
+  const name = entry?.listing_fields?.Name ?? character?.identity?.race ?? '';
+  if (String(name).trim().toLowerCase() === 'genasi') return true;
+  const id = entry?.id ?? character?.selections?.raceId;
+  return id === 'race33';
+}
+
+function parsedAbilityOrGroup(character, entry) {
+  return `${entry?.id ?? character?.selections?.raceId ?? 'race33'}-or`;
+}
+
+/**
+ * Watersoul and Windsoul may take Intelligence instead of Constitution.
+ * Strength stays, so the character can focus Strength and Intelligence.
+ * @param {string | null | undefined} manifestationId
+ * @returns {{ type: 'choice', fixed: Array<{ ability: string, amount: number }>, decisions: Array<object>, hint: string } | null}
+ */
+export function genasiAbilityBenefitModel(character, entry) {
+  if (!isGenasi(character, entry)) return null;
+  const manifestation = character?.selections?.raceBuildChoices?.manifestation;
+  if (!GENASI_WATER_AIR.has(manifestation)) return null;
+  return {
+    type: 'choice',
+    fixed: [{ ability: 'str', amount: 2 }],
+    hint: 'Watersoul and Windsoul can take Intelligence instead of Constitution. With Strength, that focuses Strength and Intelligence.',
+    decisions: [
+      {
+        choiceGroup: GENASI_WATER_AIR_GROUP,
+        kind: 'ability',
+        options: [
+          { ability: 'con', amount: 2 },
+          { ability: 'int', amount: 2 }
+        ],
+        prompt: 'Choose Constitution or Intelligence.'
+      }
+    ]
+  };
+}
+
+/**
+ * Keep a second-ability pick only when it is still offered.
+ * @param {object} character
+ * @param {object | null | undefined} entry
+ */
+export function reconcileGenasiAbilityChoice(character, entry) {
+  if (!isGenasi(character, entry)) return character;
+  ensureRaceSelectionsShape(character);
+  const ability = character.selections.raceBonusChoices.ability;
+  const bookGroup = parsedAbilityOrGroup(character, entry);
+  const manifestation = character.selections.raceBuildChoices?.manifestation;
+  if (GENASI_WATER_AIR.has(manifestation)) {
+    const previous = ability[GENASI_WATER_AIR_GROUP] ?? ability[bookGroup];
+    delete ability[bookGroup];
+    if (previous === 'con' || previous === 'int') ability[GENASI_WATER_AIR_GROUP] = previous;
+    else delete ability[GENASI_WATER_AIR_GROUP];
+    return character;
+  }
+  const previous = ability[bookGroup] ?? ability[GENASI_WATER_AIR_GROUP];
+  delete ability[GENASI_WATER_AIR_GROUP];
+  if (previous === 'con' || previous === 'str') ability[bookGroup] = previous;
+  else delete ability[bookGroup];
+  return character;
+}
+
+/**
+ * Replace parsed Genasi ability bonuses when Watersoul or Windsoul is chosen.
+ * Other manifestations keep the compendium line (+2 Intelligence, and Constitution or Strength).
+ * @param {object} character
+ * @param {object | null | undefined} entry
+ */
+export function applyGenasiManifestationAbilities(character, entry) {
+  if (!isGenasi(character, entry)) return character;
+  reconcileGenasiAbilityChoice(character, entry);
+  const model = genasiAbilityBenefitModel(character, entry);
+  if (!model) return character;
+
+  const sourceId = entry?.id ?? character.selections?.raceId ?? 'race33';
+  const sourceName = entry?.listing_fields?.Name ?? 'Genasi';
+  const choiceGroup = model.decisions[0].choiceGroup;
+  const kept = (character.abilities.bonuses ?? []).filter((b) => {
+    if (b.source !== 'race') return true;
+    if (b.skill) return true;
+    return b.sourceId !== sourceId;
+  });
+
+  const make = (ability, amount, group) => ({
+    id: `race-${sourceId}-${ability}-${amount}-${group ?? 'fixed'}`,
+    source: 'race',
+    sourceId,
+    sourceName,
+    ability,
+    amount,
+    bonusType: 'race',
+    choiceGroup: group,
+    alternatives: [],
+    excludesItemBonus: false,
+    note: group ? model.hint : `+${amount} Strength`,
+    enabled: !group
+  });
+
+  character.abilities.bonuses = [
+    ...kept,
+    make('str', 2, null),
+    ...model.decisions[0].options.map((opt) => make(opt.ability, opt.amount, choiceGroup))
+  ];
+  return syncRaceBonusChoicesToBonuses(character);
+}
+
 export { getParentRaceId, resolveRacePair, parentHasSubraces, isSubraceId };

@@ -251,14 +251,17 @@ export class CompendiumProvider {
   /**
    * @param {import('../editor/power-filter.js').PowerType} [powerType]
    */
-  _passesPowerListingFilters(listing_fields, { className, level, powerType }) {
+  _passesPowerListingFilters(listing_fields, { className, level, maxLevel, powerType }) {
     if (className != null && className !== '') {
       if (!classNameMatches(listing_fields?.ClassName, className)) return false;
     }
-    if (level != null && level !== '') {
-      const pl = parseInt(String(listing_fields?.Level ?? ''), 10);
+    const listed = parseInt(String(listing_fields?.Level ?? ''), 10);
+    if (maxLevel != null && maxLevel !== '') {
+      const cap = parseInt(String(maxLevel), 10);
+      if (!Number.isNaN(listed) && !Number.isNaN(cap) && listed > cap) return false;
+    } else if (level != null && level !== '') {
       const want = parseInt(String(level), 10);
-      if (Number.isNaN(pl) || Number.isNaN(want) || pl !== want) return false;
+      if (Number.isNaN(listed) || Number.isNaN(want) || listed !== want) return false;
     }
     if (powerType) {
       if (normalizePowerType(listing_fields?.Type) !== powerType) return false;
@@ -268,7 +271,7 @@ export class CompendiumProvider {
 
   /**
    * @param {string} categorySlug
-   * @param {{ search?: string, limit?: number, sourceBooks?: string[], className?: string, level?: number, powerType?: import('../editor/power-filter.js').PowerType, includeHomebrew?: boolean }} opts
+   * @param {{ search?: string, limit?: number, sourceBooks?: string[], className?: string, level?: number, maxLevel?: number, powerType?: import('../editor/power-filter.js').PowerType, includeHomebrew?: boolean }} opts
    * @returns {Promise<CompendiumEntry[]>}
    */
   async listEntries(categorySlug, opts = {}) {
@@ -279,8 +282,9 @@ export class CompendiumProvider {
     const bookSet = sourceBooks ? new Set(sourceBooks) : null;
     const className = opts.className ?? null;
     const level = opts.level ?? null;
+    const maxLevel = opts.maxLevel ?? null;
     const powerType = opts.powerType ?? null;
-    const powerFilters = className != null || level != null || powerType != null;
+    const powerFilters = className != null || level != null || maxLevel != null || powerType != null;
     const includeHomebrew = opts.includeHomebrew !== false;
     const homebrewOnly =
       bookSet && [...bookSet].every((b) => String(b).startsWith('hbrw_'));
@@ -310,7 +314,7 @@ export class CompendiumProvider {
 
     const passesPowerFilters = (listing_fields) =>
       !powerFilters ||
-      this._passesPowerListingFilters(listing_fields, { className, level, powerType });
+      this._passesPowerListingFilters(listing_fields, { className, level, maxLevel, powerType });
 
     if (this._usesStubData()) {
       let rows = this._stub.categories[categorySlug]?.entries ?? [];
@@ -356,7 +360,7 @@ export class CompendiumProvider {
       // exact power_type and an indexed level/class_name column replace the
       // brittle json_extract LIKE patterns (e.g. '%enc.%'). Falls back to the
       // JSON path for older DBs without the normalized table.
-      const useNormalizedPower = powerFilters && this._hasTable('power');
+      const useNormalizedPower = categorySlug === 'power' && powerFilters && this._hasTable('power');
       if (useNormalizedPower) {
         const conds = [];
         if (className) {
@@ -366,7 +370,10 @@ export class CompendiumProvider {
             powerParams.push(...patterns);
           }
         }
-        if (level != null && level !== '') {
+        if (maxLevel != null && maxLevel !== '') {
+          conds.push(`level <= ?`);
+          powerParams.push(parseInt(String(maxLevel), 10));
+        } else if (level != null && level !== '') {
           conds.push(`level = ?`);
           powerParams.push(parseInt(String(level), 10));
         }
@@ -385,7 +392,14 @@ export class CompendiumProvider {
             powerParams.push(...patterns);
           }
         }
-        if (level != null && level !== '') {
+        if (maxLevel != null && maxLevel !== '') {
+          powerClause += ` AND (
+            json_extract(listing_fields, '$.Level') IS NULL
+            OR trim(json_extract(listing_fields, '$.Level')) = ''
+            OR cast(json_extract(listing_fields, '$.Level') as integer) <= ?
+          )`;
+          powerParams.push(parseInt(String(maxLevel), 10));
+        } else if (level != null && level !== '') {
           powerClause += ` AND cast(json_extract(listing_fields, '$.Level') as integer) = ?`;
           powerParams.push(parseInt(String(level), 10));
         }
