@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   autoPointBuy,
   pointBuySpent,
+  pointBuyIssues,
   countScoresBelowTen,
   POINT_BUY_ABILITIES
 } from '../src/character/model.js';
@@ -36,4 +37,16 @@ test('autoPointBuy ignores unknown priority keys and falls back gracefully', () 
 
 test('autoPointBuy default priority is deterministic', () => {
   assert.deepEqual(autoPointBuy(), autoPointBuy(['str', 'con']));
+});
+
+test('point-buy is ready when every score is in range and within budget', () => {
+  const scores = { str: 18, con: 11, dex: 10, int: 14, wis: 10, cha: 8 };
+  assert.deepEqual(pointBuyIssues(scores), []);
+});
+
+test('point-buy blocks a second score below 10 and scores outside 8–18', () => {
+  const twoLow = { str: 8, con: 8, dex: 10, int: 10, wis: 10, cha: 10 };
+  assert.ok(pointBuyIssues(twoLow).some((msg) => msg.includes('below 10')));
+  const high = { str: 19, con: 10, dex: 10, int: 10, wis: 10, cha: 10 };
+  assert.ok(pointBuyIssues(high).some((msg) => msg.includes('8–18')));
 });

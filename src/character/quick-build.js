@@ -102,7 +102,8 @@ export async function buildQuickCharacter(opts = {}) {
       baseScores: autoPointBuy(classPreset?.primaryAbilities ?? ['str', 'con']),
       scores: {},
       bonuses: [],
-      anyChoice: {}
+      anyChoice: {},
+      pointBuyConfirmed: true
     }
   });
 

@@ -8,7 +8,7 @@ import { validatePowersStep } from './power-selections.js';
 import { validateRaceStep } from './race-selections.js';
 import { validateBackgroundStep } from './background-selections.js';
 import { validateClassStep } from './class-selections.js';
-import { pendingAbilityIncreaseLevels } from './tutor.js';
+import { levelIncreaseDraftReady, pendingAbilityIncreaseLevels } from './tutor.js';
 
 export const CHARACTER_VERSION = 1;
 
@@ -51,6 +51,9 @@ export function createCharacter(partial = {}) {
       bonuses: [],
       anyChoice: {},
       levelIncreases: {},
+      levelIncreaseDraft: {},
+      levelIncreaseEditing: false,
+      pointBuyConfirmed: false,
       ...partial.abilities
     },
     selections: {
@@ -163,6 +166,37 @@ export function countScoresBelowTen(scores) {
   return Object.values(scores).filter((v) => Number(v) < 10).length;
 }
 
+/**
+ * Point-buy rule problems for a six-score set. An empty list means the scores
+ * can be applied.
+ * @param {Record<string, number>|null|undefined} scores
+ * @param {number} [budget]
+ * @returns {string[]}
+ */
+export function pointBuyIssues(scores, budget = 22) {
+  const issues = [];
+  const picked = {};
+  for (const key of POINT_BUY_ABILITIES) {
+    const raw = scores?.[key];
+    if (raw == null || raw === '') {
+      issues.push(`Choose a ${key.toUpperCase()} score.`);
+      continue;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 8 || n > 18) {
+      issues.push(`${key.toUpperCase()} must be 8–18 before racial bonuses.`);
+      continue;
+    }
+    picked[key] = n;
+  }
+  if (Object.keys(picked).length === POINT_BUY_ABILITIES.length) {
+    const { spent, remaining } = pointBuySpent(picked, budget);
+    if (remaining < 0) issues.push(`Point-buy over budget by ${-remaining} (spent ${spent}/22).`);
+    if (countScoresBelowTen(picked) > 1) issues.push('Only one ability may be below 10 (Orokos dump stat).');
+  }
+  return issues;
+}
+
 /** Ability keys used by the point-buy allocator. */
 export const POINT_BUY_ABILITIES = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 
@@ -220,19 +254,24 @@ export function validateStep(stepId, character, editorMeta) {
       errors.push(...validateBackgroundStep(character, null));
       break;
     case 'abilities': {
-      const base = character.abilities.baseScores ?? character.abilities.scores;
-      const { spent, remaining } = pointBuySpent(base);
-      if (character.abilities.method === 'point-buy-22' && remaining < 0) {
-        errors.push(`Point-buy over budget by ${-remaining} (spent ${spent}/22).`);
+      const level = Number(character.identity?.level) || 1;
+      const confirmingPointBuy = level <= 1 && character.abilities.pointBuyConfirmed === false;
+      const base = confirmingPointBuy
+        ? (character.abilities.baseScoreDraft ?? character.abilities.baseScores ?? character.abilities.scores)
+        : (character.abilities.baseScores ?? character.abilities.scores);
+      const issues = pointBuyIssues(base);
+      if (confirmingPointBuy && issues.length === 0) {
+        errors.push('Apply the ability scores.');
+      } else {
+        errors.push(...issues);
       }
-      if (countScoresBelowTen(base) > 1) {
-        errors.push('Only one ability may be below 10 (Orokos dump stat).');
-      }
-      for (const [key, val] of Object.entries(base)) {
-        if (val < 8 || val > 18) errors.push(`${key.toUpperCase()} must be 8–18 before racial bonuses.`);
-      }
-      for (const pending of pendingAbilityIncreaseLevels(character)) {
-        errors.push(`Choose two different abilities for the level ${pending} ability score increase.`);
+      const pendingIncreases = pendingAbilityIncreaseLevels(character);
+      if (pendingIncreases.length && levelIncreaseDraftReady(character)) {
+        errors.push('Confirm the ability score increases.');
+      } else {
+        for (const pending of pendingIncreases) {
+          errors.push(`Choose two different abilities for the level ${pending} ability score increase.`);
+        }
       }
       break;
     }

@@ -447,8 +447,26 @@ export function ensureAbilityShape(character) {
   if (!ab.baseScores) ab.baseScores = { ...ab.scores };
   if (!ab.anyChoice) ab.anyChoice = {};
   if (!ab.levelIncreases || typeof ab.levelIncreases !== 'object') ab.levelIncreases = {};
+  if (!ab.levelIncreaseDraft || typeof ab.levelIncreaseDraft !== 'object' || Array.isArray(ab.levelIncreaseDraft)) {
+    ab.levelIncreaseDraft = {};
+  }
+  if (typeof ab.levelIncreaseEditing !== 'boolean') ab.levelIncreaseEditing = false;
+  if (!ab.baseScoreDraft || typeof ab.baseScoreDraft !== 'object' || Array.isArray(ab.baseScoreDraft)) {
+    ab.baseScoreDraft = { ...(ab.baseScores ?? {}) };
+  }
+  if (typeof ab.pointBuyConfirmed !== 'boolean') ab.pointBuyConfirmed = true;
   if (!Array.isArray(character.skillBonuses)) character.skillBonuses = [];
   return character;
+}
+
+/**
+ * Normalize a two-slot ability pick. Unknown values become empty strings.
+ * @param {unknown} abilityKeys
+ * @returns {[string, string]}
+ */
+function normalizeIncreaseSlots(abilityKeys) {
+  const raw = Array.isArray(abilityKeys) ? abilityKeys : [];
+  return [0, 1].map((i) => (ABILITY_KEYS.includes(raw[i]) ? raw[i] : ''));
 }
 
 /**
@@ -456,13 +474,47 @@ export function ensureAbilityShape(character) {
  * @param {unknown} choice
  */
 function isCompleteIncreaseChoice(choice) {
-  return (
-    Array.isArray(choice) &&
-    choice.length === 2 &&
-    ABILITY_KEYS.includes(choice[0]) &&
-    ABILITY_KEYS.includes(choice[1]) &&
-    choice[0] !== choice[1]
-  );
+  const slots = normalizeIncreaseSlots(choice);
+  return slots[0] !== '' && slots[1] !== '' && slots[0] !== slots[1];
+}
+
+/**
+ * Pair levels the character has reached.
+ * @param {object} character
+ * @returns {number[]}
+ */
+function reachedPairLevels(character) {
+  const level = Number(character?.identity?.level) || 1;
+  return ASI_PAIR_LEVELS.filter((asiLevel) => level >= asiLevel);
+}
+
+/**
+ * Dropdown value for one pair level: the draft when the player has touched
+ * that row, otherwise the last confirmed pair.
+ * @param {object} character
+ * @param {number} level
+ * @returns {[string, string]}
+ */
+export function levelIncreaseSelection(character, level) {
+  ensureAbilityShape(character);
+  const draft = character.abilities.levelIncreaseDraft ?? {};
+  if (Object.prototype.hasOwnProperty.call(draft, level) || Object.prototype.hasOwnProperty.call(draft, String(level))) {
+    return normalizeIncreaseSlots(draft[level] ?? draft[String(level)]);
+  }
+  const stored = character.abilities.levelIncreases ?? {};
+  return normalizeIncreaseSlots(stored[level] ?? stored[String(level)]);
+}
+
+/**
+ * True when every reached pair level has two different abilities selected,
+ * counting drafts over confirmed values.
+ * @param {object} character
+ */
+export function levelIncreaseDraftReady(character) {
+  ensureAbilityShape(character);
+  const pairs = reachedPairLevels(character);
+  if (!pairs.length) return false;
+  return pairs.every((asiLevel) => isCompleteIncreaseChoice(levelIncreaseSelection(character, asiLevel)));
 }
 
 /**
@@ -508,23 +560,69 @@ export function pendingAbilityIncreaseLevels(character) {
 }
 
 /**
- * Store the two ability slots chosen for a pair-ASI level, then recompute
- * totals. Partial or duplicate picks are kept (so the dropdowns retain the
- * user's selection across re-renders); only a complete, distinct pair counts
- * toward the totals (`isCompleteIncreaseChoice`).
+ * Store a confirmed pair for a level, then recompute totals.
+ * Partial or duplicate picks are kept but do not change the totals.
+ * Dropdown edits go through `setLevelIncreaseDraft` until confirm.
  * @param {object} character
  * @param {number} level
  * @param {string[]} abilityKeys - two-slot array; each entry an ability key or ''
  */
 export function setLevelIncrease(character, level, abilityKeys) {
   ensureAbilityShape(character);
-  const raw = Array.isArray(abilityKeys) ? abilityKeys : [];
-  const slots = [0, 1].map((i) => (ABILITY_KEYS.includes(raw[i]) ? raw[i] : ''));
+  const slots = normalizeIncreaseSlots(abilityKeys);
+  delete character.abilities.levelIncreases[String(level)];
   if (slots[0] === '' && slots[1] === '') {
     delete character.abilities.levelIncreases[level];
   } else {
     character.abilities.levelIncreases[level] = slots;
   }
+  recomputeAbilityScores(character);
+  return character;
+}
+
+/**
+ * Remember a pair-level pick without changing ability totals.
+ * @param {object} character
+ * @param {number} level
+ * @param {string[]} abilityKeys
+ */
+export function setLevelIncreaseDraft(character, level, abilityKeys) {
+  ensureAbilityShape(character);
+  const slots = normalizeIncreaseSlots(abilityKeys);
+  delete character.abilities.levelIncreaseDraft[String(level)];
+  if (slots[0] === '' && slots[1] === '') {
+    delete character.abilities.levelIncreaseDraft[level];
+  } else {
+    character.abilities.levelIncreaseDraft[level] = slots;
+  }
+  return character;
+}
+
+/**
+ * Reopen the increase picker. Confirmed bonuses stay applied until the next confirm.
+ * @param {object} character
+ */
+export function beginLevelIncreaseEdit(character) {
+  ensureAbilityShape(character);
+  character.abilities.levelIncreaseEditing = true;
+  return character;
+}
+
+/**
+ * Copy every reached pair into the confirmed increases when each pair is
+ * two different abilities, then recompute totals and close the picker.
+ * @param {object} character
+ */
+export function confirmLevelIncreases(character) {
+  ensureAbilityShape(character);
+  if (!levelIncreaseDraftReady(character)) return character;
+  for (const asiLevel of reachedPairLevels(character)) {
+    const slots = levelIncreaseSelection(character, asiLevel);
+    delete character.abilities.levelIncreases[String(asiLevel)];
+    character.abilities.levelIncreases[asiLevel] = slots;
+  }
+  character.abilities.levelIncreaseDraft = {};
+  character.abilities.levelIncreaseEditing = false;
   recomputeAbilityScores(character);
   return character;
 }
@@ -665,6 +763,47 @@ export function setBaseScore(character, ability, value) {
   ensureAbilityShape(character);
   const v = Math.min(18, Math.max(8, Number(value) || 10));
   character.abilities.baseScores[ability] = v;
+  recomputeAbilityScores(character);
+  return character;
+}
+
+/**
+ * Remember a point-buy base score without changing the applied totals.
+ * @param {object} character
+ * @param {string} ability
+ * @param {number|string} value
+ */
+export function setBaseScoreDraft(character, ability, value) {
+  ensureAbilityShape(character);
+  const v = Math.min(18, Math.max(8, Number(value) || 10));
+  character.abilities.baseScoreDraft[ability] = v;
+  return character;
+}
+
+/**
+ * Reopen the point-buy editor. Applied scores stay in place until the next apply.
+ * @param {object} character
+ */
+export function beginBaseScoreEdit(character) {
+  ensureAbilityShape(character);
+  character.abilities.baseScoreDraft = { ...character.abilities.baseScores };
+  character.abilities.pointBuyConfirmed = false;
+  return character;
+}
+
+/**
+ * Copy a finished point-buy into the applied base scores and recompute totals.
+ * @param {object} character
+ * @param {Record<string, number>} scores
+ */
+export function confirmBaseScores(character, scores) {
+  ensureAbilityShape(character);
+  for (const key of ABILITY_KEYS) {
+    const v = Math.min(18, Math.max(8, Number(scores?.[key]) || 10));
+    character.abilities.baseScores[key] = v;
+  }
+  character.abilities.baseScoreDraft = { ...character.abilities.baseScores };
+  character.abilities.pointBuyConfirmed = true;
   recomputeAbilityScores(character);
   return character;
 }

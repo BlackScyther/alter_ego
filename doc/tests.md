@@ -38,7 +38,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
 | `tests/power-filter.test.mjs` | Power slot match: same type, slot level and lower, higher levels excluded |
 | `tests/feat-prerequisite.test.mjs` | Feat prerequisites; feats above the character's level are hidden |
-| `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering |
+| `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering; ability score increases and point-buy bases apply only after confirm |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
@@ -54,7 +54,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/homebrew-api.test.mjs` | Homebrew CRUD API; GM auth; `hbrw_{slug}` SourceBook |
 | `tests/feedback-api.test.mjs` | Feedback API: public `POST` + validation (required fields, category/area enums, length caps), GM-only `GET`/`GET /stats`/`PATCH`/`DELETE` (401/403 without GM token), stats aggregation by category/area |
 | `tests/homebrew-store.test.mjs` | Homebrew slug validation, id generation, index text |
-| `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback |
+| `tests/point-buy.test.mjs` | `autoPointBuy` budget allocation: 22-point cap, priority ordering, one-dump-stat rule, unknown-key fallback; `pointBuyIssues` allows a valid set and rejects a second score below 10 |
 | `tests/normalize.test.mjs` | Runs the normalizer ETL into a temp DB: tables created, race/subrace split, exact `power_type`, materialized armor/weapon stats, multi-tier `item_level` split (Amulet of Protection → 6 ascending tiers, parent `cost_gp` = lowest tier) + single-level items → one tier, source-book release dates, `norm_meta` counts, monster/feat/ritual stub rows |
 | `tests/monster-parse.test.mjs` | Monster stat-line parsing and spawn stat resolution |
 | `tests/feat-parse.test.mjs` | Feat listing, prerequisite atoms, skill bonuses, grants |

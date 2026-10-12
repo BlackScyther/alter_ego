@@ -250,11 +250,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `model.js` | `createCharacter`, schema version, identity/sheet/selections; point-buy cost model and `autoPointBuy` budget allocator (shared by quick-build and Attributes step) |
+| `model.js` | `createCharacter`, schema version, identity/sheet/selections; point-buy cost model, `pointBuyIssues`, and `autoPointBuy` budget allocator (shared by quick-build and Attributes step) |
 | `store.js` | `localStorage` multi-character list |
 | `io.js` | Export/import `{Name}_{level}.json` filenames and parsing |
 | `sheet-bridge.js` | Maps character document → sheet field IDs (incl. `racial-powers`) |
-| `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking, and level-up ability score increases (`ASI_PAIR_LEVELS`/`ASI_ALL_LEVELS`, `abilityLevelIncreases`, `setLevelIncrease`, `pendingAbilityIncreaseLevels`) |
+| `tutor.js` | Ability/skill bonuses, choice groups, race bonus choices, 4e stacking, and level-up ability score increases (`ASI_PAIR_LEVELS`/`ASI_ALL_LEVELS`, draft until `confirmLevelIncreases`, `pendingAbilityIncreaseLevels`) |
 | `race-subraces.js` | Core/subrace map helpers and base-race filtering; runtime map is hydratable from the normalized `race_subrace` table (`setSubraceMap`/`hydrateSubracesFromProvider`), defaulting to `metadata/race-subraces.json` |
 | `race-replacements.js` | Curated subrace→base trait/power replacement overrides (`getCuratedReplacements`), loaded from `metadata/race-replacements.json`; merged with the auto-parsed replacements and hydratable from the `race_replacement` table |
 | `monster-fluff.js` | Curated race→monster flavor map (`getCuratedMonsterRefs`), loaded from `metadata/race-monster-fluff.json`; drives the monster-races lore lookup (supports `monsterIds`/`monsterNames`/`disabled`) |

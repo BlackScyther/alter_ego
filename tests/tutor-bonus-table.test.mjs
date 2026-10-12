@@ -4,7 +4,14 @@ import {
   bonusesForTutorTable,
   syncBonusesFromSelections,
   syncRaceBonusChoicesToBonuses,
-  abilityScoreBreakdown
+  abilityScoreBreakdown,
+  getFinalScores,
+  setLevelIncreaseDraft,
+  confirmLevelIncreases,
+  levelIncreaseDraftReady,
+  pendingAbilityIncreaseLevels,
+  setBaseScoreDraft,
+  confirmBaseScores
 } from '../src/character/tutor.js';
 
 test('bonusesForTutorTable omits race rows', () => {
@@ -78,4 +85,75 @@ test('subrace selection applies parent race fixed ability bonus', () => {
   syncBonusesFromSelections(character, { race: baseElf }, []);
   syncRaceBonusChoicesToBonuses(character);
   assert.equal(abilityScoreBreakdown(character).dex.total, 12);
+});
+
+function abilityCharacter(level, levelIncreases = {}) {
+  return {
+    identity: { level },
+    abilities: {
+      baseScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      scores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      bonuses: [],
+      anyChoice: {},
+      levelIncreases
+    },
+    skillBonuses: [],
+    sheet: { skillBonusTotals: {} }
+  };
+}
+
+test('ability increase draft does not change totals until confirm', () => {
+  const character = abilityCharacter(4);
+  setLevelIncreaseDraft(character, 4, ['con', 'int']);
+  assert.equal(levelIncreaseDraftReady(character), true);
+  assert.equal(abilityScoreBreakdown(character).con.total, 10);
+  assert.equal(abilityScoreBreakdown(character).int.total, 10);
+  assert.deepEqual(pendingAbilityIncreaseLevels(character), [4]);
+
+  confirmLevelIncreases(character);
+  assert.equal(abilityScoreBreakdown(character).con.total, 11);
+  assert.equal(abilityScoreBreakdown(character).int.total, 11);
+  assert.equal(getFinalScores(character).con, 11);
+  assert.equal(getFinalScores(character).int, 11);
+  assert.deepEqual(pendingAbilityIncreaseLevels(character), []);
+  assert.equal(character.abilities.levelIncreaseEditing, false);
+});
+
+test('a later pair stays pending until its own pair is confirmed', () => {
+  const character = abilityCharacter(8, { 4: ['con', 'int'] });
+  assert.equal(abilityScoreBreakdown(character).con.total, 11);
+  assert.deepEqual(pendingAbilityIncreaseLevels(character), [8]);
+
+  setLevelIncreaseDraft(character, 8, ['str', 'wis']);
+  assert.equal(abilityScoreBreakdown(character).str.total, 10);
+  assert.equal(abilityScoreBreakdown(character).con.total, 11);
+  assert.equal(levelIncreaseDraftReady(character), true);
+
+  confirmLevelIncreases(character);
+  assert.equal(abilityScoreBreakdown(character).con.total, 11);
+  assert.equal(abilityScoreBreakdown(character).int.total, 11);
+  assert.equal(abilityScoreBreakdown(character).str.total, 11);
+  assert.equal(abilityScoreBreakdown(character).wis.total, 11);
+  assert.equal(getFinalScores(character).str, 11);
+  assert.deepEqual(pendingAbilityIncreaseLevels(character), []);
+});
+
+test('confirm ignores a pair that is not two different abilities', () => {
+  const character = abilityCharacter(4);
+  setLevelIncreaseDraft(character, 4, ['con', 'con']);
+  assert.equal(levelIncreaseDraftReady(character), false);
+  confirmLevelIncreases(character);
+  assert.equal(abilityScoreBreakdown(character).con.total, 10);
+  assert.deepEqual(pendingAbilityIncreaseLevels(character), [4]);
+});
+
+test('point-buy draft does not change totals until the scores are applied', () => {
+  const character = abilityCharacter(1);
+  setBaseScoreDraft(character, 'str', 16);
+  assert.equal(abilityScoreBreakdown(character).str.total, 10);
+  assert.equal(getFinalScores(character).str, 10);
+  confirmBaseScores(character, character.abilities.baseScoreDraft);
+  assert.equal(abilityScoreBreakdown(character).str.total, 16);
+  assert.equal(getFinalScores(character).str, 16);
+  assert.equal(character.abilities.pointBuyConfirmed, true);
 });

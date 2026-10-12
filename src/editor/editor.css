@@ -1432,6 +1432,31 @@ body.player-editor #gate-lead {
   margin: 0 0 8px;
 }
 
+.ability-scores-editor {
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+}
+
+.ability-scores-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--editor-accent);
+}
+
+.ability-scores-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.ability-scores-change {
+  margin: 0 0 12px;
+}
+
 .ability-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1674,6 +1699,27 @@ body.player-editor #gate-lead {
   border: 1px solid var(--editor-border);
   border-radius: 6px;
   background: var(--editor-surface);
+}
+
+.ability-asi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ability-asi-header .tutor-bonuses-title {
+  margin: 0;
+}
+
+.ability-asi-confirm {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.ability-asi-change {
+  margin: 12px 0 0;
 }
 
 .ability-asi-row {

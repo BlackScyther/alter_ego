@@ -4,6 +4,7 @@ import {
   validateStep,
   isStepEnabled,
   pointBuySpent,
+  pointBuyIssues,
   autoPointBuy
 } from '../character/model.js';
 import { focusPendingChoice } from './choice-guide.js';
@@ -38,7 +39,9 @@ import {
   syncBonusesFromSelections,
   setBonusEnabled,
   setAnyBonusAbility,
-  setBaseScore,
+  setBaseScoreDraft,
+  confirmBaseScores,
+  beginBaseScoreEdit,
   recomputeAbilityScores,
   recomputeSkillBonuses,
   tutorWarnings,
@@ -51,7 +54,11 @@ import {
   syncRaceBonusChoicesToBonuses,
   ASI_PAIR_LEVELS,
   ASI_ALL_LEVELS,
-  setLevelIncrease,
+  setLevelIncreaseDraft,
+  confirmLevelIncreases,
+  beginLevelIncreaseEdit,
+  levelIncreaseSelection,
+  levelIncreaseDraftReady,
   pendingAbilityIncreaseLevels
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
@@ -141,6 +148,8 @@ let activeFeatSlotId = null;
 let activeRitualSlotId = null;
 /** @type {object | null} */
 let cachedClassEntry = null;
+/** After confirm, move focus to the end-result heading once the picker is gone. */
+let focusAbilityEndResult = false;
 /** @type {import('./picker/combobox-picker.js').ComboboxController | null} */
 let ritualCombobox = null;
 
@@ -721,58 +730,84 @@ function renderAbilities(panel) {
   const breakdown = abilityScoreBreakdown(character);
   const skillBreak = skillBonusBreakdown(character);
   const skillBonuses = character.skillBonuses ?? [];
-  const { spent, remaining } = pointBuySpent(base);
-  const over = remaining < 0;
   const warnings = tutorWarnings(character);
   const bonuses = character.abilities.bonuses ?? [];
   const hpHint = getHpSubstituteTutorHint(character);
   const abilityRec = getRecommendedAbilityPriorities(cachedClassEntry);
   const abilityRecAvailable = abilityRec.priority.length > 0;
   const level = character.identity.level;
-  const storedIncreases = character.abilities.levelIncreases ?? {};
+  const showPointBuy = (Number(level) || 1) <= 1 && character.abilities.pointBuyConfirmed === false;
+  const pointBuyScores = showPointBuy ? (character.abilities.baseScoreDraft ?? base) : base;
+  const { spent, remaining } = pointBuySpent(pointBuyScores);
+  const over = remaining < 0;
+  const pointBuyReady = pointBuyIssues(pointBuyScores).length === 0;
   const asiPairLevels = ASI_PAIR_LEVELS.filter((l) => level >= l);
   const asiAllLevels = ASI_ALL_LEVELS.filter((l) => level >= l);
-  const showAsi = asiPairLevels.length > 0 || asiAllLevels.length > 0;
+  const asiPending = pendingAbilityIncreaseLevels(character).length > 0;
+  const asiEditing = Boolean(character.abilities.levelIncreaseEditing);
+  const showAsiPicker = asiPairLevels.length > 0 && (asiPending || asiEditing);
+  const asiReady = levelIncreaseDraftReady(character);
 
   panel.innerHTML = `
-    <div class="point-buy-status ${over ? 'over' : ''}">
-      Point-buy (base): <strong>${spent}</strong> / 22 spent
-      ${remaining >= 0 ? `(${remaining} remaining)` : `(${-remaining} over budget)`}
-    </div>
-    <div class="power-step-recommend-row">
-      <button
-        type="button"
-        id="ability-apply-recommended"
-        class="btn-secondary"
-        ${abilityRecAvailable ? '' : 'disabled'}
-        title="${abilityRecAvailable ? `Auto-distribute the 22 points toward ${esc(abilityRec.keyAbilitiesText)}` : 'Select a class with key abilities on the Class step first.'}"
-      >
-        Recommended ability scores for this class
+    ${showPointBuy ? `
+    <section class="ability-scores-editor" aria-label="Ability scores">
+      <h3 class="ability-scores-title">Ability Scores</h3>
+      <div class="point-buy-status ${over ? 'over' : ''}">
+        Point-buy (base): <strong>${spent}</strong> / 22 spent
+        ${remaining >= 0 ? `(${remaining} remaining)` : `(${-remaining} over budget)`}
+      </div>
+      <div class="power-step-recommend-row">
+        <button
+          type="button"
+          id="ability-apply-recommended"
+          class="btn-secondary"
+          ${abilityRecAvailable ? '' : 'disabled'}
+          title="${abilityRecAvailable ? `Auto-distribute the 22 points toward ${esc(abilityRec.keyAbilitiesText)}` : 'Select a class with key abilities on the Class step first.'}"
+        >
+          Recommended ability scores for this class
+        </button>
+        <p class="power-recommend-hint" id="ability-recommend-hint">
+          ${abilityRecAvailable
+            ? `Distributes your point-buy budget toward ${esc(abilityRec.keyAbilitiesText)} (key abilities for ${esc(abilityRec.classLabel ?? 'your class')}).`
+            : 'No ability recommendation yet — pick a class with listed key abilities on the Class step.'}
+        </p>
+      </div>
+      <p class="tutor-summary">${esc(formatBonusSummary(character))}</p>
+      ${hpHint ? `<p class="tutor-hp-hint">${esc(hpHint)}</p>` : ''}
+      <div class="ability-grid ability-grid--dual">
+        ${ABILITY_KEYS.map((a) => {
+          const row = breakdown[a];
+          const addsLabel = row.adds.length
+            ? row.adds.map((x) => `+${x.amount} ${esc(x.typeLabel)}`).join(' ')
+            : '';
+          const draftValue = pointBuyScores[a] ?? row.base;
+          return `
+          <div class="field">
+            <label>${a.toUpperCase()} base</label>
+            <input type="number" id="abil-${a}" min="8" max="18" value="${draftValue}" />
+            ${addsLabel ? `<div class="abil-adds">${addsLabel}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="ability-scores-actions">
+        <button
+          type="button"
+          id="ability-scores-apply"
+          class="btn-secondary"
+          ${pointBuyReady ? '' : 'disabled'}
+        >
+          Apply ability scores
+        </button>
+      </div>
+    </section>` : ''}
+    ${(Number(level) || 1) <= 1 && !showPointBuy ? `
+    <p class="ability-scores-change">
+      <button type="button" id="ability-scores-change" class="btn-secondary">
+        Change ability scores
       </button>
-      <p class="power-recommend-hint" id="ability-recommend-hint">
-        ${abilityRecAvailable
-          ? `Distributes your point-buy budget toward ${esc(abilityRec.keyAbilitiesText)} (key abilities for ${esc(abilityRec.classLabel ?? 'your class')}).`
-          : 'No ability recommendation yet — pick a class with listed key abilities on the Class step.'}
-      </p>
-    </div>
-    <p class="tutor-summary">${esc(formatBonusSummary(character))}</p>
-    ${hpHint ? `<p class="tutor-hp-hint">${esc(hpHint)}</p>` : ''}
-    <div class="ability-grid ability-grid--dual">
-      ${ABILITY_KEYS.map((a) => {
-        const row = breakdown[a];
-        const addsLabel = row.adds.length
-          ? row.adds.map((x) => `+${x.amount} ${esc(x.typeLabel)}`).join(' ')
-          : '';
-        return `
-        <div class="field">
-          <label>${a.toUpperCase()} base</label>
-          <input type="number" id="abil-${a}" min="8" max="18" value="${row.base}" />
-          ${addsLabel ? `<div class="abil-adds">${addsLabel}</div>` : ''}
-        </div>`;
-      }).join('')}
-    </div>
+    </p>` : ''}
     <section class="ability-end-result" aria-label="End result ability scores">
-      <h3 class="tutor-bonuses-title">End result (held for character sheet)</h3>
+      <h3 class="tutor-bonuses-title" id="ability-end-result-title" tabindex="-1">End result (held for character sheet)</h3>
       <div class="end-result-grid">
         ${ABILITY_KEYS.map((a) => {
           const row = breakdown[a];
@@ -785,12 +820,22 @@ function renderAbilities(panel) {
         }).join('')}
       </div>
     </section>
-    ${showAsi ? `
+    ${showAsiPicker ? `
     <section class="ability-asi" aria-label="Ability score increases">
-      <h3 class="tutor-bonuses-title">Ability score increases (level up)</h3>
-      <p class="tutor-footnote">At levels 4, 8, 14, 18, 24, and 28 raise two different abilities by +1. At levels 11 and 21 all six abilities gain +1 automatically. These increases stack and can exceed 18.</p>
+      <div class="ability-asi-header">
+        <h3 class="tutor-bonuses-title" id="ability-asi-title">Ability score increases (level up)</h3>
+        <button
+          type="button"
+          id="ability-asi-confirm"
+          class="btn-secondary ability-asi-confirm"
+          ${asiReady ? '' : 'disabled'}
+        >
+          Confirm ability score increases
+        </button>
+      </div>
+      <p class="tutor-footnote">At levels 4, 8, 14, 18, 24, and 28 raise two different abilities by +1. At levels 11 and 21 all six abilities gain +1 automatically. These increases stack and can exceed 18. Scores update when you confirm.</p>
       ${asiPairLevels.map((l) => {
-        const choice = storedIncreases[l] ?? storedIncreases[String(l)] ?? [];
+        const choice = levelIncreaseSelection(character, l);
         const a0 = choice[0] ?? '';
         const a1 = choice[1] ?? '';
         const sameWarning = a0 && a1 && a0 === a1;
@@ -818,6 +863,12 @@ function renderAbilities(panel) {
       }).join('')}
       ${asiAllLevels.map((l) => `<p class="ability-asi-auto">Level ${l}: +1 to all abilities (applied automatically).</p>`).join('')}
     </section>` : ''}
+    ${!showAsiPicker && asiPairLevels.length > 0 ? `
+    <p class="ability-asi-change">
+      <button type="button" id="ability-asi-change" class="btn-secondary">
+        Change ability score increases
+      </button>
+    </p>` : ''}
     <section class="sheet-mirror-section sheet-mirror-section--skills-table abilities-skills-section" aria-label="Skills">
       <h3 class="tutor-bonuses-title">Skills</h3>
       <p class="tutor-footnote">Use the <strong>Trained</strong> checkboxes to pick class skills (only class-skill rows are clickable). When a build is chosen on the Class step, suggested skills are pre-selected; you can deselect and switch to any other class skill. Fixed class skills stay locked. Totals include ability, half level, training, armor penalty, and bonuses from race, background, and feats.</p>
@@ -827,7 +878,7 @@ function renderAbilities(panel) {
     <section class="tutor-bonuses" id="tutor-skill-bonuses"></section>
     <ul class="tutor-warnings" id="tutor-warnings" ${warnings.length ? '' : 'hidden'}></ul>`;
 
-  renderTutorGuide(panel, 'abilityBonuses');
+  if (showPointBuy) renderTutorGuide(panel, 'abilityBonuses');
 
   const itemNote = document.createElement('p');
   itemNote.className = 'tutor-footnote';
@@ -859,17 +910,37 @@ function renderAbilities(panel) {
 
   for (const a of ABILITY_KEYS) {
     bind(panel, `abil-${a}`, (v) => {
-      setBaseScore(character, a, v);
+      const focusId = `abil-${a}`;
+      setBaseScoreDraft(character, a, v);
+      persist();
       renderAbilities(panel);
+      panel.querySelector(`#${focusId}`)?.focus();
     });
   }
+
+  panel.querySelector('#ability-scores-apply')?.addEventListener('click', () => {
+    const scores = character.abilities.baseScoreDraft ?? character.abilities.baseScores;
+    if (pointBuyIssues(scores).length > 0) return;
+    confirmBaseScores(character, scores);
+    persist();
+    focusAbilityEndResult = true;
+    renderAbilities(panel);
+    renderSheetMirror(character);
+  });
+
+  panel.querySelector('#ability-scores-change')?.addEventListener('click', () => {
+    beginBaseScoreEdit(character);
+    persist();
+    renderAbilities(panel);
+    panel.querySelector('#abil-str')?.focus();
+  });
 
   for (const l of asiPairLevels) {
     const selA = panel.querySelector(`#asi-${l}-a`);
     const selB = panel.querySelector(`#asi-${l}-b`);
     const onAsiChange = (e) => {
       const focusId = e?.target?.id;
-      setLevelIncrease(character, l, [selA?.value ?? '', selB?.value ?? '']);
+      setLevelIncreaseDraft(character, l, [selA?.value ?? '', selB?.value ?? '']);
       persist();
       renderAbilities(panel);
       if (focusId) panel.querySelector(`#${focusId}`)?.focus();
@@ -878,11 +949,32 @@ function renderAbilities(panel) {
     selB?.addEventListener('change', onAsiChange);
   }
 
+  panel.querySelector('#ability-asi-confirm')?.addEventListener('click', () => {
+    if (!levelIncreaseDraftReady(character)) return;
+    confirmLevelIncreases(character);
+    persist();
+    focusAbilityEndResult = true;
+    renderAbilities(panel);
+    renderSheetMirror(character);
+  });
+
+  panel.querySelector('#ability-asi-change')?.addEventListener('click', () => {
+    beginLevelIncreaseEdit(character);
+    persist();
+    renderAbilities(panel);
+    panel.querySelector('.ability-asi select')?.focus();
+  });
+
+  if (focusAbilityEndResult) {
+    focusAbilityEndResult = false;
+    panel.querySelector('#ability-end-result-title')?.focus();
+  }
+
   const abilityRecBtn = panel.querySelector('#ability-apply-recommended');
   abilityRecBtn?.addEventListener('click', () => {
     if (!abilityRecAvailable) return;
     const scores = autoPointBuy(abilityRec.priority);
-    for (const a of ABILITY_KEYS) setBaseScore(character, a, scores[a]);
+    for (const a of ABILITY_KEYS) setBaseScoreDraft(character, a, scores[a]);
     persist();
     renderAbilities(panel);
   });
