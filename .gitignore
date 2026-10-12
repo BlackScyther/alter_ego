@@ -14,6 +14,9 @@ data/**/*.db-*
 data/import-cache/
 data/iws-mx/
 
+# Local rules references (books and magazine PDFs). Never commit.
+data/reference/
+
 # Dev DB from stub normalizer
 data/alter_ego.dev.db
 

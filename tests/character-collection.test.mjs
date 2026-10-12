@@ -32,6 +32,26 @@ test('collectClassGrantIds includes class-feature metadata for Warlord', () => {
   character.selections.classId = 'class8';
   const { classPowerIds } = collectClassGrantIds(character, warlordEntry);
   assert.ok(classPowerIds.includes('power1590'));
+  assert.equal(classPowerIds.includes('power10887'), false);
+});
+
+test('Battlefront Leader grants Battlefront Shift', () => {
+  const entry = {
+    id: 'class8',
+    listing_fields: { Name: 'Warlord (Marshal)' },
+    body_html: `<blockquote><b>Build Options: </b>Shielding Warlord.</blockquote>
+<h3>SHIELDING WARLORD</h3>
+<b>Class Feature</b>: Battlefront Leader
+<h3>CLASS FEATURES</h3>
+<b>BATTLEFRONT LEADER</b><br>This class feature replaces your Combat Leader class feature. You gain the battlefront shift power.
+<b>COMBAT LEADER</b><br>You gain a +2 power bonus to initiative.`
+  };
+  const character = createCharacter();
+  character.selections.classId = 'class8';
+  character.selections.classBuildChoices = { build: 'shielding-warlord' };
+  const { classPowerIds } = collectClassGrantIds(character, entry);
+  assert.ok(classPowerIds.includes('power1590'));
+  assert.ok(classPowerIds.includes('power10887'));
 });
 
 test('collectPowerItems includes class feature powers', async () => {

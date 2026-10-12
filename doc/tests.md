@@ -42,7 +42,8 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
-| `tests/class-effects.test.mjs` | Class-feature static initiative (Warlord +2), additive class+background composition, conditional exclusion |
+| `tests/class-effects.test.mjs` | Class-feature static initiative (Tactical Warlord Combat Leader +2; action-point sentence ignored; Canny Leader replaces it), Improved Initiative +4 stacking to 6 without double-counting Misc, additive class+background composition |
+| `tests/class-parse.test.mjs` | Class HTML traits, builds, and CLASS FEATURES grants (Tactical keeps Combat Leader and lists Tactical Presence; Insightful replaces Combat Leader; a trailing period is stripped from the last build name; feature names are hover links) |
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |

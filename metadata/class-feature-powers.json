@@ -1,12 +1,18 @@
 {
   "byClassId": {
     "class8": {
-      "powerIds": ["power1590"]
+      "powerIds": ["power1590"],
+      "byFeature": {
+        "Battlefront Leader": ["power10887"]
+      }
     }
   },
   "byClassName": {
     "Warlord (Marshal)": {
-      "powerIds": ["power1590"]
+      "powerIds": ["power1590"],
+      "byFeature": {
+        "Battlefront Leader": ["power10887"]
+      }
     }
   }
 }

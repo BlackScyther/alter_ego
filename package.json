@@ -1,6 +1,6 @@
 {
   "name": "alter-ego",
-  "version": "1.2.21",
+  "version": "1.2.22",
   "license": "GPL-3.0-or-later",
   "description": "Alter Ego — offline D&D 4e compendium, character tools, and DM party surface",
   "type": "module",

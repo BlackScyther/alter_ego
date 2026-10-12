@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-10-11 (B-033 picker level ceiling)
+**Last updated:** 2026-10-12 (B-035 Warlord presence and starter powers)
 
 ## Open
 
@@ -22,6 +22,8 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-035 | 2026-10-12 | Warlord builds other than Insightful and Skirmishing did not name a Commanding Presence, so the Class features list omitted Inspiring Presence and Tactical Presence. A trailing period on the last build option also broke the Tactical Warlord id. Starter power slots did not match the suggested powers on the class entry, and Insightful Warlord had no slots. Fixed: the matching Presence is granted and listed; Battlefront Shift is granted only with Battlefront Leader; starter slots follow the compendium suggested powers for all six builds. |
+| B-034 | 2026-10-11 | Class features such as Combat Leader were not listed on the Class step, and "+2 power bonus to initiative" was not added to the sheet, so a Tactical Warlord with Improved Initiative showed only +4. Granted features are now a hover list. Combat Leader +2 and Improved Initiative +4 combine to +6. Conditional sentences, including action-point presence options, are skipped. A replacement feature such as Canny Leader drops the feature it replaces. |
 | B-033 | 2026-10-11 | Power picker matched the slot's exact level, so a level 3 encounter slot hid level 1 encounter powers. Powers now include that slot's level and every lower level of the same type, and still hide higher levels. Feats and rituals use the character's current level as the same ceiling. |
 | B-032 | 2026-10-09 | Genasi elemental manifestation sat at the bottom of the race preview, and choosing it did not apply ability scores. The manifestation list and the racial ability choice now sit above the preview. Other manifestations use +2 Intelligence, then Constitution or Strength. Watersoul and Windsoul instead keep +2 Strength and can take Intelligence instead of Constitution, so the character can focus Strength and Intelligence. |
 | B-016 | 2026-07-03 | Real compendium monsters lacked listing HP/AC/Init; GM spawn used `level × 8 + 10` fallbacks and printed defenses were inflated by `10 + ½level`. Fixed: `monster-parse.js` + `monster`/`monster_combat_stats` ETL; `getNormalizedMonsterStats` on read path; `actor-spawn.js` uses normalized stats; `usesPrintedDefenses` in `combat-helpers.js`. ~3k of 5.3k monsters parse stat lines; remainder still fall back (see `monster/no-stat-line` warnings). |

@@ -97,6 +97,19 @@
             { "compendiumId": "weapon3595", "quantity": 4 }
           ]
         },
+        "insightful-warlord": {
+          "label": "Insightful Warlord",
+          "remainingGoldGp": 5,
+          "equipped": [
+            { "compendiumId": "armor4", "slotId": "armor" },
+            { "compendiumId": "armor7", "slotId": "offHand" },
+            { "compendiumId": "weapon3610", "slotId": "mainHand" }
+          ],
+          "inventory": [
+            { "compendiumId": "item166", "quantity": 1 },
+            { "compendiumId": "weapon3595", "quantity": 4 }
+          ]
+        },
         "skirmishing-warlord": {
           "label": "Skirmishing Warlord",
           "remainingGoldGp": 25,

@@ -14,6 +14,7 @@ data/**/*.db
 data/**/*.db-*
 data/import-cache/
 data/iws-mx/
+data/reference/
 data/alter_ego.dev.db
 
 # Tauri desktop build output (not needed for the web/server image).

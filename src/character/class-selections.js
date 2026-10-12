@@ -15,9 +15,10 @@ import {
   parseBuildSuggestedSkills,
   parseBuildSuggestedPowerNames,
   parseBuildSuggestedFeatNames,
-  getSuggestedTrainedSkillsForBuild
+  getSuggestedTrainedSkillsForBuild,
+  grantedFeaturesForPreview
 } from './class-parse.js';
-import { detectClassEffects, applyClassEffects, formatClassEffectNotes } from './class-effects.js';
+import { detectClassEffectsForCharacter, applyClassEffects, formatClassEffectNotes } from './class-effects.js';
 import { ensurePowerSelectionsShape, syncPowerIdsFromSelections, getPowerSlotsForLevel } from './power-selections.js';
 import {
   ensureFeatSelectionsShape,
@@ -151,10 +152,20 @@ export function collectClassGrantIds(character, classEntry) {
   const classId = classEntry?.id ?? character.selections?.classId;
   const className = classEntry?.listing_fields?.Name;
   const featureMeta =
-    (classId && FEATURE_POWERS_BY_ID[classId]?.powerIds) ||
-    (className && FEATURE_POWERS_BY_NAME[className]?.powerIds) ||
-    [];
-  for (const pid of featureMeta) powerIds.add(String(pid).toLowerCase());
+    (classId && FEATURE_POWERS_BY_ID[classId]) ||
+    (className && FEATURE_POWERS_BY_NAME[className]) ||
+    null;
+  for (const pid of featureMeta?.powerIds ?? []) powerIds.add(String(pid).toLowerCase());
+
+  const granted = grantedFeaturesForPreview(parsed, choices, classEntry?.body_html ?? '');
+  const byFeature = featureMeta?.byFeature ?? {};
+  const featurePowerIds = new Map(
+    Object.entries(byFeature).map(([name, ids]) => [name.toLowerCase(), ids])
+  );
+  for (const feature of granted) {
+    const ids = featurePowerIds.get(feature.name.toLowerCase()) ?? [];
+    for (const pid of ids) powerIds.add(String(pid).toLowerCase());
+  }
 
   for (const d of decisions) {
     const picked = choices[d.id];
@@ -254,7 +265,7 @@ export function syncClassTraitsToSheet(character, classEntry) {
     character.sheet.hp.surgesPerDay = Math.floor(parsed.surgesBase + conMod);
   }
 
-  applyClassEffects(character, detectClassEffects(classEntry));
+  applyClassEffects(character, detectClassEffectsForCharacter(character, classEntry));
 
   return character;
 }
@@ -748,7 +759,7 @@ export function syncClassNotesAndGrants(character, classEntry, powerEntries = []
     trainedSkillChoices: character.selections.classTrainedSkillChoices,
     buildSummary
   });
-  const effectNotes = formatClassEffectNotes(detectClassEffects(classEntry));
+  const effectNotes = formatClassEffectNotes(detectClassEffectsForCharacter(character, classEntry));
   if (effectNotes.length) {
     notes = [notes, effectNotes.join('\n')].filter(Boolean).join('\n');
   }

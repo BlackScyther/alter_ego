@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-07-03 (full compendium category normalization)
+**Last updated:** 2026-10-12 (Warlord class-feature grants)
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -73,7 +73,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `race-replacements.json` | Curated subrace→base trait/power replacement overrides (keyed by subrace id; merged with auto-parsed replacements) |
 | `race-monster-fluff.json` | Curated race→monster flavor overrides (keyed by race id/name): `monsterIds`/`monsterNames` to source lore from, or `disabled` to suppress; default is exact race-name → monster-name match |
 | `race-build-options.json` | Dragonborn / Genasi build-choice definitions (power picks) |
-| `starting-equipment.json` | Level-1 starting equipment kits by class/build (PHB Fighter kits; stub Fighter fallback) |
+| `starting-equipment.json` | Level-1 starting equipment kits by class/build (PHB Fighter kits; stub Fighter fallback; Warlord marshal builds including Insightful) |
+| `class-build-options.json` | Build choices and level-1 starter power slots. Warlord seeds follow each build's suggested powers in the compendium entry |
+| `class-feature-powers.json` | Powers granted by a class feature. Warlord grants Inspiring Word, and Battlefront Shift when Battlefront Leader is taken |
 | `equipment-stats-overrides.json` | PHB mundane armor/weapon stats for sheet sync when compendium body lacks parseable fields |
 | `magic-equipment-tiers.json` | GM-editable magic enhancement tiers for base weapons/armor: bonus (+1/+2/+3) → item level + enhancement price (`magicCostGp`); total price = base item cost + tier price |
 | `catalog-counts.json` | Expected compendium entry counts per category (import validation) |
@@ -89,6 +91,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `alter_ego.db` | *(planned)* SQLite compendium after importer runs |
 | `background-effect-overrides.json` | Curated background effects (HP substitute, initiative) keyed by id/name |
 | `class-effect-overrides.json` | Curated class-feature effects (static initiative) keyed by class id/name |
+| `reference/` | Local book and magazine PDFs for comparison. Gitignored. Not shipped. |
 
 ## `scripts/`
 
@@ -262,10 +265,10 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `background-selections.js` | Background associated-skill +2/+1 choices and step validation |
 | `background-effects.js` | HP substitute, initiative misc, and other composable background effects |
 | `background-effect-selections.js` | Persist HP-substitute ability choice on character |
-| `class-effects.js` | Static initiative bonuses from class features (curated override-first, conditional phrasing skipped); composes with background initiative |
-| `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names) |
+| `class-effects.js` | Flat initiative and skill bonuses from granted class features (conditional sentences skipped; curated override only when the class has no feature section); feat initiative such as Improved Initiative +4; composes background + class + feat |
+| `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names, CLASS FEATURES blocks). A build with no Class Feature line still grants the matching Presence. The chosen presence is listed with the other granted features |
 | `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants, sheet sync; persists class HP params and recomputes Max HP for the current level; `applyHybridClassStats` merges two normalized classes (PH3) into sheet HP/surges/speed and persists `selections.hybridMerged` |
-| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
+| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape (initiative is background + class + feat), `initiativeHandMisc`, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
 | `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; per-instance `level` and magic `enhancement` (`setEquipmentItemEnhancement`, +1/+2/+3); shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
 | `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; implements resolve to a `kind: 'implement'` stat (no AC/dice, enhancement only); falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text; `getDefenseEnhancementInfo`/`enhancementFromLevel`/`levelFromEntry` drive level-scaled defense items (Amulet of Protection → Fort/Ref/Will); magic-item helpers `getMagicTiers`/`magicTierForBonus`/`isEnhanceableEntry` (weapon/armor/implement)/`magicDisplayName`/`baseCostGpFromEntry`/`magicTotalCostGp` (config-driven +1/+2/+3) |
 | `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`) and magic weapon/armor/implement enhancement (weapon → melee/ranged atk+dmg `enh`; armor → AC `enh`; implement → its bonus). The melee/ranged line `enh` shows the higher of the weapon's and the implement's bonus; per-source values (`weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`) are also stored for the power cards |
@@ -301,7 +304,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills |
 | `print-cards-dialog.js` | Native `<dialog>` shown when clicking "Print cards": per-category checkboxes (Powers/Feats/Rituals — universal actions are excluded; they live on the Resources page) limited to categories the character has; remembers the last selection in `sessionStorage` (`editor.printCards.categories`); resolves to the chosen keys or `null` on cancel |
 | `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build choices and the racial ability-score choice sit above the race preview, immediately after the race is confirmed; the subrace list shows a "None (play the base race)" option first so subrace-bearing races can be played without one (subraces are optional); build decisions with >6 options render as a compact combo `<select>` with a tracking ↗ link; for monster races with no own flavor, pulls lore-only folds from the matching Monster entry (exact name match + `metadata/race-monster-fluff.json` overrides) |
-| `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
+| `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, granted class-feature list with hover cards, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); the list is the slot's level and lower (same type), not higher levels; compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker |
 | `steps/feat-step.js` | Feat slots grouped by tier + shared combobox; feats above the character's level are hidden; **Recommended feats for this class** button; compendium open link (↗) on filled slots; source combo filter above picker |
@@ -329,7 +332,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `compendium-links.js` | Link compendium terms in plain text and HTML previews |
-| `compendium-hover-card.js` | Floating hover card for `.comp-link` terms |
+| `compendium-hover-card.js` | Floating hover card for `.comp-link` terms; class-feature links use a registered inline body when the feature is not its own compendium entry |
 | `compendium-entry-url.js` | Build the standalone compendium entry-viewer URL (`entry.html?id=`) |
 | `condense-rule-text.js` | `condenseRuleHtml(entry)` strips flavor/`publishedIn`/title-duplicate nodes, keeps the mechanical core (powerstat lines, feat benefit, ritual stat block) for printable rule cards |
 

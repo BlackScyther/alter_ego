@@ -353,7 +353,7 @@ function parseBuildOptions(optionsText) {
   if (!text) return [];
   return text
     .split(/,|\bor\b/i)
-    .map((part) => part.trim())
+    .map((part) => part.replace(/^[.\s]+|[.\s]+$/g, '').trim())
     .filter((part) => part.length > 1)
     .map((label) => ({ id: slugifyOption(label), label }));
 }
@@ -420,6 +420,7 @@ export function parseClassEntry(entry) {
     defenseBonuses,
     trainedSkills,
     buildOptions,
+    features: parseClassFeatures(html),
     mechanicalHtml: mechanicalChunks.join(''),
     flavorHtml: flavorChunks.join(''),
     bodyHtml: html
@@ -440,10 +441,240 @@ function emptyParsedClass() {
     defenseBonuses: { ac: 0, fort: 0, ref: 0, will: 0 },
     trainedSkills: { kind: 'none', fixedSkills: [], classSkills: [], chooseCount: 0 },
     buildOptions: [],
+    features: [],
     mechanicalHtml: '',
     flavorHtml: '',
     bodyHtml: ''
   };
+}
+
+/** @typedef {{ name: string, html: string, text: string, optional: boolean, replaces: string | null, subFeatures: Array<{ name: string, html: string, text: string }> }} ClassFeature */
+
+const REPLACES_FEATURE_RE = /replaces\s+(?:your\s+|the\s+)?(.+?)\s+class\s+feature/i;
+const OPTIONAL_FEATURE_RE = /when you choose|this class feature replaces/i;
+
+/**
+ * @param {string} raw
+ */
+function toDisplayFeatureName(raw) {
+  return String(raw ?? '')
+    .toLowerCase()
+    .replace(/(^|[\s-])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase())
+    .trim();
+}
+
+/**
+ * @param {string} label
+ */
+function isAllCapsFeatureName(label) {
+  const t = String(label ?? '').replace(/\s+/g, ' ').trim();
+  if (t.length < 3 || t.length > 80) return false;
+  if (!/[A-Z]/.test(t) || /[a-z]/.test(t)) return false;
+  if (/[:.]/.test(t)) return false;
+  return true;
+}
+
+/**
+ * Title-case sub-options such as "Tactical Presence". Power-stat labels are
+ * shorter or lack a space, and they sit inside the embedded power card.
+ * @param {string} label
+ */
+function isSubFeatureName(label) {
+  const t = String(label ?? '').replace(/\s+/g, ' ').trim();
+  if (t.length < 3 || t.length > 80) return false;
+  if (!/^[A-Z]/.test(t) || !/[a-z]/.test(t)) return false;
+  if (/[:.]/.test(t)) return false;
+  return /\s/.test(t);
+}
+
+/**
+ * HTML after the "CLASS FEATURES" heading, before the next heading.
+ * @param {string} html
+ */
+export function extractClassFeaturesSection(html) {
+  const s = String(html ?? '');
+  const re = /<h3[^>]*>([\s\S]*?)<\/h3>/gi;
+  let m;
+  /** @type {{ end: number } | null} */
+  let found = null;
+  while ((m = re.exec(s)) !== null) {
+    const heading = stripHtml(m[1]);
+    if (!/\bclass\s+features\b/i.test(heading)) continue;
+    found = { end: m.index + m[0].length };
+  }
+  if (!found) return '';
+  const rest = s.slice(found.end);
+  const next = rest.search(/<h3\b/i);
+  return next >= 0 ? rest.slice(0, next) : rest;
+}
+
+/**
+ * @param {string} html
+ * @returns {ClassFeature[]}
+ */
+export function parseClassFeatures(html) {
+  const section = extractClassFeaturesSection(html);
+  if (!section) return [];
+
+  const re = /<b>([^<]+)<\/b>/gi;
+  /** @type {Array<{ kind: 'feature' | 'sub', label: string, index: number, end: number }>} */
+  const marks = [];
+  let m;
+  while ((m = re.exec(section)) !== null) {
+    const label = stripHtml(m[1]);
+    if (isAllCapsFeatureName(label)) {
+      marks.push({ kind: 'feature', label, index: m.index, end: re.lastIndex });
+    } else if (isSubFeatureName(label)) {
+      marks.push({ kind: 'sub', label, index: m.index, end: re.lastIndex });
+    }
+  }
+
+  /** @type {ClassFeature[]} */
+  const features = [];
+  for (let i = 0; i < marks.length; i++) {
+    if (marks[i].kind !== 'feature') continue;
+    const nextFeature = marks.slice(i + 1).find((mark) => mark.kind === 'feature');
+    const sliceEnd = nextFeature ? nextFeature.index : section.length;
+    const h1 = section.toLowerCase().indexOf('<h1', marks[i].end);
+    const proseEnd = h1 >= 0 && h1 < sliceEnd ? h1 : sliceEnd;
+    const subs = marks.filter(
+      (mark) => mark.kind === 'sub' && mark.index > marks[i].end && mark.index < proseEnd
+    );
+    const parentEnd = subs.length ? subs[0].index : proseEnd;
+    const parentHtml = section.slice(marks[i].end, parentEnd);
+    const parentText = stripHtml(parentHtml);
+    const subFeatures = subs.map((sub, si) => {
+      const subEnd = subs[si + 1] ? subs[si + 1].index : proseEnd;
+      const subHtml = section.slice(sub.end, subEnd);
+      return { name: toDisplayFeatureName(sub.label), html: subHtml, text: stripHtml(subHtml) };
+    });
+    const replaces = parentText.match(REPLACES_FEATURE_RE)?.[1]?.trim() ?? null;
+    features.push({
+      name: toDisplayFeatureName(marks[i].label),
+      html: section.slice(marks[i].index, sliceEnd),
+      text: parentText,
+      optional: OPTIONAL_FEATURE_RE.test(parentText),
+      replaces: replaces ? toDisplayFeatureName(replaces) : null,
+      subFeatures
+    });
+  }
+  return features;
+}
+
+/**
+ * Names listed on a build's "Class Feature:" line.
+ * @param {string} html
+ * @param {string | null | undefined} buildLabel
+ * @returns {string[]}
+ */
+export function parseBuildClassFeatureNames(html, buildLabel) {
+  const wanted = normalizeBuildHeadingKey(buildLabel);
+  if (!wanted) return [];
+  const sections = String(html ?? '').split(/(?=<h3\b)/i);
+  for (const section of sections) {
+    const heading = stripHtml(section.match(/^<h3[^>]*>([\s\S]*?)<\/h3>/i)?.[1] ?? '');
+    if (normalizeBuildHeadingKey(heading) !== wanted) continue;
+    const raw = section.match(/<b>\s*Class Features?\s*<\/b>\s*:?\s*([^<]+)/i)?.[1] ?? '';
+    return raw
+      .split(/,|\bor\b/i)
+      .map((part) => part.replace(/^[.\s]+|[.\s]+$/g, '').trim())
+      .filter((part) => part.length > 1);
+  }
+  return [];
+}
+
+/**
+ * Class-feature names for a build. An explicit "Class Feature" line wins.
+ * When that line is absent, a Commanding Presence option whose name is the
+ * build's first word plus "Presence" is used (Inspiring Warlord, Tactical
+ * Warlord, and the same pattern on the other marshal builds).
+ *
+ * @param {string} html
+ * @param {string | null | undefined} buildLabel
+ * @param {ClassFeature[]} [features]
+ * @returns {string[]}
+ */
+export function resolveBuildClassFeatureNames(html, buildLabel, features = []) {
+  const explicit = parseBuildClassFeatureNames(html, buildLabel);
+  if (explicit.length) return explicit;
+  const word = String(buildLabel ?? '')
+    .replace(/\.+$/, '')
+    .trim()
+    .split(/\s+/)[0];
+  if (!word) return [];
+  const wanted = `${word} presence`.toLowerCase();
+  for (const feature of features) {
+    for (const sub of feature.subFeatures ?? []) {
+      if (sub.name.toLowerCase() === wanted) return [sub.name];
+    }
+  }
+  return [];
+}
+
+/**
+ * @param {{ name: string, html: string, text: string }} sub
+ * @returns {ClassFeature}
+ */
+function asGrantedSubFeature(sub) {
+  return {
+    name: sub.name,
+    html: `<b>${esc(sub.name)}</b><br>${sub.html ?? ''}`,
+    text: sub.text,
+    optional: false,
+    replaces: null,
+    subFeatures: []
+  };
+}
+
+/**
+ * Features the character actually has. Optional and replacement features stay
+ * off unless the selected build names them. A granted replacement drops the
+ * feature it replaces.
+ * @param {ClassFeature[]} features
+ * @param {string[]} buildFeatureNames
+ * @returns {ClassFeature[]}
+ */
+export function grantedClassFeatures(features, buildFeatureNames = []) {
+  const named = new Set(buildFeatureNames.map((name) => name.toLowerCase()));
+  const granted = (features ?? []).filter(
+    (feature) => !feature.optional || named.has(feature.name.toLowerCase())
+  );
+  const replaced = new Set(
+    granted.map((feature) => feature.replaces?.toLowerCase()).filter(Boolean)
+  );
+  const top = granted.filter((feature) => !replaced.has(feature.name.toLowerCase()));
+  /** @type {ClassFeature[]} */
+  const result = [];
+  for (const feature of top) {
+    result.push(feature);
+    for (const sub of feature.subFeatures ?? []) {
+      if (named.has(sub.name.toLowerCase())) result.push(asGrantedSubFeature(sub));
+    }
+  }
+  return result;
+}
+
+/**
+ * @param {ReturnType<typeof parseClassEntry>} parsed
+ * @param {Record<string, string>} [buildChoices]
+ * @param {string} [html]
+ */
+export function grantedFeaturesForPreview(parsed, buildChoices = {}, html = '') {
+  const label = parsed.buildOptions?.find((opt) => opt.id === buildChoices?.build)?.label ?? null;
+  const names = resolveBuildClassFeatureNames(html, label, parsed.features ?? []);
+  return grantedClassFeatures(parsed.features ?? [], names);
+}
+
+/**
+ * @param {string | null | undefined} entryId
+ * @param {string} name
+ */
+export function classFeatureHoverKey(entryId, name) {
+  const slug = String(name ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `class-feature:${entryId || 'class'}:${slug}`;
 }
 
 /**
@@ -468,14 +699,16 @@ function filterFeatureSections(parsed, previewTerms = []) {
  * @param {Record<string, string>} [opts.buildChoices]
  * @param {string[]} [opts.trainedSkillChoices]
  * @param {string[]} [opts.previewTerms]
+ * @param {string[]} [opts.effectNotes]
  */
 export function renderClassPreviewHtml(entry, parsed, opts = {}) {
   const buildChoices = opts.buildChoices ?? {};
   const trainedSkillChoices = opts.trainedSkillChoices ?? [];
   const previewTerms = opts.previewTerms ?? [];
+  const effectNotes = opts.effectNotes ?? [];
 
   const traitRows = parsed.traitPairs
-    .filter((p) => !/^(build options|class skills|trained skills)$/i.test(p.label))
+    .filter((p) => !/^(build options|class skills|trained skills|class features)$/i.test(p.label))
     .map(
       (p) =>
         `<div class="class-trait-row"><span class="class-trait-label">${esc(p.label)}</span> <span class="class-trait-value">${esc(p.value)}</span></div>`
@@ -532,6 +765,23 @@ export function renderClassPreviewHtml(entry, parsed, opts = {}) {
   }
 
   const featureHtml = filterFeatureSections(parsed, previewTerms);
+  const granted = grantedFeaturesForPreview(parsed, buildChoices, parsed.bodyHtml || entry?.body_html || '');
+  const featureItems = granted
+    .map((feature) => {
+      const key = classFeatureHoverKey(entry?.id, feature.name);
+      return `<li><button type="button" class="comp-link class-feature-link" data-feature-key="${esc(key)}">${esc(feature.name)}</button></li>`;
+    })
+    .join('');
+  const readout = effectNotes.length
+    ? `<p class="class-feature-readout">${esc(effectNotes.join(' · '))}</p>`
+    : '';
+  const featureList = granted.length
+    ? `<section class="class-feature-list-section">
+      <h3 class="background-section-title">Class features</h3>
+      <ul class="class-feature-list">${featureItems}</ul>
+      ${readout}
+    </section>`
+    : '';
 
   return `<div class="class-preview">
     <h2 class="class-preview-title">${esc(parsed.title)}</h2>
@@ -541,6 +791,7 @@ export function renderClassPreviewHtml(entry, parsed, opts = {}) {
     </section>
     ${buildSection}
     ${skillSection}
+    ${featureList}
     ${featureHtml ? `<section class="class-features-section">${featureHtml}</section>` : ''}
   </div>`;
 }

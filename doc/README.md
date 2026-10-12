@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-11 — Power, feat, and ritual pickers offer the current level and every level below it, and hide higher levels.
+**Last agent sync:** 2026-10-12 — Warlord class features list the chosen Commanding Presence, and starter powers follow each build's suggested powers.

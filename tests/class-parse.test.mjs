@@ -11,7 +11,9 @@ import {
   parseBuildSuggestedSkills,
   parseBuildSuggestedPowerNames,
   parseBuildSuggestedFeatNames,
-  getSuggestedTrainedSkillsForBuild
+  getSuggestedTrainedSkillsForBuild,
+  parseClassFeatures,
+  grantedFeaturesForPreview
 } from '../src/character/class-parse.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -141,6 +143,89 @@ test('buildClassNotesText compacts traits and choices', () => {
   assert.match(text, /Trained Skills: Religion/);
   assert.match(text, /HP at 1: 12/);
   assert.match(text, /\+2 Will/);
+});
+
+const warlordFeaturesHtml = `
+<blockquote><b>CLASS TRAITS</b><br>
+<b>Build Options: </b>Insightful Warlord, Tactical Warlord.<br>
+<b>Class features: </b>Archer Warlord, Canny Leader, Combat Leader, Commanding Presence, Inspiring Word.
+</blockquote>
+<h3>INSIGHTFUL WARLORD</h3>
+<p><b>Class Feature</b>: Insightful Presence, Canny Leader</p>
+<h3>TACTICAL WARLORD</h3>
+<p>Quick commands.</p>
+<h3>WARLORD (MARSHAL) CLASS FEATURES</h3>
+<b>ARCHER WARLORD</b><br>When you choose the Archer Warlord class feature, you lose proficiency with chainmail.
+<b>CANNY LEADER</b><br>This class feature replaces your Combat Leader class feature. You and any ally within 10 squares who can see and hear you gain a +2 bonus to Insight checks and Perception checks.
+<b>COMBAT LEADER</b><br>You and each ally within 10 squares who can see and hear you gain a +2 power bonus to initiative. In addition, when an ally spends an action point, that ally gains a +2 bonus to initiative.
+<b>COMMANDING PRESENCE</b><br>Choose one of the following presence benefits below.
+<b>Insightful Presence</b><br>When an ally who can see you spends an action point to take an extra action, that ally gains a bonus to all defenses.
+<b>Tactical Presence</b><br>When an ally you can see spends an action point to make an attack, the ally gains a bonus to the first attack roll.
+<b>INSPIRING WORD</b><br>Using the inspiring word power, warlords can grant their comrades additional resilience.
+`;
+
+const warlordFeaturesEntry = {
+  id: 'class8',
+  listing_fields: { Name: 'Warlord (Marshal)' },
+  body_html: warlordFeaturesHtml
+};
+
+test('parseClassFeatures splits top-level features and presence options', () => {
+  const features = parseClassFeatures(warlordFeaturesHtml);
+  const names = features.map((f) => f.name);
+  assert.deepEqual(names, [
+    'Archer Warlord',
+    'Canny Leader',
+    'Combat Leader',
+    'Commanding Presence',
+    'Inspiring Word'
+  ]);
+  const presence = features.find((f) => f.name === 'Commanding Presence');
+  assert.deepEqual(presence.subFeatures.map((s) => s.name), ['Insightful Presence', 'Tactical Presence']);
+  assert.equal(features.find((f) => f.name === 'Canny Leader').replaces, 'Combat Leader');
+  assert.equal(features.find((f) => f.name === 'Archer Warlord').optional, true);
+  assert.equal(features.find((f) => f.name === 'Combat Leader').optional, false);
+});
+
+test('Tactical Warlord grants Combat Leader, Tactical Presence, and hides replacement features', () => {
+  const parsed = parseClassEntry(warlordFeaturesEntry);
+  const granted = grantedFeaturesForPreview(parsed, { build: 'tactical-warlord' }, warlordFeaturesHtml);
+  assert.deepEqual(granted.map((f) => f.name), [
+    'Combat Leader',
+    'Commanding Presence',
+    'Tactical Presence',
+    'Inspiring Word'
+  ]);
+});
+
+test('Insightful Warlord replaces Combat Leader with Canny Leader', () => {
+  const parsed = parseClassEntry(warlordFeaturesEntry);
+  const granted = grantedFeaturesForPreview(parsed, { build: 'insightful-warlord' }, warlordFeaturesHtml);
+  assert.ok(granted.some((f) => f.name === 'Canny Leader'));
+  assert.ok(granted.some((f) => f.name === 'Insightful Presence'));
+  assert.equal(granted.some((f) => f.name === 'Combat Leader'), false);
+});
+
+test('a trailing period on the last build option is not part of the label', () => {
+  const parsed = parseClassEntry({
+    id: 'class8',
+    listing_fields: { Name: 'Warlord (Marshal)' },
+    body_html: '<blockquote><b>Build Options: </b>Inspiring Warlord, Tactical Warlord.</blockquote>'
+  });
+  assert.equal(parsed.buildOptions.at(-1).label, 'Tactical Warlord');
+  assert.equal(parsed.buildOptions.at(-1).id, 'tactical-warlord');
+});
+
+test('class preview lists granted features as hover links', () => {
+  const parsed = parseClassEntry(warlordFeaturesEntry);
+  const html = renderClassPreviewHtml(warlordFeaturesEntry, parsed, {
+    buildChoices: { build: 'tactical-warlord' }
+  });
+  assert.match(html, /Class features/);
+  assert.match(html, /data-feature-key="class-feature:class8:combat-leader"/);
+  assert.match(html, /data-feature-key="class-feature:class8:tactical-presence"/);
+  assert.doesNotMatch(html, /data-feature-key="class-feature:class8:canny-leader"/);
+  assert.match(html, />Combat Leader</);
 });
 
 test('extractPowerIdsFromClassHtml finds power ids', () => {

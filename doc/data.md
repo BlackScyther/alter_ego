@@ -1,6 +1,6 @@
 # Compendium data — what is and is not in Git
 
-**Last updated:** 2026-07-03
+**Last updated:** 2026-10-12
 
 Alter Ego separates **application source code** (in Git) from **D&D 4e compendium data** (local or deploy-only). This keeps the public repository useful without redistributing Wizards of the Coast rule content.
 
@@ -17,6 +17,7 @@ These must **never** be committed to Git:
 | SQLite WAL/SHM sidecars | `data/*.db-wal`, `data/*.db-shm` | Created while SQLite is open |
 | JSONP import cache | `data/import-cache/`, `data/iws-mx/` | Reserved for future importer downloads |
 | Live production mirror | `sync-from-live/` | Pulled from deploy host |
+| Local rules references | `data/reference/` | Owned book or magazine PDFs kept for comparison. Not redistributed. The Warlord Class Compendium excerpt is `data/reference/CC_Warlord.pdf`. |
 | Build output | `dist/`, `deploy/` | Includes copied DB when built locally |
 
 `.gitignore`, `.dockerignore`, the pre-commit hook, and `npm run check:legal` enforce this. See [Git safeguards](#git-safeguards) below.

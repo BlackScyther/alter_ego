@@ -95,8 +95,8 @@ test('setClassBuildChoice seeds power selections for Warlord', () => {
   setClassBuildChoice(character, 'build', 'bravura-warlord', warlordEntry);
 
   assert.equal(character.selections.classBuildChoices.build, 'bravura-warlord');
-  assert.equal(character.selections.powerSelections['power-atwill-1-a'], 'power1063');
-  assert.equal(character.selections.powerSelections['power-daily-1'], 'power239');
+  assert.equal(character.selections.powerSelections['power-atwill-1-a'], 'power4541');
+  assert.equal(character.selections.powerSelections['power-daily-1'], 'power4547');
   assert.ok(character.selections.classPowerIds.includes('power1590'));
   assert.ok(character.notes.classFeatures.includes('Build option: Bravura Warlord'));
 });
@@ -215,7 +215,7 @@ test('seedClassPowerSelections does not overwrite existing slot picks', () => {
   seedClassPowerSelections(character, warlordEntry);
 
   assert.equal(character.selections.powerSelections['power-atwill-1-a'], 'power99');
-  assert.equal(character.selections.powerSelections['power-atwill-1-b'], 'power620');
+  assert.equal(character.selections.powerSelections['power-atwill-1-b'], 'power315');
 });
 
 test('applyRecommendedClassPowers overwrites slots from build metadata', () => {
@@ -228,10 +228,10 @@ test('applyRecommendedClassPowers overwrites slots from build metadata', () => {
 
   applyRecommendedClassPowers(character, warlordEntry);
 
-  assert.equal(character.selections.powerSelections['power-atwill-1-a'], 'power1061');
+  assert.equal(character.selections.powerSelections['power-atwill-1-a'], 'power1063');
   assert.equal(character.selections.powerSelections['power-atwill-1-b'], 'power620');
-  assert.equal(character.selections.powerSelections['power-encounter-1'], 'power1064');
-  assert.equal(character.selections.powerSelections['power-daily-1'], 'power431');
+  assert.equal(character.selections.powerSelections['power-encounter-1'], 'power1066');
+  assert.equal(character.selections.powerSelections['power-daily-1'], 'power239');
 });
 
 test('hasRecommendedClassPowers is false without build seeds', () => {
@@ -246,7 +246,7 @@ test('getRecommendedPowerSeeds returns build label and slot map', () => {
 
   const rec = getRecommendedPowerSeeds(character, warlordEntry);
   assert.equal(rec.buildLabel, 'Bravura Warlord');
-  assert.equal(rec.seeds['power-daily-1'], 'power239');
+  assert.equal(rec.seeds['power-daily-1'], 'power4547');
 });
 
 test('buildStarterPowerSlotSeeds maps resolved ids onto level-1 slots', () => {
