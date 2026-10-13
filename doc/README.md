@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-12 — New level-1 characters apply point-buy with a button once the scores are valid; the grid then hides, and higher-level characters do not show it.
+**Last agent sync:** 2026-10-13 — Power type headings show filled vs available slots; slot labels no longer carry a per-row counter.

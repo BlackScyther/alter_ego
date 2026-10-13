@@ -34,6 +34,13 @@ describe('power-selections', () => {
     assert.equal(groups.Encounter.length, 2);
   });
 
+  it('keeps the level-1 at-will counter off each slot label', () => {
+    const labels = getPowerSlotsForLevel(1)
+      .filter((s) => s.powerType === 'At-Will')
+      .map((s) => s.label);
+    assert.deepEqual(labels, ['Level 1 at-will', 'Level 1 at-will']);
+  });
+
   it('migrates legacy powerIds to powerSelections', () => {
     const c = createCharacter({
       identity: { level: 1 },

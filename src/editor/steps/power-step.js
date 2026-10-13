@@ -82,6 +82,13 @@ export async function renderPowerStep(panel, ctx) {
   let enforcePrerequisites = true;
   let activeSlotId = slots.find((s) => !character.selections.powerSelections?.[s.id])?.id ?? slots[0]?.id ?? null;
 
+  function typeCountLabel(type) {
+    const typeSlots = grouped[type] ?? [];
+    const map = character.selections.powerSelections ?? {};
+    const filledCount = typeSlots.filter((slot) => map[slot.id]).length;
+    return `(${filledCount} of ${typeSlots.length})`;
+  }
+
   const slotListHtml = POWER_TYPE_ORDER.map((type) => {
     const typeSlots = grouped[type];
     if (!typeSlots?.length) return '';
@@ -120,7 +127,7 @@ export async function renderPowerStep(panel, ctx) {
       .join('');
     return `
       <div class="power-type-section" data-power-type="${esc(type)}">
-        <h4 class="power-type-heading">${esc(type)}</h4>
+        <h4 class="power-type-heading">${esc(type)} <span class="power-type-count" data-power-type="${esc(type)}">${esc(typeCountLabel(type))}</span></h4>
         <div class="flex flex-col gap-2 w-full">${rows}</div>
       </div>`;
   }).join('');
@@ -247,6 +254,10 @@ export async function renderPowerStep(panel, ctx) {
       const n = countFilledPowerSlots(character);
       quotaEl.textContent = `(${n} / ${slots.length} filled)`;
     }
+    panel.querySelectorAll('.power-type-count').forEach((el) => {
+      const type = el.dataset.powerType;
+      if (type) el.textContent = typeCountLabel(type);
+    });
   }
 
   function updateSlotListUi() {

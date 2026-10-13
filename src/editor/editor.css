@@ -2055,6 +2055,12 @@ body.player-editor #gate-lead {
   color: var(--editor-muted);
 }
 
+.power-type-count {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
 .power-shared-picker {
   padding: 12px;
 }

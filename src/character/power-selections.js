@@ -15,8 +15,8 @@ export const POWER_TYPE_ORDER = ['At-Will', 'Encounter', 'Daily', 'Utility'];
  * @type {PowerSlot[]}
  */
 export const POWER_GAIN_SLOTS = [
-  { id: 'power-atwill-1-a', slotLevel: 1, powerType: 'At-Will', label: 'Level 1 at-will (1 of 2)' },
-  { id: 'power-atwill-1-b', slotLevel: 1, powerType: 'At-Will', label: 'Level 1 at-will (2 of 2)' },
+  { id: 'power-atwill-1-a', slotLevel: 1, powerType: 'At-Will', label: 'Level 1 at-will' },
+  { id: 'power-atwill-1-b', slotLevel: 1, powerType: 'At-Will', label: 'Level 1 at-will' },
   { id: 'power-atwill-5', slotLevel: 5, powerType: 'At-Will', label: 'Level 5 at-will' },
   { id: 'power-atwill-9', slotLevel: 9, powerType: 'At-Will', label: 'Level 9 at-will' },
   { id: 'power-atwill-13', slotLevel: 13, powerType: 'At-Will', label: 'Level 13 at-will' },

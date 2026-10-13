@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-07-03
+**Last updated:** 2026-10-13
 
 ## Automation status
 
@@ -37,6 +37,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations; Watersoul and Windsoul ability swap (Strength, then Constitution or Intelligence) |
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
 | `tests/power-filter.test.mjs` | Power slot match: same type, slot level and lower, higher levels excluded |
+| `tests/power-selections.test.mjs` | Power slots by level; level-1 at-will labels have no per-slot counter; legacy migration, prune, and validation |
 | `tests/feat-prerequisite.test.mjs` | Feat prerequisites; feats above the character's level are hidden |
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering; ability score increases and point-buy bases apply only after confirm |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
