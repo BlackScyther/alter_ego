@@ -207,6 +207,18 @@ test('Watersoul can take Intelligence instead of Constitution, with Strength', (
   assert.equal(character.abilities.scores.int, 10);
   assert.equal(character.abilities.scores.con, 10);
 
+  const pendingModel = genasiAbilityBenefitModel(character, genasiAbilityEntry);
+  const pendingHtml = renderRaceAbilityChoicesHostHtml(
+    genasiAbilityEntry,
+    character.selections.raceBonusChoices,
+    pendingModel
+  );
+  assert.match(pendingHtml, /Fixed bonus: \+2 Strength/);
+  assert.match(
+    pendingHtml,
+    /Choose one: Constitution \+2 or Intelligence \+2\. You need this choice before you can continue\./
+  );
+
   setRaceBonusChoice(character, 'ability', 'genasi-water-air', 'int');
   applyGenasiManifestationAbilities(character, genasiAbilityEntry);
   assert.equal(character.abilities.scores.str, 12);
@@ -220,6 +232,7 @@ test('Watersoul can take Intelligence instead of Constitution, with Strength', (
   assert.doesNotMatch(html, /data-value="str"/);
   assert.match(html, /Applied to your ability scores: \+2 Strength and \+2 Intelligence/);
   assert.match(html, /focuses Strength and Intelligence/);
+  assert.doesNotMatch(html, /You need this choice before you can continue/);
 });
 
 test('Windsoul uses the same Intelligence option as Watersoul', () => {

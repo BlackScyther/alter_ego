@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-16 — Genasi manifestation dropdown shows a read-only detail (flavor, static benefit, power name with compendium link).
+**Last agent sync:** 2026-10-16 — Racial ability choices show the fixed bonus and a required either-or before Next is clicked.

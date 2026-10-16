@@ -818,6 +818,28 @@ function chosenAbilityLine(decision, picked) {
   return formatAbilityBonusLine(picked, amount);
 }
 
+/**
+ * Standing prompt for an unresolved racial ability choice.
+ * Names the options so the either-or is visible before Next is clicked.
+ * @param {{ options: Array<{ ability?: string, amount: number }> }} decision
+ */
+function requiredAbilityChoiceSentence(decision) {
+  const anyOpt = decision.options.find((o) => o.ability === 'any');
+  if (anyOpt) {
+    return `Choose one ability score to gain +${anyOpt.amount}. You need this choice before you can continue.`;
+  }
+  const labels = [];
+  const seen = new Set();
+  for (const opt of decision.options) {
+    if (!opt.ability || opt.ability === 'any' || seen.has(opt.ability)) continue;
+    seen.add(opt.ability);
+    const name = ABILITY_DISPLAY[opt.ability] ?? String(opt.ability).toUpperCase();
+    labels.push(`${name} +${opt.amount}`);
+  }
+  const choice = labels.length ? labels.join(' or ') : 'one ability bonus';
+  return `Choose one: ${choice}. You need this choice before you can continue.`;
+}
+
 function renderAbilityScoreBenefitItem(row, raceBonusChoices, interactive = true) {
   const model = row.abilityModel;
   const parts = [
@@ -866,45 +888,51 @@ export function renderRaceAbilityChoicesHostHtml(entry, raceBonusChoices = {}, a
   if (!model) return '';
 
   /** @type {string[]} */
-  const applied = [];
+  const fixedLines = [];
+  /** @type {string[]} */
+  const chosenLines = [];
   /** @type {string[]} */
   const controls = [];
-  let pending = false;
+  /** @type {string[]} */
+  const required = [];
 
   if (model.type === 'static') {
-    applied.push(...model.lines);
+    fixedLines.push(...model.lines);
   } else {
-    for (const f of model.fixed) applied.push(formatAbilityBonusLine(f.ability, f.amount));
+    for (const f of model.fixed) fixedLines.push(formatAbilityBonusLine(f.ability, f.amount));
     for (const d of model.decisions) {
       const picked = raceBonusChoices?.ability?.[d.choiceGroup] ?? '';
       controls.push(renderInlineChoiceButtons(d, picked));
-      if (picked) applied.push(chosenAbilityLine(d, picked));
-      else pending = true;
+      if (picked) chosenLines.push(chosenAbilityLine(d, picked));
+      else required.push(requiredAbilityChoiceSentence(d));
     }
   }
 
-  if (!applied.length && !controls.length) return '';
+  const pending = required.length > 0;
+  if (!fixedLines.length && !chosenLines.length && !controls.length) return '';
 
-  const appliedHtml = applied.length
-    ? `<p class="race-ability-applied">Applied to your ability scores: ${esc(applied.join(' and '))}.</p>`
-    : '';
-  const pendingHtml = pending
-    ? `<p class="race-ability-applied">${
-        applied.length
-          ? 'Choose the other ability bonus. It is added with the bonus above.'
-          : 'Choose an ability bonus. It is applied to your ability scores.'
-      }</p>`
-    : '';
   const hintHtml = model.hint ? `<p class="race-ability-applied">${esc(model.hint)}</p>` : '';
+  const fixedHtml =
+    pending && fixedLines.length
+      ? `<p class="race-ability-applied">Fixed bonus: ${esc(fixedLines.join(' and '))}.</p>`
+      : '';
+  const requiredHtml = required
+    .map((sentence) => `<p class="race-ability-required">${esc(sentence)}</p>`)
+    .join('');
+  const appliedLines = pending ? [] : [...fixedLines, ...chosenLines];
+  const appliedHtml = appliedLines.length
+    ? `<p class="race-ability-applied">Applied to your ability scores: ${esc(appliedLines.join(' and '))}.</p>`
+    : '';
 
   return `<div class="race-ability-choices-host">
     <h3 class="race-section-title">Ability scores</h3>
     <fieldset class="race-build-fieldset">
       <legend>Racial ability bonuses</legend>
       ${hintHtml}
+      ${fixedHtml}
+      ${requiredHtml}
       ${controls.join('')}
       ${appliedHtml}
-      ${pendingHtml}
     </fieldset>
   </div>`;
 }

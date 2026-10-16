@@ -351,10 +351,14 @@ const genasiAbilityEntry = {
 test('Genasi ability panel offers Intelligence plus Constitution or Strength', () => {
   const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, { ability: {}, skill: {} });
   assert.match(html, /Ability scores/);
-  assert.match(html, /Applied to your ability scores: \+2 Intelligence/);
+  assert.match(html, /Fixed bonus: \+2 Intelligence/);
   assert.match(html, /data-value="con"/);
   assert.match(html, /data-value="str"/);
-  assert.match(html, /Choose the other ability bonus/);
+  assert.match(
+    html,
+    /Choose one: Constitution \+2 or Strength \+2\. You need this choice before you can continue\./
+  );
+  assert.doesNotMatch(html, /Applied to your ability scores/);
 });
 
 test('choosing Strength applies +2 Intelligence and +2 Strength', () => {
@@ -373,6 +377,24 @@ test('choosing Strength applies +2 Intelligence and +2 Strength', () => {
   const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, character.selections.raceBonusChoices);
   assert.match(html, /Applied to your ability scores: \+2 Intelligence and \+2 Strength/);
   assert.match(html, /race-choice-btn--selected/);
+  assert.doesNotMatch(html, /You need this choice before you can continue/);
+  assert.doesNotMatch(html, /Fixed bonus:/);
+});
+
+test('an any-ability race names the required choice before a pick', () => {
+  const humanComboEntry = {
+    id: 'race1',
+    listing_fields: { Name: 'Human', Size: 'Medium' },
+    body_html:
+      '<blockquote><b>Ability scores:</b> +2 to one ability score of your choice<br><b>Size:</b> Medium</blockquote>'
+  };
+  const html = renderRaceAbilityChoicesHostHtml(humanComboEntry, { ability: {}, skill: {} });
+  assert.match(
+    html,
+    /Choose one ability score to gain \+2\. You need this choice before you can continue\./
+  );
+  assert.doesNotMatch(html, /Fixed bonus:/);
+  assert.match(html, /race-choice-combo/);
 });
 
 test('buildRaceNotesText includes resolved ability picks', () => {
