@@ -13,12 +13,12 @@ const ABIL_LABELS = { str: 'STR', con: 'CON', dex: 'DEX', int: 'INT', wis: 'WIS'
 export function getSkillFieldMap() {
   /** @type {Map<string, { readonly?: boolean, wizardReadonly?: boolean }>} */
   const map = new Map();
-  map.set('armor-penalty-global', {});
+  map.set('armor-penalty-global', { readonly: true });
   for (const skill of SKILLS) {
     map.set(`skill-${skill.id}-bonus`, { readonly: true });
     map.set(`skill-${skill.id}-mod-half`, { readonly: true });
     map.set(`skill-${skill.id}-trained`, {});
-    if (skill.armorPenalty) map.set(`skill-${skill.id}-pen`, {});
+    if (skill.armorPenalty) map.set(`skill-${skill.id}-pen`, { readonly: true });
     map.set(`skill-${skill.id}-misc`, { wizardReadonly: true });
   }
   return map;
@@ -39,6 +39,8 @@ export function renderSkillsTableHtml(opts = {}) {
             class="sheet-mirror-skills-input"
             data-field-id="skill-${skill.id}-pen"
             aria-label="${esc(skill.name)} armor penalty"
+            readonly
+            aria-readonly="true"
           />
         </td>`
       : `<td class="sheet-mirror-skills-cell sheet-mirror-skills-cell--na" aria-hidden="true">—</td>`;
@@ -56,6 +58,7 @@ export function renderSkillsTableHtml(opts = {}) {
           data-field-id="skill-${skill.id}-bonus"
           aria-label="${esc(skill.name)} total bonus"
           readonly
+          aria-readonly="true"
         />
       </td>
       <td class="sheet-mirror-skills-cell">
@@ -66,6 +69,7 @@ export function renderSkillsTableHtml(opts = {}) {
           data-field-id="skill-${skill.id}-mod-half"
           aria-label="${esc(skill.name)} ability modifier plus half level"
           readonly
+          aria-readonly="true"
         />
       </td>
       <td class="sheet-mirror-skills-cell sheet-mirror-skills-cell--check">
@@ -98,6 +102,8 @@ export function renderSkillsTableHtml(opts = {}) {
           id="${prefix}-armor-penalty-global"
           class="sheet-mirror-skills-input"
           data-field-id="armor-penalty-global"
+          readonly
+          aria-readonly="true"
         />
       </label>
       <table class="sheet-mirror-skills-table">
@@ -177,7 +183,7 @@ export function populateSkillsTable(root, payload, fieldMap, opts = {}) {
       }
     }
 
-    if (activeId === fieldId && document.activeElement === input) continue;
+    if (activeId === fieldId && document.activeElement === input && !readonly) continue;
 
     const val = payload[fieldId];
     if (input.type === 'checkbox') {
@@ -187,7 +193,58 @@ export function populateSkillsTable(root, payload, fieldMap, opts = {}) {
     } else if (!readonly) {
       input.value = '';
     }
+    rememberLockedSkillValue(input);
   }
+}
+
+/**
+ * Firefox stepper arrows and the mouse wheel can change a read-only number.
+ * Remember the value sheet logic wrote so a stray edit can be put back.
+ * @param {HTMLInputElement} input
+ */
+function rememberLockedSkillValue(input) {
+  if (input.type === 'checkbox') return;
+  if (input.readOnly || input.getAttribute('aria-readonly') === 'true') {
+    input.dataset.lockedValue = input.value;
+  } else {
+    delete input.dataset.lockedValue;
+  }
+}
+
+/**
+ * @param {HTMLInputElement} input
+ */
+function restoreLockedSkillValue(input) {
+  if (input.dataset.lockedValue == null) return;
+  if (input.value !== input.dataset.lockedValue) input.value = input.dataset.lockedValue;
+}
+
+/**
+ * @param {HTMLInputElement} input
+ */
+function isLockedSkillNumber(input) {
+  return input.type === 'number' && (input.readOnly || input.getAttribute('aria-readonly') === 'true');
+}
+
+/**
+ * Block Firefox stepper keys on a read-only skill number, and block the mouse
+ * wheel on every skill number so scrolling the table does not change Misc.
+ * Call once per input.
+ * @param {HTMLInputElement} input
+ */
+export function guardReadonlySkillNumber(input) {
+  input.addEventListener('keydown', (event) => {
+    if (!isLockedSkillNumber(input)) return;
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') event.preventDefault();
+  });
+  input.addEventListener(
+    'wheel',
+    (event) => {
+      if (input.type !== 'number') return;
+      event.preventDefault();
+    },
+    { passive: false }
+  );
 }
 
 /**
@@ -201,12 +258,16 @@ export function attachSkillsTableHandlers(root, onChange) {
   for (const input of root.querySelectorAll('[data-field-id]')) {
     const handler = () => {
       if (input.disabled) return;
-      if (input.readOnly || input.getAttribute('aria-readonly') === 'true') return;
+      if (input.readOnly || input.getAttribute('aria-readonly') === 'true') {
+        restoreLockedSkillValue(input);
+        return;
+      }
       const fieldId = input.dataset.fieldId;
       const value = input.type === 'checkbox' ? input.checked : input.value;
       onChange(fieldId, value);
     };
     input.addEventListener('input', handler);
     input.addEventListener('change', handler);
+    guardReadonlySkillNumber(input);
   }
 }

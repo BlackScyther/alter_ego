@@ -14,8 +14,12 @@ import {
 } from '../picker/picker-source-combo.js';
 import {
   parseClassEntry,
-  renderClassPreviewHtml
+  renderClassPreviewHtml,
+  grantedFeaturesForPreview,
+  classFeatureHoverKey
 } from '../../character/class-parse.js';
+import { detectClassEffectsForCharacter, formatClassEffectNotes } from '../../character/class-effects.js';
+import { registerFeatureHover } from '../../ui/compendium-hover-card.js';
 import {
   ensureClassSelectionsShape,
   resetClassDerivedSelections,
@@ -190,11 +194,21 @@ export async function renderClassStep(panel, ctx) {
     }
     const parsed = parseClassEntry(entry);
     const previewTerms = getPreviewTermsForClass(character, entry);
+    const buildChoices = character.selections.classBuildChoices;
+    const effectNotes = formatClassEffectNotes(detectClassEffectsForCharacter(character, entry));
     preview.innerHTML = renderClassPreviewHtml(entry, parsed, {
-      buildChoices: character.selections.classBuildChoices,
+      buildChoices,
       trainedSkillChoices: character.selections.classTrainedSkillChoices,
-      previewTerms
+      previewTerms,
+      effectNotes
     });
+    for (const feature of grantedFeaturesForPreview(parsed, buildChoices, entry.body_html ?? '')) {
+      registerFeatureHover(classFeatureHoverKey(entry.id, feature.name), {
+        title: feature.name,
+        category: 'Class feature',
+        html: feature.html
+      });
+    }
     updateDoneHint(entry);
     if (character.selections?.classId && entry) applyChoiceGuide(panel);
   }

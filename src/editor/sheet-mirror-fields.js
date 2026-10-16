@@ -90,13 +90,13 @@ function hitPointFields() {
 }
 
 function skillFields() {
-  const out = [field('armor-penalty-global', 'Global Armor Penalty', 'number')];
+  const out = [field('armor-penalty-global', 'Global Armor Penalty', 'number', { readonly: true })];
   for (const skill of SKILLS) {
     out.push(field(`skill-${skill.id}-bonus`, `${skill.name} — Bonus`, 'number', { readonly: true }));
     out.push(field(`skill-${skill.id}-mod-half`, `${skill.name} — Abil Mod + ½ Lvl`, 'number', { readonly: true }));
     out.push(field(`skill-${skill.id}-trained`, `${skill.name} — Trained (+5)`, 'checkbox'));
     if (skill.armorPenalty) {
-      out.push(field(`skill-${skill.id}-pen`, `${skill.name} — Armor Penalty`, 'number'));
+      out.push(field(`skill-${skill.id}-pen`, `${skill.name} — Armor Penalty`, 'number', { readonly: true }));
     }
     out.push(field(`skill-${skill.id}-misc`, `${skill.name} — Misc`, 'number', { wizardReadonly: true }));
   }

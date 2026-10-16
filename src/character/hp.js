@@ -41,6 +41,7 @@ export function ensureDerivedBonuses(character) {
       initiative: 0,
       initiativeBackground: 0,
       initiativeClass: 0,
+      initiativeFeat: 0,
       hpSubstituteAbility: null,
       hpSubstituteScore: null
     };
@@ -48,8 +49,36 @@ export function ensureDerivedBonuses(character) {
     const d = character.sheet.derivedBonuses;
     if (d.initiativeBackground == null) d.initiativeBackground = 0;
     if (d.initiativeClass == null) d.initiativeClass = 0;
+    if (d.initiativeFeat == null) d.initiativeFeat = 0;
   }
   return character;
+}
+
+/**
+ * Rebuild the derived initiative total from background, class, and feat parts.
+ * @param {object} character
+ */
+export function recomposeDerivedInitiative(character) {
+  ensureDerivedBonuses(character);
+  const derived = character.sheet.derivedBonuses;
+  derived.initiative =
+    (Number(derived.initiativeBackground) || 0) +
+    (Number(derived.initiativeClass) || 0) +
+    (Number(derived.initiativeFeat) || 0);
+  return character;
+}
+
+/**
+ * Handwritten Initiative — Misc that should still add.
+ * A value that exactly matches the calculated feat initiative is the handwritten
+ * copy of that feat (Improved Initiative +4) and is not added again.
+ * @param {object} character
+ */
+export function initiativeHandMisc(character) {
+  const manual = Number(character?.sheet?.initMisc) || 0;
+  const feat = Number(character?.sheet?.derivedBonuses?.initiativeFeat) || 0;
+  if (feat > 0 && manual === feat) return 0;
+  return manual;
 }
 
 /**

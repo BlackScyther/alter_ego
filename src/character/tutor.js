@@ -11,8 +11,9 @@ import {
 import { parseBackgroundEntry } from './background-parse.js';
 import { isBackgroundSkillChoiceComplete } from './background-selections.js';
 import { detectBackgroundEffects, applyBackgroundEffects } from './background-effects.js';
-import { ensureDerivedBonuses } from './hp.js';
+import { ensureDerivedBonuses, recomposeDerivedInitiative } from './hp.js';
 import { syncClassTraitsToSheet } from './class-selections.js';
+import { applyFeatInitiative, classFeatureSkillBonusRows, featInitiativeTotal } from './class-effects.js';
 
 export const ABILITY_KEYS = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export const SKILL_IDS = SKILLS.map((s) => s.id);
@@ -335,6 +336,12 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
     for (const raw of skill) derivedSkill.push(toSkillRow(raw, character));
   }
 
+  if (entriesBySource.class) {
+    for (const raw of classFeatureSkillBonusRows(character, entriesBySource.class)) {
+      derivedSkill.push(toSkillRow(raw, character));
+    }
+  }
+
   const abilityMerged = [...derivedAbility, ...manualAbility];
   const skillMerged = [...derivedSkill, ...manualSkill];
   applyDefaultChoiceGroups(abilityMerged);
@@ -347,7 +354,12 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
   syncBackgroundEffects(character, entriesBySource.background, entriesBySource.class);
   if (entriesBySource.class) {
     syncClassTraitsToSheet(character, entriesBySource.class);
+  } else {
+    ensureDerivedBonuses(character);
+    character.sheet.derivedBonuses.initiativeClass = 0;
+    recomposeDerivedInitiative(character);
   }
+  applyFeatInitiative(character, featInitiativeTotal(featEntries));
   return character;
 }
 
@@ -359,9 +371,10 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
 export function syncBackgroundEffects(character, backgroundEntry, classEntry = null) {
   if (!backgroundEntry) {
     ensureDerivedBonuses(character);
-    character.sheet.derivedBonuses.initiative = 0;
+    character.sheet.derivedBonuses.initiativeBackground = 0;
     character.sheet.derivedBonuses.hpSubstituteAbility = null;
     character.sheet.derivedBonuses.hpSubstituteScore = null;
+    recomposeDerivedInitiative(character);
     return character;
   }
 

@@ -1,4 +1,5 @@
 import { initiative, defenseTotal } from '../formulas.js';
+import { initiativeHandMisc } from '../character/hp.js';
 
 /**
  * Whether static initiative is stored as a full printed bonus (compendium spawn)
@@ -26,7 +27,7 @@ export function usesPrintedDefenses(character) {
  */
 export function staticInitiative(character) {
   const sheet = character?.sheet ?? {};
-  const initMisc = Number(sheet.initMisc) || 0;
+  const initMisc = initiativeHandMisc(character);
 
   if (usesPrintedInitiativeBonus(character)) {
     return initMisc;

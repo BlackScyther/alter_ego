@@ -27,9 +27,9 @@ import {
   recomputeAbilityScores,
   recomputeSkillBonuses
 } from '../character/tutor.js';
-import { computeMaxHp, ensureDerivedBonuses } from '../character/hp.js';
+import { computeMaxHp, ensureDerivedBonuses, initiativeHandMisc } from '../character/hp.js';
 import { getSheetMirrorSections, getSheetMirrorTabs } from './sheet-mirror-fields.js';
-import { renderSkillsTableHtml } from './skills-table.js';
+import { renderSkillsTableHtml, guardReadonlySkillNumber } from './skills-table.js';
 import { COLLAPSIBLE_CHEVRON_SVG } from './collapsible-chevron.js';
 
 const COLLAPSE_KEY = 'dnd4e.sheetMirrorCollapsed';
@@ -115,7 +115,7 @@ export function buildMirrorPayload(character) {
   const globalArmor = Number(sheet.armorPenaltyGlobal) || 0;
   ensureDerivedBonuses(character);
   const initDerived = Number(sheet.derivedBonuses?.initiative) || 0;
-  const initMiscManual = Number(sheet.initMisc) || 0;
+  const initMiscManual = initiativeHandMisc(character);
   const initMiscTotal = initMiscManual + initDerived;
 
   const payload = {
@@ -583,13 +583,20 @@ function buildStructure() {
 
   for (const input of bodyEl.querySelectorAll('[data-field-id]')) {
     const handler = () => {
-      if (!onChangeHandler || input.readOnly || input.getAttribute('aria-readonly') === 'true') return;
+      if (input.readOnly || input.getAttribute('aria-readonly') === 'true') {
+        if (input.dataset.lockedValue != null && input.value !== input.dataset.lockedValue) {
+          input.value = input.dataset.lockedValue;
+        }
+        return;
+      }
+      if (!onChangeHandler) return;
       const fieldId = input.dataset.fieldId;
       const value = input.type === 'checkbox' ? input.checked : input.value;
       onChangeHandler(fieldId, value);
     };
     input.addEventListener('input', handler);
     input.addEventListener('change', handler);
+    if (input.closest('.sheet-mirror-skills')) guardReadonlySkillNumber(input);
   }
 }
 
@@ -730,12 +737,13 @@ export function renderSheetMirror(character) {
     if (!el) continue;
 
     const readonly = isFieldReadonly(fieldDef, payload, fieldId);
-    el.readOnly = readonly;
-    el.setAttribute('aria-readonly', readonly ? 'true' : 'false');
-    if (readonly) el.classList.add('sheet-mirror-readonly');
-    else el.classList.remove('sheet-mirror-readonly');
+    if (el.type !== 'checkbox') {
+      el.readOnly = readonly;
+      el.setAttribute('aria-readonly', readonly ? 'true' : 'false');
+      el.classList.toggle('sheet-mirror-readonly', readonly);
+    }
 
-    if (activeId === fieldId && document.activeElement === el) continue;
+    if (activeId === fieldId && document.activeElement === el && !readonly) continue;
 
     const val = payload[fieldId];
     if (el.type === 'checkbox') {
@@ -744,6 +752,10 @@ export function renderSheetMirror(character) {
       el.value = val;
     } else if (!readonly) {
       el.value = '';
+    }
+    if (el.type !== 'checkbox') {
+      if (readonly) el.dataset.lockedValue = el.value;
+      else delete el.dataset.lockedValue;
     }
   }
 

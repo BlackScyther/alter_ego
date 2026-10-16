@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-10-12 (B-035 Warlord presence and starter powers)
+**Last updated:** 2026-10-13 (B-036 skill number steppers)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-036 | 2026-10-13 | Firefox drew stepper arrows on the skills table number cells and those arrows could still change a value. Total, ability, per-skill armor, and the global armor penalty are now read-only (sheet logic still writes them). Misc stays the typed column. Stepper arrows are hidden, and arrow keys or the mouse wheel cannot change a locked cell. Trained checkboxes are unchanged. Files: `src/editor/skills-table.js`, `src/editor/sheet-mirror-fields.js`, `src/editor/sheet-mirror.js`, `src/editor/editor.css`. |
 | B-035 | 2026-10-12 | Warlord builds other than Insightful and Skirmishing did not name a Commanding Presence, so the Class features list omitted Inspiring Presence and Tactical Presence. A trailing period on the last build option also broke the Tactical Warlord id. Starter power slots did not match the suggested powers on the class entry, and Insightful Warlord had no slots. Fixed: the matching Presence is granted and listed; Battlefront Shift is granted only with Battlefront Leader; starter slots follow the compendium suggested powers for all six builds. |
 | B-034 | 2026-10-11 | Class features such as Combat Leader were not listed on the Class step, and "+2 power bonus to initiative" was not added to the sheet, so a Tactical Warlord with Improved Initiative showed only +4. Granted features are now a hover list. Combat Leader +2 and Improved Initiative +4 combine to +6. Conditional sentences, including action-point presence options, are skipped. A replacement feature such as Canny Leader drops the feature it replaces. |
 | B-033 | 2026-10-11 | Power picker matched the slot's exact level, so a level 3 encounter slot hid level 1 encounter powers. Powers now include that slot's level and every lower level of the same type, and still hide higher levels. Feats and rituals use the character's current level as the same ceiling. |

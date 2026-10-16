@@ -871,7 +871,7 @@ function renderAbilities(panel) {
     </p>` : ''}
     <section class="sheet-mirror-section sheet-mirror-section--skills-table abilities-skills-section" aria-label="Skills">
       <h3 class="tutor-bonuses-title">Skills</h3>
-      <p class="tutor-footnote">Use the <strong>Trained</strong> checkboxes to pick class skills (only class-skill rows are clickable). When a build is chosen on the Class step, suggested skills are pre-selected; you can deselect and switch to any other class skill. Fixed class skills stay locked. Totals include ability, half level, training, armor penalty, and bonuses from race, background, and feats.</p>
+      <p class="tutor-footnote">Use the <strong>Trained</strong> checkboxes to pick class skills (only class-skill rows are clickable). When a build is chosen on the Class step, suggested skills are pre-selected; you can deselect and switch to any other class skill. Fixed class skills stay locked. Total, ability, and armor values are filled in automatically. Type a bonus only in <strong>Misc</strong>. A Misc cell that already shows a bonus stays locked so that bonus is not overwritten. Totals include ability, half level, training, armor penalty, and bonuses from race, background, and feats.</p>
       <div id="abilities-skills-table"></div>
     </section>
     <section class="tutor-bonuses" id="tutor-bonuses"></section>

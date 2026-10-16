@@ -3,6 +3,8 @@ import { escapeHtml } from '../shared/escape-html.js';
 
 /** @type {Map<string, object>} */
 const entryCache = new Map();
+/** @type {Map<string, { title?: string, category?: string, html?: string }>} */
+const inlineFeatures = new Map();
 /** @type {HTMLElement | null} */
 let cardEl = null;
 /** @type {HTMLElement | null} */
@@ -61,9 +63,31 @@ function positionCard(link) {
   card.style.left = `${Math.max(margin, left)}px`;
 }
 
+/**
+ * Class features are not separate compendium entries. Register the body that
+ * the hover card should show for a `data-feature-key` link.
+ * @param {string} key
+ * @param {{ title?: string, category?: string, html?: string }} info
+ */
+export function registerFeatureHover(key, info) {
+  if (!key) return;
+  inlineFeatures.set(key, info);
+}
+
 async function showCard(link) {
   clearTimeout(hideTimer);
   activeLink = link;
+  const featureKey = link.dataset.featureKey;
+  if (featureKey) {
+    const info = inlineFeatures.get(featureKey);
+    if (!info || activeLink !== link) return;
+    const card = ensureCard();
+    card.querySelector('.compendium-hover-card__header').innerHTML =
+      `<span class="compendium-hover-card__cat">${escapeHtml(info.category || 'Class feature')}</span><strong>${escapeHtml(info.title || '')}</strong>`;
+    card.querySelector('.compendium-hover-card__body').innerHTML = info.html ?? '';
+    positionCard(link);
+    return;
+  }
   const id = link.dataset.entryId;
   if (!id) return;
   const entry = await loadEntry(id);

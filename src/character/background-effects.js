@@ -4,7 +4,7 @@
 
 import overrides from '../../data/background-effect-overrides.json' with { type: 'json' };
 import { escapeHtml as esc } from '../shared/escape-html.js';
-import { computeLevel1MaxHp, ensureDerivedBonuses } from './hp.js';
+import { computeLevel1MaxHp, ensureDerivedBonuses, recomposeDerivedInitiative } from './hp.js';
 
 /** Abilities eligible to replace Constitution for starting HP (CON excluded). */
 export const HP_SUBSTITUTE_ABILITIES = ['str', 'dex', 'int', 'wis', 'cha'];
@@ -210,8 +210,7 @@ export function applyBackgroundEffects(character, effects, context = {}) {
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const derived = character.sheet.derivedBonuses;
   derived.initiativeBackground = initiativeTotal;
-  derived.initiative =
-    (Number(derived.initiativeBackground) || 0) + (Number(derived.initiativeClass) || 0);
+  recomposeDerivedInitiative(character);
 
   const hpEffect = effects.find((e) => e.type === 'hp-con-substitute');
   const choices = character.selections?.backgroundEffectChoices ?? {};
