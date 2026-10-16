@@ -28,6 +28,7 @@ import {
   parsePowerAbilityOptions,
   parsePowerDamageOptions
 } from './power-ability-parse.js';
+import { clearGrantGroup, writeGrantGroup } from './grant-slots.js';
 
 const BUILD_BY_ID = buildOptionsMeta.byRaceId ?? {};
 const BUILD_BY_NAME = buildOptionsMeta.byRaceName ?? {};
@@ -193,7 +194,8 @@ export function resetRaceDerivedSelections(character) {
   character.selections.racePowerChoiceReqs = {};
   character.selections.racePowerIds = [];
   character.selections.raceFeatIds = [];
-  character.notes.racialPowers = '';
+  clearGrantGroup(character, 'racePowers');
+  clearGrantGroup(character, 'raceFeats');
   return character;
 }
 
@@ -413,10 +415,30 @@ export function syncRaceNotesAndGrants(character, baseEntry, variantEntry, power
       if (abilityPick) parts.push(ABILITY_LABEL[abilityPick] ?? String(abilityPick).toUpperCase());
       const damagePick = damageChoices[key];
       if (damagePick) parts.push(String(damagePick));
-      return parts.length ? `${name} (${parts.join(', ')})` : name;
+      return {
+        id: key,
+        name: parts.length ? `${name} (${parts.join(', ')})` : name
+      };
     })
-    .filter(Boolean);
-  character.notes.racialPowers = powerNames.join('\n');
+    .filter((item) => item?.name);
+  const annotatedById = new Map(powerNames.map((item) => [item.id, item.name]));
+  const nameById = opts.grantNameById ?? new Map();
+  writeGrantGroup(
+    character,
+    'racePowers',
+    racePowerIds.map((id) => {
+      const key = String(id).toLowerCase();
+      return { id: key, name: annotatedById.get(key) ?? nameById.get(key) ?? key };
+    })
+  );
+  writeGrantGroup(
+    character,
+    'raceFeats',
+    raceFeatIds.map((id) => {
+      const key = String(id).toLowerCase();
+      return { id: key, name: nameById.get(key) ?? key };
+    })
+  );
 
   // Drop reqs and stale picks for powers that are no longer granted.
   character.selections.racePowerChoiceReqs = reqs;

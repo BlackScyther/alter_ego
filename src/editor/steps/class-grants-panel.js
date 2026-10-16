@@ -47,6 +47,7 @@ export async function renderClassGrantsPanel(root, ctx) {
   root.classList.add('class-grants-panel');
 
   const powerIds = character.selections?.classPowerIds ?? [];
+  const featIds = character.selections?.classFeatIds ?? [];
 
   if (powerIds.length) {
     const cardsEl = renderGroup(root, 'Class powers');
@@ -57,6 +58,22 @@ export async function renderClassGrantsPanel(root, ctx) {
         id: pid,
         name: entry.listing_fields?.Name ?? pid,
         meta: formatPowerListingMeta(entry.listing_fields),
+        linkIndex,
+        onPreview: async (id) => onPreview?.(await compendium.getEntry(id))
+      });
+    }
+  }
+
+  if (featIds.length) {
+    const cardsEl = renderGroup(root, 'Class feats');
+    for (const fid of featIds) {
+      const entry = await compendium.getEntry(fid);
+      if (!entry) continue;
+      const meta = [entry.listing_fields?.Tier, entry.listing_fields?.SourceBook].filter(Boolean).join(' · ');
+      renderGrantCard(cardsEl, {
+        id: fid,
+        name: entry.listing_fields?.Name ?? fid,
+        meta: meta || 'Feat',
         linkIndex,
         onPreview: async (id) => onPreview?.(await compendium.getEntry(id))
       });

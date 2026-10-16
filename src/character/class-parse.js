@@ -373,6 +373,21 @@ export function extractPowerIdsFromClassHtml(html) {
 }
 
 /**
+ * Feat ids embedded in a class entry (`feat123`), same token style as powers.
+ * @param {string} html
+ * @returns {string[]}
+ */
+export function extractFeatIdsFromClassHtml(html) {
+  const ids = new Set();
+  const re = /\b(feat\d+)\b/gi;
+  let m;
+  while ((m = re.exec(html ?? '')) !== null) {
+    ids.add(m[1].toLowerCase());
+  }
+  return [...ids];
+}
+
+/**
  * @param {object | null | undefined} entry
  */
 export function parseClassEntry(entry) {

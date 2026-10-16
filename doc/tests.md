@@ -32,7 +32,8 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
 | `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (fixed bonus, then a required Constitution or Strength choice), Genasi manifestation static bonuses (power clause removed) |
 | `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
-| `tests/character-collection.test.mjs` | Class grant collection; racial powers stay out of the class-powers sheet note |
+| `tests/character-collection.test.mjs` | Class grant collection; granted race and class powers stay in their own notes and out of the chosen-powers note |
+| `tests/grant-slots.test.mjs` | Categorized race/class grant slots, class feat ids, name retention, read-only mirror slot section |
 | `tests/power-card-values.test.mjs` | Printable power-card math: ability-name mapping, signed formatting, full to-hit (half level + ability + weapon proficiency + enhancement + inline bonus), implement omits proficiency, weapon/implement enhancement folded into attack+damage per source, damage modifier, proficiency defaults to 0 when unsynced |
 | `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations; Watersoul and Windsoul ability swap (Strength, then Constitution or Intelligence) with the fixed bonus and required either-or shown before the pick |
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |

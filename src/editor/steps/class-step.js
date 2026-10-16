@@ -27,6 +27,7 @@ import {
   setClassBuildChoice,
   toggleClassTrainedSkill,
   syncClassNotesAndGrants,
+  collectClassGrantIds,
   getPreviewTermsForClass,
   validateClassStep
 } from '../../character/class-selections.js';
@@ -221,12 +222,18 @@ export async function renderClassStep(panel, ctx) {
 
   async function syncClassState(entry) {
     if (!entry) return;
+    const { classPowerIds, classFeatIds } = collectClassGrantIds(character, entry);
     const powerEntries = [];
-    for (const pid of character.selections.classPowerIds ?? []) {
+    for (const pid of classPowerIds) {
       const e = await compendium.getEntry(pid);
       if (e) powerEntries.push(e);
     }
-    syncClassNotesAndGrants(character, entry, powerEntries);
+    const featEntries = [];
+    for (const fid of classFeatIds) {
+      const e = await compendium.getEntry(fid);
+      if (e) featEntries.push(e);
+    }
+    syncClassNotesAndGrants(character, entry, powerEntries, featEntries);
     await applyHybridClassStats(character, compendium);
     setNotes(character.notes.classFeatures ?? '');
     await refreshBonuses();

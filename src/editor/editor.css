@@ -826,6 +826,55 @@ body.player-editor #gate-lead {
   cursor: default;
 }
 
+.sheet-mirror-grant-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sheet-mirror-grant-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-mirror-grant-title {
+  margin: 0;
+  color: var(--editor-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sheet-mirror-slot-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px;
+  min-height: 48px;
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--editor-text);
+  border: 1px solid var(--editor-border);
+  border-radius: 4px;
+}
+
+.sheet-mirror-slot {
+  margin: 0;
+  padding: 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sheet-mirror-slot--empty {
+  color: var(--editor-muted);
+}
+
+.sheet-mirror-grant-note {
+  margin: 0;
+  color: var(--editor-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
 /* Final result / total fields: frame the summed value in a colourful border
    so it stands out from the individual contributing parts (e.g. AC Total vs
    the AC — ABIL/CLASS/FEAT components that feed into it). */

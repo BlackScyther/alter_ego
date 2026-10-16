@@ -44,8 +44,10 @@
         "selections.raceBonusChoices",
         "selections.racePowerIds",
         "selections.raceFeatIds",
+        "selections.grantSlots",
         "notes.raceFeatures",
-        "notes.racialPowers"
+        "notes.racialPowers",
+        "notes.raceFeats"
       ]
     },
     "class": {
@@ -62,8 +64,12 @@
         "selections.classBuildChoices",
         "selections.classTrainedSkillChoices",
         "selections.classPowerIds",
+        "selections.classFeatIds",
+        "selections.grantSlots",
         "selections.trainedSkillIds",
         "notes.classFeatures",
+        "notes.classPowers",
+        "notes.classFeats",
         "sheet.hp",
         "sheet.defenses",
         "sheet.speed",

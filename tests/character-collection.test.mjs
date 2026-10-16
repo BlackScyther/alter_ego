@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { createCharacter } from '../src/character/model.js';
 import { collectClassGrantIds } from '../src/character/class-selections.js';
 import { collectPowerItems, syncCollectionNotes } from '../src/character/character-collection.js';
+import { characterToSheetPayload } from '../src/character/sheet-bridge.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => readFileSync(join(__dirname, 'fixtures', 'class-html', name), 'utf8');
@@ -62,12 +63,18 @@ test('collectPowerItems includes class feature powers', async () => {
   assert.ok(items.some((i) => i.id === 'power1590' && i.name === 'Inspiring Word'));
 });
 
-test('syncCollectionNotes keeps racial powers out of the class-powers note', async () => {
+test('syncCollectionNotes keeps granted powers in their own categories', async () => {
   const character = createCharacter();
   character.selections.classId = 'class8';
   character.selections.classPowerIds = collectClassGrantIds(character, warlordEntry).classPowerIds;
   character.selections.racePowerIds = ['power2643'];
   await syncCollectionNotes(character, stubCompendium);
-  assert.ok(character.notes.powers.includes('Inspiring Word'));
+  assert.ok(character.notes.classPowers.includes('Inspiring Word'));
+  assert.ok(!character.notes.powers.includes('Inspiring Word'));
   assert.ok(!character.notes.powers.includes('Swiftcurrent'));
+  assert.equal(character.selections.grantSlots.racePowers[0].category, 'race-power');
+  assert.equal(character.selections.grantSlots.classPowers[0].category, 'class-power');
+  const sheet = characterToSheetPayload(character);
+  assert.ok(sheet['class-powers'].includes('Inspiring Word'));
+  assert.ok(sheet['racial-powers'].includes('Swiftcurrent'));
 });

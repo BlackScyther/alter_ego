@@ -65,10 +65,17 @@ export function createCharacter(partial = {}) {
       racePowerChoiceReqs: {},
       racePowerIds: [],
       raceFeatIds: [],
+      grantSlots: {
+        racePowers: [],
+        raceFeats: [],
+        classPowers: [],
+        classFeats: []
+      },
       classId: null,
       classBuildChoices: {},
       classTrainedSkillChoices: [],
       classPowerIds: [],
+      classFeatIds: [],
       trainedSkillIds: [],
       backgroundId: null,
       backgroundBonusChoices: { mode: null, skills: [] },
@@ -117,7 +124,10 @@ export function createCharacter(partial = {}) {
     notes: {
       raceFeatures: '',
       racialPowers: '',
+      raceFeats: '',
       classFeatures: '',
+      classPowers: '',
+      classFeats: '',
       backgroundFeatures: '',
       feats: '',
       powers: '',

@@ -29,6 +29,7 @@ import {
 } from '../character/tutor.js';
 import { computeMaxHp, ensureDerivedBonuses, initiativeHandMisc } from '../character/hp.js';
 import { getSheetMirrorSections, getSheetMirrorTabs } from './sheet-mirror-fields.js';
+import { GRANT_GROUPS, hydrateGrantSlotsFromNotes } from '../character/grant-slots.js';
 import { renderSkillsTableHtml, guardReadonlySkillNumber } from './skills-table.js';
 import { COLLAPSIBLE_CHEVRON_SVG } from './collapsible-chevron.js';
 
@@ -139,6 +140,7 @@ export function buildMirrorPayload(character) {
     'action-points-total': actionPointsFromMilestones(sheet.milestones),
     'speed-total': speedTotal(speed),
     feats: character.notes?.feats ?? '',
+    'chosen-powers': character.notes?.powers ?? '',
     'background-features': character.notes?.backgroundFeatures ?? ''
   };
 
@@ -305,10 +307,9 @@ export function applySheetValueToCharacter(character, fieldId, rawValue) {
 
   const notesMap = {
     'race-features': 'raceFeatures',
-    'racial-powers': 'racialPowers',
     'background-features': 'backgroundFeatures',
     'class-features': 'classFeatures',
-    'class-powers': 'powers',
+    'chosen-powers': 'powers',
     languages: 'languages',
     'ap-effects': 'apEffects',
     feats: 'feats',
@@ -414,9 +415,25 @@ function renderFieldHtml(f) {
   </label>`;
 }
 
+function renderGrantSlotsHtml() {
+  return `<div class="sheet-mirror-grant-slots">${GRANT_GROUPS.map((group) => {
+    const titleId = `mirror-grant-title-${group.key}`;
+    return `<section class="sheet-mirror-grant-group" data-grant-group="${esc(group.key)}">
+      <h4 class="sheet-mirror-grant-title" id="${titleId}">${esc(group.label)}</h4>
+      <ul class="sheet-mirror-slot-list" data-grant-list="${esc(group.key)}" aria-labelledby="${titleId}" aria-readonly="true">
+        <li class="sheet-mirror-slot sheet-mirror-slot--empty">None</li>
+      </ul>
+      <p class="sheet-mirror-grant-note">${esc(group.note)}</p>
+    </section>`;
+  }).join('')}</div>`;
+}
+
 function renderSectionContent(section) {
   if (section.layout === 'skills-table') {
     return renderSkillsTableHtml({ idPrefix: 'mirror' });
+  }
+  if (section.layout === 'grant-slots') {
+    return renderGrantSlotsHtml();
   }
   return `<div class="sheet-mirror-fields">${renderSectionFieldsHtml(section.fields)}</div>`;
 }
@@ -541,7 +558,9 @@ function buildStructure() {
           const sectionClass =
             section.layout === 'skills-table'
               ? 'sheet-mirror-section sheet-mirror-section--skills-table'
-              : 'sheet-mirror-section';
+              : section.layout === 'grant-slots'
+                ? 'sheet-mirror-section sheet-mirror-section--grant-slots'
+                : 'sheet-mirror-section';
           const titleHtml =
             section.layout === 'skills-table'
               ? ''
@@ -759,8 +778,27 @@ export function renderSheetMirror(character) {
     }
   }
 
+  updateGrantSlotLists(character);
   updateSummary(character);
   updatePortrait(character);
+}
+
+function updateGrantSlotLists(character) {
+  if (!bodyEl) return;
+  hydrateGrantSlotsFromNotes(character);
+  const slots = character.selections?.grantSlots ?? {};
+  for (const group of GRANT_GROUPS) {
+    const list = bodyEl.querySelector(`[data-grant-list="${group.key}"]`);
+    if (!list) continue;
+    const items = Array.isArray(slots[group.key]) ? slots[group.key] : [];
+    if (!items.length) {
+      list.innerHTML = '<li class="sheet-mirror-slot sheet-mirror-slot--empty">None</li>';
+      continue;
+    }
+    list.innerHTML = items
+      .map((item) => `<li class="sheet-mirror-slot">${esc(item?.name || item?.id || '')}</li>`)
+      .join('');
+  }
 }
 
 /**

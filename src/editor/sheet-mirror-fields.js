@@ -138,7 +138,6 @@ function actionPointFields() {
 function traitFields() {
   return [
     field('race-features', 'Race Features', 'textarea'),
-    field('racial-powers', 'Racial Powers', 'textarea'),
     field('background-features', 'Background Features', 'textarea'),
     field('class-features', 'Class / Path / Destiny Features', 'textarea'),
     field('languages', 'Languages Known', 'textarea')
@@ -147,8 +146,8 @@ function traitFields() {
 
 function collectionFields() {
   return [
-    field('feats', 'Feats', 'textarea'),
-    field('class-powers', 'Class Powers', 'textarea'),
+    field('chosen-powers', 'Chosen Powers', 'textarea'),
+    field('feats', 'Chosen Feats', 'textarea'),
     field('rituals', 'Rituals Known', 'textarea')
   ];
 }
@@ -253,7 +252,10 @@ export function getSheetMirrorTabs() {
     {
       id: 'collection',
       label: 'Collection',
-      sections: [{ title: 'Feats, Powers & Rituals', fields: collectionFields() }]
+      sections: [
+        { title: 'Granted by race and class', layout: 'grant-slots', fields: [] },
+        { title: 'Chosen feats, powers, and rituals', fields: collectionFields() }
+      ]
     }
   ];
 }

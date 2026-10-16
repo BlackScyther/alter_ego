@@ -12,6 +12,7 @@ import {
   parseClassEntry,
   buildClassNotesText,
   extractPowerIdsFromClassHtml,
+  extractFeatIdsFromClassHtml,
   parseBuildSuggestedSkills,
   parseBuildSuggestedPowerNames,
   parseBuildSuggestedFeatNames,
@@ -19,6 +20,7 @@ import {
   grantedFeaturesForPreview
 } from './class-parse.js';
 import { detectClassEffectsForCharacter, applyClassEffects, formatClassEffectNotes } from './class-effects.js';
+import { clearGrantGroup, writeGrantGroup } from './grant-slots.js';
 import { ensurePowerSelectionsShape, syncPowerIdsFromSelections, getPowerSlotsForLevel } from './power-selections.js';
 import {
   ensureFeatSelectionsShape,
@@ -38,12 +40,15 @@ export function ensureClassSelectionsShape(character) {
     character.selections.classTrainedSkillChoices = [];
   }
   if (!Array.isArray(character.selections.classPowerIds)) character.selections.classPowerIds = [];
+  if (!Array.isArray(character.selections.classFeatIds)) character.selections.classFeatIds = [];
   if (!Array.isArray(character.selections.trainedSkillIds)) character.selections.trainedSkillIds = [];
   if (typeof character.selections.classHybrid !== 'boolean') character.selections.classHybrid = false;
   if (!Array.isArray(character.selections.hybridClassIds)) character.selections.hybridClassIds = [];
   if (!('hybridMerged' in character.selections)) character.selections.hybridMerged = null;
   character.notes = character.notes ?? {};
   if (typeof character.notes.classFeatures !== 'string') character.notes.classFeatures = '';
+  if (typeof character.notes.classPowers !== 'string') character.notes.classPowers = '';
+  if (typeof character.notes.classFeats !== 'string') character.notes.classFeats = '';
   return character;
 }
 
@@ -52,6 +57,9 @@ export function resetClassDerivedSelections(character) {
   character.selections.classBuildChoices = {};
   character.selections.classTrainedSkillChoices = [];
   character.selections.classPowerIds = [];
+  character.selections.classFeatIds = [];
+  clearGrantGroup(character, 'classPowers');
+  clearGrantGroup(character, 'classFeats');
   character.selections.trainedSkillIds = [];
   character.selections.hybridMerged = null;
   return character;
@@ -148,6 +156,7 @@ export function collectClassGrantIds(character, classEntry) {
   );
   const choices = character.selections?.classBuildChoices ?? {};
   const powerIds = new Set(extractPowerIdsFromClassHtml(classEntry?.body_html ?? ''));
+  const featIds = new Set(extractFeatIdsFromClassHtml(classEntry?.body_html ?? ''));
 
   const classId = classEntry?.id ?? character.selections?.classId;
   const className = classEntry?.listing_fields?.Name;
@@ -176,6 +185,7 @@ export function collectClassGrantIds(character, classEntry) {
 
   return {
     classPowerIds: [...powerIds],
+    classFeatIds: [...featIds],
     previewTerms: getPreviewTermsForClass(character, classEntry)
   };
 }
@@ -741,17 +751,53 @@ export function seedClassPowerSelections(character, classEntry) {
 }
 
 /**
+ * @param {Array<{ id?: string, listing_fields?: { Name?: string } }>} entries
+ * @returns {Map<string, string>}
+ */
+function namesByEntryId(entries) {
+  const map = new Map();
+  for (const entry of entries ?? []) {
+    if (!entry?.id) continue;
+    const name = entry.listing_fields?.Name;
+    if (name) map.set(String(entry.id).toLowerCase(), name);
+  }
+  return map;
+}
+
+/**
+ * @param {object} character
+ * @param {'classPowers' | 'classFeats'} key
+ * @param {string[]} ids
+ * @param {Array<{ id?: string, listing_fields?: { Name?: string } }>} entries
+ */
+function writeNamedGrantGroup(character, key, ids, entries) {
+  const names = namesByEntryId(entries);
+  writeGrantGroup(
+    character,
+    key,
+    (ids ?? []).map((id) => {
+      const slotId = String(id).toLowerCase();
+      return { id: slotId, name: names.get(slotId) ?? slotId };
+    })
+  );
+}
+
+/**
  * @param {object} character
  * @param {object | null | undefined} classEntry
- * @param {Array<{ listing_fields?: { Name?: string } }>} [powerEntries]
+ * @param {Array<{ id?: string, listing_fields?: { Name?: string } }>} [powerEntries]
+ * @param {Array<{ id?: string, listing_fields?: { Name?: string } }>} [featEntries]
  */
-export function syncClassNotesAndGrants(character, classEntry, powerEntries = []) {
+export function syncClassNotesAndGrants(character, classEntry, powerEntries = [], featEntries = []) {
   ensureClassSelectionsShape(character);
   if (!classEntry) return character;
 
   const parsed = parseClassEntry(classEntry);
-  const { classPowerIds } = collectClassGrantIds(character, classEntry);
+  const { classPowerIds, classFeatIds } = collectClassGrantIds(character, classEntry);
   character.selections.classPowerIds = classPowerIds;
+  character.selections.classFeatIds = classFeatIds;
+  writeNamedGrantGroup(character, 'classPowers', classPowerIds, powerEntries);
+  writeNamedGrantGroup(character, 'classFeats', classFeatIds, featEntries);
 
   const buildSummary = buildBuildChoiceSummary(character, classEntry);
   let notes = buildClassNotesText(classEntry, parsed, {

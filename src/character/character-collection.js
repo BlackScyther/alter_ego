@@ -10,6 +10,7 @@ import {
   syncRitualNotesFromSelections,
   ensureRitualSelectionsShape
 } from './ritual-selections.js';
+import { syncGrantSlotsFromIds } from './grant-slots.js';
 
 /** @typedef {'power' | 'feat' | 'ritual'} CollectionCategory */
 
@@ -184,6 +185,21 @@ export async function collectFeatItems(character, compendium) {
     });
   }
 
+  for (const fid of character.selections?.classFeatIds ?? []) {
+    const id = String(fid).toLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'feat',
+      name: entry?.listing_fields?.Name ?? id,
+      meta: formatFeatMeta(entry?.listing_fields),
+      source: 'Class grant',
+      readonly: true
+    });
+  }
+
   const slots = getFeatSlotsForLevel(character.identity?.level ?? 1);
   const selections = character.selections?.featSelections ?? {};
   const retraining = !!character.builderFlags?.retraining;
@@ -287,15 +303,18 @@ export async function collectAllCollectionItems(character, compendium, opts = {}
 export async function syncCollectionNotes(character, compendium) {
   character.notes = character.notes ?? {};
   const { powers, feats, rituals } = await collectAllCollectionItems(character, compendium);
+  await syncGrantSlotsFromIds(character, compendium);
 
-  // Racial powers are mirrored separately via notes.racialPowers, so keep
-  // them out of the class-powers note to avoid duplicates on the sheet.
+  // Granted race and class powers live in grant slots. The powers note keeps
+  // chosen class slots plus other read-only sources such as background powers.
   const powerLines = powers
-    .filter((p) => !p.empty && p.source !== 'Racial')
+    .filter((p) => !p.empty && p.source !== 'Racial' && p.source !== 'Class feature')
     .map((p) => (p.slotId ? `${p.meta.split(' · ')[0]}: ${p.name}` : p.name));
   character.notes.powers = [...new Set(powerLines)].join('\n');
 
-  const featLines = feats.filter((f) => !f.empty).map((f) => f.name);
+  const featLines = feats
+    .filter((f) => !f.empty && f.source === 'Feat slot')
+    .map((f) => f.name);
   character.notes.feats = [...new Set(featLines)].join('\n');
 
   if (rituals.length) {

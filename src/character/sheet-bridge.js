@@ -43,8 +43,8 @@ export function characterToSheetPayload(character) {
     'race-features': character.notes.raceFeatures,
     'racial-powers': character.notes.racialPowers ?? '',
     'class-features': formatClassFeaturesForSheet(character.notes),
-    'class-powers': character.notes.powers ?? '',
-    feats: character.notes.feats,
+    'class-powers': joinNoteBlocks(character.notes.classPowers, character.notes.powers),
+    feats: joinNoteBlocks(character.notes.raceFeats, character.notes.classFeats, character.notes.feats),
     rituals: character.notes.rituals ?? '',
     languages: character.notes.languages,
     'ap-effects': character.notes.apEffects,
@@ -87,6 +87,13 @@ export function characterToSheetPayload(character) {
   }
 
   return payload;
+}
+
+function joinNoteBlocks(...parts) {
+  return parts
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 function formatClassFeaturesForSheet(notes) {
