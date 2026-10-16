@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-10-13
+**Last updated:** 2026-10-16
 
 ## Automation status
 
@@ -30,7 +30,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/gm-campaign-registry.test.mjs` | GM localStorage campaign registry: add, list, dedupe, corrupt storage |
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
-| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (+2 Intelligence, then Constitution or Strength) |
+| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (+2 Intelligence, then Constitution or Strength), Genasi manifestation static bonuses (power clause removed) |
 | `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
 | `tests/character-collection.test.mjs` | Class grant collection; racial powers stay out of the class-powers sheet note |
 | `tests/power-card-values.test.mjs` | Printable power-card math: ability-name mapping, signed formatting, full to-hit (half level + ability + weapon proficiency + enhancement + inline bonus), implement omits proficiency, weapon/implement enhancement folded into attack+damage per source, damage modifier, proficiency defaults to 0 when unsynced |

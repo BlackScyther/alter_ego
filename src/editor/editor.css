@@ -2373,6 +2373,28 @@ button.comp-link.class-feature-link {
   color: var(--editor-muted);
 }
 
+.race-build-detail {
+  margin: 8px 0 0;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.race-build-detail-line {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.race-build-detail-line + .race-build-detail-line {
+  margin-top: 4px;
+}
+
+.race-build-detail-power {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .race-mechanics-list {
   display: grid;
   grid-template-columns: auto 1fr;

@@ -6,7 +6,9 @@ import {
   extractBenefitSections,
   extractFeatIdsFromRaceHtml,
   extractFlavorFolds,
+  extractPowerFlavorSentence,
   extractPowerIdsFromRaceHtml,
+  parseGenasiManifestationBonuses,
   mergeRaceMechanics,
   parseRaceMechanics,
   renderCombinedRacePreviewHtml,
@@ -379,4 +381,53 @@ test('buildRaceNotesText includes resolved ability picks', () => {
   });
   assert.match(notes, /Ability scores: \+2 Constitution, \+2 Strength/);
   assert.doesNotMatch(notes, /Wisdom or Strength/);
+});
+
+const genasiManifestationHtml = [
+  '<b>Elemental Manifestation</b>: Choose one manifestation.<br>',
+  '<i>Firesoul</i>: You gain +1 Reflex defense, resist 5 fire and the firepulse power. At 11th level, the resistance improves to 10 fire. At 21st level, the resistance improves to 15 fire.<br>',
+  '<i>Watersoul</i>: You can breathe underwater. You also gain a +2 racial bonus to saving throws against ongoing damage and the swiftcurrent power.<br>',
+  '<i>Causticsoul</i>: You can breathe underwater. You also gain resist 5 acid and the acid surge power.<br>',
+  'At 11th level, the resistance improves to 10 acid.<br>',
+  'At 21st level, the resistance improves to 15 acid.<br>',
+  '<i>Magmasoul</i>: You have a +1 racial bonus to Fortitude. Whenever you take fire damage, your melee attacks deal 1d6 extra fire damage until the end of your next turn. In addition, you have the flowing magma power.<br>',
+  '<b>Elemental Origins</b>: Your ancestors were native to the Elemental Chaos.'
+].join('');
+
+test('parseGenasiManifestationBonuses keeps the static benefit and drops the power clause', () => {
+  const bonuses = parseGenasiManifestationBonuses(genasiManifestationHtml);
+  assert.equal(
+    bonuses.firesoul,
+    'You gain +1 Reflex defense, resist 5 fire. At 11th level, the resistance improves to 10 fire. At 21st level, the resistance improves to 15 fire.'
+  );
+  assert.equal(
+    bonuses.watersoul,
+    'You can breathe underwater. You also gain a +2 racial bonus to saving throws against ongoing damage.'
+  );
+  assert.equal(
+    bonuses.causticsoul,
+    'You can breathe underwater. You also gain resist 5 acid. At 11th level, the resistance improves to 10 acid. At 21st level, the resistance improves to 15 acid.'
+  );
+  assert.equal(
+    bonuses.magmasoul,
+    'You have a +1 racial bonus to Fortitude. Whenever you take fire damage, your melee attacks deal 1d6 extra fire damage until the end of your next turn.'
+  );
+  for (const text of Object.values(bonuses)) {
+    assert.doesNotMatch(text, /power/i);
+  }
+});
+
+test('parseGenasiManifestationBonuses is empty when the race has no manifestation block', () => {
+  assert.deepEqual(parseGenasiManifestationBonuses('<b>Size</b>: Medium'), {});
+});
+
+test('extractPowerFlavorSentence reads the power flavor paragraph', () => {
+  const html =
+    '<h1 class=encounterpower>Firepulse</h1>' +
+    '<p class=flavor><i>As an enemy lands a blow, retributive fire ignites.</i></p>' +
+    '<p class=powerstat><b>Attack</b>: Strength vs. Reflex</p>';
+  assert.equal(
+    extractPowerFlavorSentence(html),
+    'As an enemy lands a blow, retributive fire ignites.'
+  );
 });

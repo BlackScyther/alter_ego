@@ -74,6 +74,64 @@ function normalizeLabel(label) {
   return String(label ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+/**
+ * Drop the "and the … power" / "In addition, you have the … power" clause
+ * so the remaining sentence is only the always-on manifestation benefit.
+ * @param {string} text
+ */
+function stripManifestationPowerClause(text) {
+  let out = String(text ?? '');
+  out = out.replace(/\s*In addition,\s*you have the [^.]+?\s+power\.?/gi, '');
+  out = out.replace(/,?\s+and the [^.]+?\s+power\.?/gi, '');
+  out = out.replace(/\s+/g, ' ').trim();
+  out = out.replace(/\s+([.,;])/g, '$1');
+  out = out.replace(/([^.!?])\s+(At \d)/g, '$1. $2');
+  if (out && !/[.!?]$/.test(out)) out += '.';
+  return out;
+}
+
+/**
+ * Static benefit for each Genasi elemental manifestation, keyed by lowercase label.
+ * Reads the italic lines in the race entry. Does not include the granted power.
+ * @param {string} html
+ * @returns {Record<string, string>}
+ */
+export function parseGenasiManifestationBonuses(html) {
+  const source = String(html ?? '');
+  const startIdx = source.search(/<b>\s*Elemental Manifestation\s*<\/b>/i);
+  if (startIdx < 0) return {};
+  const region = source.slice(startIdx);
+  const stop = region.search(/<b>\s*Elemental Origins\s*<\/b>|<h1\b|<h3\b/i);
+  const block = stop > 0 ? region.slice(0, stop) : region;
+
+  const re = /<i>\s*([^<]+?)\s*<\/i>\s*:/gi;
+  const matches = [...block.matchAll(re)];
+  /** @type {Record<string, string>} */
+  const bonuses = {};
+  for (let i = 0; i < matches.length; i++) {
+    const label = normalizeLabel(matches[i][1]);
+    if (!label) continue;
+    const from = matches[i].index + matches[i][0].length;
+    const to = i + 1 < matches.length ? matches[i + 1].index : block.length;
+    const chunk = block.slice(from, to).replace(/<br\s*\/?>/gi, ' ');
+    const bonus = stripManifestationPowerClause(stripHtml(chunk));
+    if (bonus) bonuses[label] = bonus;
+  }
+  return bonuses;
+}
+
+/**
+ * Opening flavor sentence of a power entry, if it has one.
+ * @param {string} html
+ */
+export function extractPowerFlavorSentence(html) {
+  const match = String(html ?? '').match(
+    /<p[^>]*class\s*=\s*["']?flavor["']?[^>]*>([\s\S]*?)<\/p>/i
+  );
+  if (!match) return '';
+  return stripHtml(match[1]);
+}
+
 function isMechanicalH3Heading(headingText) {
   const h = String(headingText ?? '').trim();
   if (!h) return false;

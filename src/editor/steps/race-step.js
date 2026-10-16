@@ -37,7 +37,9 @@ import {
 import {
   renderCombinedRacePreviewHtml,
   renderRaceAbilityChoicesHostHtml,
-  extractFlavorFolds
+  extractFlavorFolds,
+  extractPowerFlavorSentence,
+  parseGenasiManifestationBonuses
 } from '../../character/race-parse.js';
 import { getCuratedMonsterRefs } from '../../character/monster-fluff.js';
 import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
@@ -138,15 +140,89 @@ function attachPreviewPowerDamage(previewEl, onChange) {
 const BUILD_COMBO_OPTION_THRESHOLD = 6;
 
 /**
- * Render a build decision as a compact combo picker plus an open-in-compendium
- * link that tracks the selected option.
+ * Read-only explanation of the selected Genasi manifestation.
+ * @param {HTMLFieldSetElement} fieldset
+ * @param {{ fluff?: string, bonus?: string, powerName?: string, powerId?: string } | null} detail
+ */
+function renderManifestationDetail(fieldset, detail) {
+  if (!detail) return;
+  const box = document.createElement('div');
+  box.className = 'race-build-detail';
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', 'Elemental manifestation details');
+
+  if (detail.fluff) {
+    const fluff = document.createElement('p');
+    fluff.className = 'race-build-detail-line';
+    fluff.textContent = detail.fluff;
+    box.appendChild(fluff);
+  }
+  if (detail.bonus) {
+    const bonus = document.createElement('p');
+    bonus.className = 'race-build-detail-line';
+    bonus.textContent = detail.bonus;
+    box.appendChild(bonus);
+  }
+  if (detail.powerName) {
+    const power = document.createElement('p');
+    power.className = 'race-build-detail-line race-build-detail-power';
+    const name = document.createElement('span');
+    name.textContent = detail.powerName;
+    power.appendChild(name);
+    if (detail.powerId) {
+      const openLink = document.createElement('a');
+      openLink.className = 'character-collection-open race-build-open';
+      openLink.href = compendiumEntryPageUrl(detail.powerId, location.pathname);
+      openLink.target = '_blank';
+      openLink.rel = 'noopener noreferrer';
+      openLink.title = 'Open compendium entry in new window';
+      openLink.setAttribute('aria-label', `Open ${detail.powerName} in compendium`);
+      openLink.textContent = '↗';
+      openLink.addEventListener('click', (e) => e.stopPropagation());
+      power.appendChild(openLink);
+    }
+    box.appendChild(power);
+  }
+  if (box.childElementCount) fieldset.appendChild(box);
+}
+
+/**
+ * Fluff, static bonus, and power name for the chosen manifestation.
+ * @param {{ id: string }} decision
+ * @param {Array<{ id: string, label: string, powerId?: string }>} options
+ * @param {string} picked
+ * @param {object | null | undefined} baseEntry
+ * @param {Array<{ id: string, name: string, bodyHtml?: string }>} grantEntries
+ */
+function buildManifestationDetail(decision, options, picked, baseEntry, grantEntries) {
+  if (decision.id !== 'manifestation' || !picked) return null;
+  const opt = options.find((o) => o.id === picked);
+  if (!opt) return null;
+  const bonuses = parseGenasiManifestationBonuses(baseEntry?.body_html ?? '');
+  const bonus = bonuses[opt.label.trim().toLowerCase()] ?? '';
+  const grant = (grantEntries ?? []).find(
+    (g) => opt.powerId && String(g.id).toLowerCase() === String(opt.powerId).toLowerCase()
+  );
+  return {
+    fluff: extractPowerFlavorSentence(grant?.bodyHtml ?? ''),
+    bonus,
+    powerName: grant?.name ?? '',
+    powerId: opt.powerId ?? ''
+  };
+}
+
+/**
+ * Render a build decision as a compact combo picker.
+ * Genasi manifestations explain the choice in a read-only box; the compendium
+ * link sits on the power name there, not beside the dropdown.
  * @param {HTMLFieldSetElement} fieldset
  * @param {{ id: string, prompt?: string, label?: string }} decision
  * @param {Array<{ id: string, label: string, powerId?: string }>} options
  * @param {string} picked
  * @param {(decisionId: string, optionId: string) => void} onChange
+ * @param {{ fluff?: string, bonus?: string, powerName?: string, powerId?: string } | null} [detail]
  */
-function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange) {
+function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange, detail = null) {
   const row = document.createElement('div');
   row.className = 'race-build-combo-row';
 
@@ -169,38 +245,47 @@ function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange)
   }
   row.appendChild(select);
 
-  const openLink = document.createElement('a');
-  openLink.className = 'character-collection-open race-build-open';
-  openLink.target = '_blank';
-  openLink.rel = 'noopener noreferrer';
-  openLink.textContent = '↗';
-  openLink.addEventListener('click', (e) => e.stopPropagation());
-  row.appendChild(openLink);
+  const linkInDetail = decision.id === 'manifestation';
+  if (!linkInDetail) {
+    const openLink = document.createElement('a');
+    openLink.className = 'character-collection-open race-build-open';
+    openLink.target = '_blank';
+    openLink.rel = 'noopener noreferrer';
+    openLink.textContent = '↗';
+    openLink.addEventListener('click', (e) => e.stopPropagation());
+    row.appendChild(openLink);
 
-  function updateOpenLink(optionId) {
-    const opt = options.find((o) => o.id === optionId);
-    if (opt?.powerId) {
-      openLink.href = compendiumEntryPageUrl(opt.powerId, location.pathname);
-      openLink.title = 'Open compendium entry in new window';
-      openLink.setAttribute('aria-label', `Open ${opt.label} in compendium`);
-      openLink.hidden = false;
-    } else {
-      openLink.removeAttribute('href');
-      openLink.hidden = true;
+    function updateOpenLink(optionId) {
+      const opt = options.find((o) => o.id === optionId);
+      if (opt?.powerId) {
+        openLink.href = compendiumEntryPageUrl(opt.powerId, location.pathname);
+        openLink.title = 'Open compendium entry in new window';
+        openLink.setAttribute('aria-label', `Open ${opt.label} in compendium`);
+        openLink.hidden = false;
+      } else {
+        openLink.removeAttribute('href');
+        openLink.hidden = true;
+      }
     }
-  }
-  updateOpenLink(picked);
+    updateOpenLink(picked);
 
-  select.addEventListener('change', (e) => {
-    const value = e.target.value;
-    updateOpenLink(value);
-    if (value) onChange(decision.id, value);
-  });
+    select.addEventListener('change', (e) => {
+      const value = e.target.value;
+      updateOpenLink(value);
+      if (value) onChange(decision.id, value);
+    });
+  } else {
+    select.addEventListener('change', (e) => {
+      const value = e.target.value;
+      if (value) onChange(decision.id, value);
+    });
+  }
 
   fieldset.appendChild(row);
+  renderManifestationDetail(fieldset, detail);
 }
 
-function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, onChange) {
+function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, grantEntries, onChange) {
   const raceId = character.selections?.raceId ?? pendingBaseId;
   const { baseId } = resolveRacePair(raceId);
   const decisions = getRaceBuildDecisions(baseId ?? raceId, baseEntry?.listing_fields?.Name);
@@ -236,7 +321,8 @@ function renderBuildChoiceGroups(container, character, baseEntry, variantEntry, 
       continue;
     }
     if (options.length > BUILD_COMBO_OPTION_THRESHOLD) {
-      renderBuildDecisionCombo(fieldset, d, options, picked, onChange);
+      const detail = buildManifestationDetail(d, options, picked, baseEntry, grantEntries);
+      renderBuildDecisionCombo(fieldset, d, options, picked, onChange, detail);
       choicesHost.appendChild(fieldset);
       continue;
     }
@@ -557,7 +643,7 @@ export async function renderRaceStep(panel, ctx) {
     if (linkIndex) renderLinkedEntryPreview(preview, html, linkIndex);
     else preview.innerHTML = html;
 
-    renderBuildChoiceGroups(buildEl, character, baseEntry, variantEntry, async (decisionId, optionId) => {
+    renderBuildChoiceGroups(buildEl, character, baseEntry, variantEntry, grantEntries, async (decisionId, optionId) => {
       setRaceBuildChoice(character, decisionId, optionId, baseEntry, variantEntry);
       applySelection('race', variantEntry ?? baseEntry);
       await syncRaceState(false);
