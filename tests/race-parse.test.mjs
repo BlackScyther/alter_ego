@@ -352,12 +352,14 @@ test('Genasi ability panel offers Intelligence plus Constitution or Strength', (
   const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, { ability: {}, skill: {} });
   assert.match(html, /Ability scores/);
   assert.match(html, /Fixed bonus: \+2 Intelligence/);
+  assert.match(html, /race-ability-or/);
+  assert.match(html, />or</);
   assert.match(html, /data-value="con"/);
   assert.match(html, /data-value="str"/);
-  assert.match(
-    html,
-    /Choose one: Constitution \+2 or Strength \+2\. You need this choice before you can continue\./
-  );
+  assert.match(html, /\+2 Constitution/);
+  assert.match(html, /\+2 Strength/);
+  assert.doesNotMatch(html, /You need this choice before you can continue/);
+  assert.doesNotMatch(html, /You did choose at 1st level/);
   assert.doesNotMatch(html, /Applied to your ability scores/);
 });
 
@@ -375,10 +377,11 @@ test('choosing Strength applies +2 Intelligence and +2 Strength', () => {
   assert.equal(character.abilities.scores.con, 10);
 
   const html = renderRaceAbilityChoicesHostHtml(genasiAbilityEntry, character.selections.raceBonusChoices);
+  assert.match(html, /Fixed bonus: \+2 Intelligence/);
+  assert.match(html, /You did choose at 1st level, \+2 Strength/);
   assert.match(html, /Applied to your ability scores: \+2 Intelligence and \+2 Strength/);
   assert.match(html, /race-choice-btn--selected/);
   assert.doesNotMatch(html, /You need this choice before you can continue/);
-  assert.doesNotMatch(html, /Fixed bonus:/);
 });
 
 test('an any-ability race names the required choice before a pick', () => {

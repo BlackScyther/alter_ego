@@ -622,6 +622,14 @@ export function validateRaceStep(character, baseEntry, variantEntry) {
 
 const GENASI_WATER_AIR = new Set(['watersoul', 'windsoul']);
 const GENASI_WATER_AIR_GROUP = 'genasi-water-air';
+const ABILITY_NOTE_NAME = {
+  str: 'Strength',
+  con: 'Constitution',
+  dex: 'Dexterity',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma'
+};
 
 function isGenasi(character, entry) {
   const name = entry?.listing_fields?.Name ?? character?.identity?.race ?? '';
@@ -636,9 +644,9 @@ function parsedAbilityOrGroup(character, entry) {
 
 /**
  * Watersoul and Windsoul may take Intelligence instead of Constitution.
- * Strength stays, so the character can focus Strength and Intelligence.
+ * Strength stays. Other manifestations keep the compendium line.
  * @param {string | null | undefined} manifestationId
- * @returns {{ type: 'choice', fixed: Array<{ ability: string, amount: number }>, decisions: Array<object>, hint: string } | null}
+ * @returns {{ type: 'choice', fixed: Array<{ ability: string, amount: number }>, decisions: Array<object> } | null}
  */
 export function genasiAbilityBenefitModel(character, entry) {
   if (!isGenasi(character, entry)) return null;
@@ -647,7 +655,6 @@ export function genasiAbilityBenefitModel(character, entry) {
   return {
     type: 'choice',
     fixed: [{ ability: 'str', amount: 2 }],
-    hint: 'Watersoul and Windsoul can take Intelligence instead of Constitution. With Strength, that focuses Strength and Intelligence.',
     decisions: [
       {
         choiceGroup: GENASI_WATER_AIR_GROUP,
@@ -719,7 +726,7 @@ export function applyGenasiManifestationAbilities(character, entry) {
     choiceGroup: group,
     alternatives: [],
     excludesItemBonus: false,
-    note: group ? model.hint : `+${amount} Strength`,
+    note: `+${amount} ${ABILITY_NOTE_NAME[ability] ?? ability}`,
     enabled: !group
   });
 

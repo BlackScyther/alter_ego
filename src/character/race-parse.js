@@ -809,6 +809,46 @@ function renderInlineChoiceButtons(decision, picked) {
 }
 
 /**
+ * A fixed bonus plus exactly two named abilities (Constitution or Strength).
+ * "Any one ability" stays a dropdown.
+ * @param {{ options?: Array<{ ability?: string }> }} decision
+ */
+function isPairAbilityDecision(decision) {
+  if (decision.options?.some((o) => o.ability === 'any')) return false;
+  const seen = new Set();
+  for (const opt of decision.options ?? []) {
+    if (!opt.ability || opt.ability === 'any') continue;
+    seen.add(opt.ability);
+  }
+  return seen.size === 2;
+}
+
+/**
+ * Two ability bonuses in columns, with the word "or" between them.
+ * Keeps the race-inline-choices hook so the existing click handler applies the pick.
+ * @param {object} decision
+ * @param {string} picked
+ */
+function renderAbilityOrColumns(decision, picked) {
+  const anchorId = `choice-guide-race-bonus-${decision.kind}-${decision.choiceGroup}`;
+  const options = [];
+  const seen = new Set();
+  for (const opt of decision.options) {
+    if (!opt.ability || opt.ability === 'any' || seen.has(opt.ability)) continue;
+    seen.add(opt.ability);
+    options.push(opt);
+  }
+  const buttons = options.slice(0, 2).map((opt) => {
+    const selected = picked === opt.ability;
+    const pressed = selected ? 'true' : 'false';
+    const selectedClass = selected ? ' race-choice-btn--selected' : '';
+    const label = formatAbilityBonusLine(opt.ability, opt.amount);
+    return `<button type="button" class="race-choice-btn race-ability-or-btn${selectedClass}" data-value="${esc(opt.ability)}" aria-pressed="${pressed}">${esc(label)}</button>`;
+  });
+  return `<div class="race-inline-choices race-ability-or" data-choice-guide="race-bonus" id="${esc(anchorId)}" data-kind="${esc(decision.kind)}" data-choice-group="${esc(decision.choiceGroup)}">${buttons[0]}<span class="race-ability-or-word">or</span>${buttons[1]}</div>`;
+}
+
+/**
  * @param {object} row
  * @param {{ ability?: Record<string, string> }} raceBonusChoices
  */
@@ -887,52 +927,87 @@ export function renderRaceAbilityChoicesHostHtml(entry, raceBonusChoices = {}, a
   const model = abilityModel ?? buildAbilityScoreBenefitModel(entry, raceBonusChoices);
   if (!model) return '';
 
-  /** @type {string[]} */
-  const fixedLines = [];
-  /** @type {string[]} */
-  const chosenLines = [];
+  if (model.type === 'static') {
+    if (!model.lines.length) return '';
+    return abilityChoicesHostHtml({
+      appliedHtml: appliedAbilitySentence(model.lines)
+    });
+  }
+
+  const fixedLines = model.fixed.map((f) => formatAbilityBonusLine(f.ability, f.amount));
   /** @type {string[]} */
   const controls = [];
   /** @type {string[]} */
   const required = [];
+  /** @type {string[]} */
+  const confirmations = [];
+  /** @type {string[]} */
+  const chosenLines = [];
+  let unresolved = false;
 
-  if (model.type === 'static') {
-    fixedLines.push(...model.lines);
-  } else {
-    for (const f of model.fixed) fixedLines.push(formatAbilityBonusLine(f.ability, f.amount));
-    for (const d of model.decisions) {
-      const picked = raceBonusChoices?.ability?.[d.choiceGroup] ?? '';
+  for (const d of model.decisions) {
+    const picked = raceBonusChoices?.ability?.[d.choiceGroup] ?? '';
+    if (isPairAbilityDecision(d)) {
+      controls.push(renderAbilityOrColumns(d, picked));
+      if (picked) {
+        const chosen = chosenAbilityLine(d, picked);
+        chosenLines.push(chosen);
+        confirmations.push(`You did choose at 1st level, ${chosen}.`);
+      } else {
+        unresolved = true;
+      }
+    } else {
       controls.push(renderInlineChoiceButtons(d, picked));
       if (picked) chosenLines.push(chosenAbilityLine(d, picked));
-      else required.push(requiredAbilityChoiceSentence(d));
+      else {
+        unresolved = true;
+        required.push(requiredAbilityChoiceSentence(d));
+      }
     }
   }
 
-  const pending = required.length > 0;
   if (!fixedLines.length && !chosenLines.length && !controls.length) return '';
 
-  const hintHtml = model.hint ? `<p class="race-ability-applied">${esc(model.hint)}</p>` : '';
-  const fixedHtml =
-    pending && fixedLines.length
-      ? `<p class="race-ability-applied">Fixed bonus: ${esc(fixedLines.join(' and '))}.</p>`
-      : '';
+  const fixedHtml = fixedLines.length
+    ? `<p class="race-ability-applied">Fixed bonus: ${esc(fixedLines.join(' and '))}.</p>`
+    : '';
   const requiredHtml = required
     .map((sentence) => `<p class="race-ability-required">${esc(sentence)}</p>`)
     .join('');
-  const appliedLines = pending ? [] : [...fixedLines, ...chosenLines];
-  const appliedHtml = appliedLines.length
-    ? `<p class="race-ability-applied">Applied to your ability scores: ${esc(appliedLines.join(' and '))}.</p>`
-    : '';
+  const confirmHtml = confirmations
+    .map((sentence) => `<p class="race-ability-applied">${esc(sentence)}</p>`)
+    .join('');
+  const appliedLines = unresolved ? [] : [...fixedLines, ...chosenLines];
 
+  return abilityChoicesHostHtml({
+    fixedHtml,
+    requiredHtml,
+    controls: controls.join(''),
+    confirmHtml,
+    appliedHtml: appliedLines.length ? appliedAbilitySentence(appliedLines) : ''
+  });
+}
+
+/**
+ * @param {string[]} lines
+ */
+function appliedAbilitySentence(lines) {
+  return `<p class="race-ability-applied">Applied to your ability scores: ${esc(lines.join(' and '))}.</p>`;
+}
+
+/**
+ * @param {{ fixedHtml?: string, requiredHtml?: string, controls?: string, confirmHtml?: string, appliedHtml?: string }} parts
+ */
+function abilityChoicesHostHtml(parts) {
   return `<div class="race-ability-choices-host">
     <h3 class="race-section-title">Ability scores</h3>
     <fieldset class="race-build-fieldset">
       <legend>Racial ability bonuses</legend>
-      ${hintHtml}
-      ${fixedHtml}
-      ${requiredHtml}
-      ${controls.join('')}
-      ${appliedHtml}
+      ${parts.fixedHtml ?? ''}
+      ${parts.requiredHtml ?? ''}
+      ${parts.controls ?? ''}
+      ${parts.confirmHtml ?? ''}
+      ${parts.appliedHtml ?? ''}
     </fieldset>
   </div>`;
 }

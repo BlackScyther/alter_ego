@@ -141,49 +141,33 @@ const BUILD_COMBO_OPTION_THRESHOLD = 6;
 
 /**
  * Read-only explanation of the selected Genasi manifestation.
+ * Three bullets: appearance flavor, the always-on benefit, and the power name.
+ * The power itself stays on the Powers step, so this list has no compendium link.
  * @param {HTMLFieldSetElement} fieldset
- * @param {{ fluff?: string, bonus?: string, powerName?: string, powerId?: string } | null} detail
+ * @param {{ fluff?: string, bonus?: string, powerName?: string } | null} detail
  */
 function renderManifestationDetail(fieldset, detail) {
   if (!detail) return;
+  const items = [];
+  if (detail.fluff) items.push(detail.fluff);
+  if (detail.bonus) items.push(detail.bonus);
+  if (detail.powerName) items.push(`${detail.powerName} Power`);
+  if (!items.length) return;
+
   const box = document.createElement('div');
   box.className = 'race-build-detail';
   box.setAttribute('role', 'group');
   box.setAttribute('aria-label', 'Elemental manifestation details');
 
-  if (detail.fluff) {
-    const fluff = document.createElement('p');
-    fluff.className = 'race-build-detail-line';
-    fluff.textContent = detail.fluff;
-    box.appendChild(fluff);
+  const list = document.createElement('ul');
+  list.className = 'race-build-detail-list';
+  for (const text of items) {
+    const item = document.createElement('li');
+    item.textContent = text;
+    list.appendChild(item);
   }
-  if (detail.bonus) {
-    const bonus = document.createElement('p');
-    bonus.className = 'race-build-detail-line';
-    bonus.textContent = detail.bonus;
-    box.appendChild(bonus);
-  }
-  if (detail.powerName) {
-    const power = document.createElement('p');
-    power.className = 'race-build-detail-line race-build-detail-power';
-    const name = document.createElement('span');
-    name.textContent = detail.powerName;
-    power.appendChild(name);
-    if (detail.powerId) {
-      const openLink = document.createElement('a');
-      openLink.className = 'character-collection-open race-build-open';
-      openLink.href = compendiumEntryPageUrl(detail.powerId, location.pathname);
-      openLink.target = '_blank';
-      openLink.rel = 'noopener noreferrer';
-      openLink.title = 'Open compendium entry in new window';
-      openLink.setAttribute('aria-label', `Open ${detail.powerName} in compendium`);
-      openLink.textContent = '↗';
-      openLink.addEventListener('click', (e) => e.stopPropagation());
-      power.appendChild(openLink);
-    }
-    box.appendChild(power);
-  }
-  if (box.childElementCount) fieldset.appendChild(box);
+  box.appendChild(list);
+  fieldset.appendChild(box);
 }
 
 /**
@@ -206,21 +190,19 @@ function buildManifestationDetail(decision, options, picked, baseEntry, grantEnt
   return {
     fluff: extractPowerFlavorSentence(grant?.bodyHtml ?? ''),
     bonus,
-    powerName: grant?.name ?? '',
-    powerId: opt.powerId ?? ''
+    powerName: grant?.name ?? ''
   };
 }
 
 /**
  * Render a build decision as a compact combo picker.
- * Genasi manifestations explain the choice in a read-only box; the compendium
- * link sits on the power name there, not beside the dropdown.
+ * Genasi manifestations explain the choice in a read-only list under the dropdown.
  * @param {HTMLFieldSetElement} fieldset
  * @param {{ id: string, prompt?: string, label?: string }} decision
  * @param {Array<{ id: string, label: string, powerId?: string }>} options
  * @param {string} picked
  * @param {(decisionId: string, optionId: string) => void} onChange
- * @param {{ fluff?: string, bonus?: string, powerName?: string, powerId?: string } | null} [detail]
+ * @param {{ fluff?: string, bonus?: string, powerName?: string } | null} [detail]
  */
 function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange, detail = null) {
   const row = document.createElement('div');

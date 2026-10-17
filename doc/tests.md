@@ -30,12 +30,12 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/gm-campaign-registry.test.mjs` | GM localStorage campaign registry: add, list, dedupe, corrupt storage |
 | `tests/html-escape.test.mjs` | Shared `escapeHtml`, GM card markup simulation |
 | `tests/race-subraces.test.mjs` | Subrace parent map, base-race filtering |
-| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (fixed bonus, then a required Constitution or Strength choice), Genasi manifestation static bonuses (power clause removed) |
+| `tests/race-parse.test.mjs` | Race mechanics parsing, metric conversion, notes text, Genasi ability panel (fixed bonus, then Constitution or Strength in columns; after a pick, the level-1 confirmation and the applied summary), Genasi manifestation static bonuses (power clause removed) |
 | `tests/post-load.test.mjs` | Post-load: XP threshold for level up, tooltip copy, retraining builder start step |
 | `tests/character-collection.test.mjs` | Class grant collection; granted race and class powers stay in their own notes and out of the chosen-powers note |
 | `tests/grant-slots.test.mjs` | Categorized race/class grant slots, class feat ids, name retention, read-only mirror slot section |
 | `tests/power-card-values.test.mjs` | Printable power-card math: ability-name mapping, signed formatting, full to-hit (half level + ability + weapon proficiency + enhancement + inline bonus), implement omits proficiency, weapon/implement enhancement folded into attack+damage per source, damage modifier, proficiency defaults to 0 when unsynced |
-| `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations; Watersoul and Windsoul ability swap (Strength, then Constitution or Intelligence) with the fixed bonus and required either-or shown before the pick |
+| `tests/race-selections.test.mjs` | Race build decisions: powers granted only after the choice; all 13 Genasi manifestations; Watersoul and Windsoul ability swap (Strength, then Constitution or Intelligence in columns) with the fixed bonus shown before the pick and the chosen bonus in the summary |
 | `tests/ritual-selections.test.mjs` | Ritual caster detection, slots, granted rituals |
 | `tests/power-filter.test.mjs` | Power slot match: same type, slot level and lower, higher levels excluded |
 | `tests/power-selections.test.mjs` | Power slots by level; level-1 at-will labels have no per-slot counter; legacy migration, prune, and validation |

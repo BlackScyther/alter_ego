@@ -214,10 +214,12 @@ test('Watersoul can take Intelligence instead of Constitution, with Strength', (
     pendingModel
   );
   assert.match(pendingHtml, /Fixed bonus: \+2 Strength/);
-  assert.match(
-    pendingHtml,
-    /Choose one: Constitution \+2 or Intelligence \+2\. You need this choice before you can continue\./
-  );
+  assert.match(pendingHtml, /race-ability-or/);
+  assert.match(pendingHtml, />or</);
+  assert.match(pendingHtml, /\+2 Constitution/);
+  assert.match(pendingHtml, /\+2 Intelligence/);
+  assert.doesNotMatch(pendingHtml, /You need this choice before you can continue/);
+  assert.doesNotMatch(pendingHtml, /focuses Strength and Intelligence/);
 
   setRaceBonusChoice(character, 'ability', 'genasi-water-air', 'int');
   applyGenasiManifestationAbilities(character, genasiAbilityEntry);
@@ -230,8 +232,10 @@ test('Watersoul can take Intelligence instead of Constitution, with Strength', (
   assert.match(html, /data-value="int"/);
   assert.match(html, /data-value="con"/);
   assert.doesNotMatch(html, /data-value="str"/);
+  assert.match(html, /Fixed bonus: \+2 Strength/);
+  assert.match(html, /You did choose at 1st level, \+2 Intelligence/);
   assert.match(html, /Applied to your ability scores: \+2 Strength and \+2 Intelligence/);
-  assert.match(html, /focuses Strength and Intelligence/);
+  assert.doesNotMatch(html, /focuses Strength and Intelligence/);
   assert.doesNotMatch(html, /You need this choice before you can continue/);
 });
 

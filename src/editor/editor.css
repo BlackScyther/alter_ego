@@ -2487,19 +2487,32 @@ button.comp-link.class-feature-link {
   padding: 8px 10px;
 }
 
-.race-build-detail-line {
+.race-build-detail-list {
+  list-style: disc;
   margin: 0;
+  padding-left: 1.25rem;
   line-height: 1.4;
 }
 
-.race-build-detail-line + .race-build-detail-line {
+.race-build-detail-list > li + li {
   margin-top: 4px;
 }
 
-.race-build-detail-power {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.race-inline-choices.race-ability-or {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.race-ability-or-word {
+  align-self: center;
+  text-align: center;
+}
+
+.race-ability-or-btn {
+  width: 100%;
 }
 
 .race-mechanics-list {

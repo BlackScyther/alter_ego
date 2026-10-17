@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-17 — Same-type defense bonuses of every named kind keep the highest. Untyped bonuses still add. The red exclamation uses that rule.
+**Last agent sync:** 2026-10-17 — Genasi manifestation detail is a three-item list with no compendium link. Racial ability choices show the fixed bonus, a two-column or, the level-1 pick, and a summary of those bonuses.
