@@ -11,10 +11,9 @@ import {
 } from './equipment-selections.js';
 import {
   attackAbilityForWeapon,
-  enhancementFromLevel,
-  getDefenseEnhancementInfo,
   getEquipmentStats,
-  levelFromEntry
+  itemDefenseBonusContributions,
+  stackDefenseBonuses
 } from './equipment-stats.js';
 import { parseClassEntry } from './class-parse.js';
 
@@ -69,6 +68,10 @@ function clearEquipmentDerivedSheet(character) {
   character.sheet.defenses.fort.enh = 0;
   character.sheet.defenses.ref.enh = 0;
   character.sheet.defenses.will.enh = 0;
+  character.sheet.defenses.ac.misc2 = 0;
+  character.sheet.defenses.fort.misc2 = 0;
+  character.sheet.defenses.ref.misc2 = 0;
+  character.sheet.defenses.will.misc2 = 0;
 
   const keysToClear = [
     'melee-name',
@@ -124,13 +127,12 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   const classEntry = opts.classEntry ?? null;
   const traitsText = classEntry ? parseClassEntry(classEntry).traitPairs.map((p) => p.value).join(' ') : '';
 
-  let acArmor = 0;
-  let refArmor = 0;
   let checkPenalty = 0;
   let speedPenalty = 0;
   let armorIsHeavy = false;
   let implementEnh = 0;
-  const defenseEnh = { ac: 0, fort: 0, ref: 0, will: 0 };
+  /** @type {Array<{ instanceId: string, type: string, defense: string, amount: number }>} */
+  const defenseBonuses = [];
 
   /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats>, enhancement: number }>} */
   const weapons = [];
@@ -141,15 +143,6 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     const entry = await compendium.getEntry(item.compendiumId);
     if (!entry) continue;
 
-    const defEnhInfo = getDefenseEnhancementInfo(entry);
-    if (defEnhInfo) {
-      const level = item.level ?? levelFromEntry(entry) ?? 1;
-      const bonus = enhancementFromLevel(level);
-      for (const def of defEnhInfo.defenses) {
-        defenseEnh[def] = (defenseEnh[def] || 0) + bonus;
-      }
-    }
-
     // Prefer normalized stats from the compendium DB when present; fall back to
     // runtime HTML parsing for any item not yet covered by the normalizer.
     const normalizedStats =
@@ -157,14 +150,16 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
         ? await compendium.getNormalizedItemStats(item.compendiumId)
         : null;
     const stats = normalizedStats ?? getEquipmentStats(entry);
+
+    for (const bonus of itemDefenseBonusContributions(item, entry, stats)) {
+      defenseBonuses.push({ instanceId: item.instanceId, ...bonus });
+    }
     if (!stats) continue;
 
     // Magic enhancement (+1/+2/+3) chosen on a base weapon/armor instance.
     const enhancement = Math.max(0, Math.floor(Number(item.enhancement) || 0));
 
     if (stats.kind === 'armor') {
-      acArmor += Number(stats.acBonus) || 0;
-      defenseEnh.ac += enhancement;
       checkPenalty += Number(stats.checkPenalty) || 0;
       if (/chain|scale|plate/i.test(stats.armorCategory ?? '')) armorIsHeavy = true;
       const proficient = isProficientInArmor(
@@ -175,8 +170,6 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
         speedPenalty += Number(stats.speedPenalty) || 0;
       }
     } else if (stats.kind === 'shield') {
-      acArmor += Number(stats.acBonus) || 0;
-      refArmor += Number(stats.refBonus) || 0;
       checkPenalty += Number(stats.checkPenalty) || 0;
     } else if (stats.kind === 'weapon' && (slot.id === 'mainHand' || slot.id === 'offHand')) {
       weapons.push({ slotId: slot.id, stats, enhancement });
@@ -188,15 +181,26 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     }
   }
 
-  character.sheet.defenses.ac.armor = acArmor;
-  character.sheet.defenses.ref.armor = refArmor;
+  const stacked = stackDefenseBonuses(defenseBonuses);
+  // Armor bonus and shield bonus are different types, so both apply. The sheet
+  // keeps them in the armor column. Every other type, and untyped bonuses, go
+  // in misc2 so they still count and do not overwrite a handwritten misc value.
+  for (const def of ['ac', 'fort', 'ref', 'will']) {
+    const byType = stacked[def].byType;
+    character.sheet.defenses[def].enh = byType.enhancement || 0;
+    const armorColumn = (def === 'ac' || def === 'ref' ? (byType.armor || 0) + (byType.shield || 0) : 0);
+    if (def === 'ac' || def === 'ref') character.sheet.defenses[def].armor = armorColumn;
+    let misc2 = stacked[def].untyped;
+    for (const [type, amount] of Object.entries(byType)) {
+      if (type === 'enhancement') continue;
+      if ((def === 'ac' || def === 'ref') && (type === 'armor' || type === 'shield')) continue;
+      misc2 += amount;
+    }
+    character.sheet.defenses[def].misc2 = misc2;
+  }
   character.sheet.armorPenaltyGlobal = checkPenalty;
   character.sheet.speed.armor = speedPenalty;
   character.sheet.armorIsHeavy = armorIsHeavy;
-  character.sheet.defenses.ac.enh = defenseEnh.ac;
-  character.sheet.defenses.fort.enh = defenseEnh.fort;
-  character.sheet.defenses.ref.enh = defenseEnh.ref;
-  character.sheet.defenses.will.enh = defenseEnh.will;
 
   const scores = getFinalScores(character);
   const mainWeapon = weapons.find((w) => w.slotId === 'mainHand') ?? weapons[0];

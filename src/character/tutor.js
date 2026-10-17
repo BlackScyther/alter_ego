@@ -45,7 +45,7 @@ export const TUTOR_GUIDE = {
   itemBonuses: {
     title: 'Item & enhancement bonuses',
     body: [
-      'On the sheet, Enhancement and Item bonuses to the same defense or roll do not stack — use the highest.',
+      'Bonuses of the same type to the same defense do not add — only the highest counts. That includes enhancement, item, circumstance, feat, power, racial, proficiency, shield, and armor bonuses. A bonus with no type still adds. An armor bonus is the armor you wear, usually to Armor Class, and a shield bonus still adds to it.',
       'Some features exclude item bonuses; note those in Misc on the sheet.'
     ].join(' ')
   },

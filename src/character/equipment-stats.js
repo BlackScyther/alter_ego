@@ -171,6 +171,166 @@ export function enhancementFromLevel(level) {
 }
 
 /**
+ * Named bonus types. Two bonuses of one of these types to the same defense
+ * do not add. A bonus with no type is `untyped` and does add.
+ * Armor is the armor's own bonus, almost always to Armor Class.
+ * @type {ReadonlySet<string>}
+ */
+export const NAMED_DEFENSE_BONUS_TYPES = new Set([
+  'enhancement',
+  'item',
+  'feat',
+  'power',
+  'racial',
+  'proficiency',
+  'circumstance',
+  'armor',
+  'shield',
+  'defense'
+]);
+
+/** Shown when two equipped items grant the same bonus type to the same defense. */
+export const SAME_TYPE_BONUS_WARNING =
+  'Bonuses of the same type to the same defense do not add. Only the highest one is used.';
+
+/**
+ * Every defense bonus written on an item, for example
+ * "+2 enhancement bonus to Fortitude" or "+1 circumstance bonus to Reflex".
+ * "+1 bonus to Fortitude" has no type, so it is untyped and still adds.
+ * @param {string} html
+ * @returns {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>}
+ */
+export function parseDefenseBonuses(html) {
+  const text = String(html ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ');
+  /** @type {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>} */
+  const out = [];
+  const re =
+    /\+\s*(\d+)\s+(?:(enhancement|item|feat|power|racial|race|proficiency|circumstance|armor|shield|defense)\s+)?bonus(?:es)?\s+to\s+([^.]*)/gi;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const amount = Number(match[1]);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    const rawType = String(match[2] ?? '').toLowerCase();
+    const type = rawType === 'race' ? 'racial' : rawType || 'untyped';
+    for (const defense of defensesInPhrase(match[3])) out.push({ type, defense, amount });
+  }
+  return out;
+}
+
+/**
+ * @param {string} phrase
+ * @returns {Array<'ac'|'fort'|'ref'|'will'>}
+ */
+function defensesInPhrase(phrase) {
+  /** @type {Array<'ac'|'fort'|'ref'|'will'>} */
+  const defenses = [];
+  if (/fort/i.test(phrase)) defenses.push('fort');
+  if (/reflex/i.test(phrase)) defenses.push('ref');
+  if (/\bwill\b/i.test(phrase)) defenses.push('will');
+  if (/armor\s+class|\bac\b/i.test(phrase)) defenses.push('ac');
+  return defenses;
+}
+
+/**
+ * Bonuses this item grants to defenses. Worn armor contributes an armor bonus
+ * to Armor Class. A shield contributes a shield bonus. Magic armor's +1/+2/+3
+ * is an enhancement bonus to Armor Class.
+ * @param {{ level?: number | null, enhancement?: number | null }} item
+ * @param {{ listing_fields?: Record<string, string>, body_html?: string }} entry
+ * @param {{ kind?: string, acBonus?: number, refBonus?: number } | null} [stats]
+ * @returns {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>}
+ */
+export function itemDefenseBonusContributions(item, entry, stats = null) {
+  /** @type {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>} */
+  const out = [];
+  const info = getDefenseEnhancementInfo(entry);
+  if (info) {
+    const level = item?.level ?? levelFromEntry(entry) ?? 1;
+    const bonus = enhancementFromLevel(level);
+    for (const defense of info.defenses) out.push({ type: 'enhancement', defense, amount: bonus });
+  }
+  out.push(...parseDefenseBonuses(entry?.body_html ?? ''));
+  const magic = Math.max(0, Math.floor(Number(item?.enhancement) || 0));
+  if (magic > 0 && stats?.kind === 'armor') out.push({ type: 'enhancement', defense: 'ac', amount: magic });
+  if (stats?.kind === 'armor' && Number(stats.acBonus) > 0) {
+    out.push({ type: 'armor', defense: 'ac', amount: Number(stats.acBonus) });
+  }
+  if (stats?.kind === 'shield') {
+    if (Number(stats.acBonus) > 0) out.push({ type: 'shield', defense: 'ac', amount: Number(stats.acBonus) });
+    if (Number(stats.refBonus) > 0) out.push({ type: 'shield', defense: 'ref', amount: Number(stats.refBonus) });
+  }
+  return out;
+}
+
+/**
+ * Instance ids of items that share one named bonus type on the same defense.
+ * Untyped bonuses are left out, because those add.
+ * @param {Array<{ instanceId: string, defense: string, type?: string, amount: number }>} contributions
+ * @returns {Set<string>}
+ */
+export function overlappingSameTypeBonusInstanceIds(contributions) {
+  /** @type {Map<string, Set<string>>} */
+  const groups = new Map();
+  for (const row of contributions) {
+    const amount = Math.max(0, Math.floor(Number(row.amount) || 0));
+    const type = String(row.type ?? '');
+    if (!row.instanceId || !row.defense || amount <= 0) continue;
+    if (!NAMED_DEFENSE_BONUS_TYPES.has(type)) continue;
+    const key = `${type}:${row.defense}`;
+    if (!groups.has(key)) groups.set(key, new Set());
+    groups.get(key).add(row.instanceId);
+  }
+  const overlap = new Set();
+  for (const ids of groups.values()) {
+    if (ids.size < 2) continue;
+    for (const id of ids) overlap.add(id);
+  }
+  return overlap;
+}
+
+/**
+ * Highest bonus of each named type on each defense. Untyped bonuses are summed.
+ * @param {Array<{ defense: string, type?: string, amount: number }>} contributions
+ */
+export function stackDefenseBonuses(contributions) {
+  /** @type {Record<string, { byType: Record<string, number>, untyped: number }>} */
+  const out = {
+    ac: { byType: {}, untyped: 0 },
+    fort: { byType: {}, untyped: 0 },
+    ref: { byType: {}, untyped: 0 },
+    will: { byType: {}, untyped: 0 }
+  };
+  for (const row of contributions) {
+    const amount = Math.max(0, Math.floor(Number(row.amount) || 0));
+    const bucket = out[row.defense];
+    if (!bucket || amount <= 0) continue;
+    const type = String(row.type ?? 'untyped');
+    if (type === 'untyped' || !NAMED_DEFENSE_BONUS_TYPES.has(type)) {
+      bucket.untyped += amount;
+      continue;
+    }
+    bucket.byType[type] = Math.max(bucket.byType[type] || 0, amount);
+  }
+  return out;
+}
+
+/**
+ * Fixed enhancement bonuses written on an item, for example
+ * "+2 enhancement bonus to Fortitude".
+ * A level-scaled line such as "Enhancement: Fortitude, Reflex, and Will"
+ * has no number here; that bonus comes from the selected item level.
+ * @param {string} html
+ * @returns {Array<{ defense: 'ac'|'fort'|'ref'|'will', amount: number }>}
+ */
+export function parseEnhancementDefenseBonuses(html) {
+  return parseDefenseBonuses(html)
+    .filter((bonus) => bonus.type === 'enhancement')
+    .map(({ defense, amount }) => ({ defense, amount }));
+}
+
+/**
  * Read a single numeric level from an entry's listing fields, when unambiguous.
  * Returns null for missing or multi-value level fields (e.g. "1, 6, 11").
  * @param {{ listing_fields?: Record<string, string> }} entry

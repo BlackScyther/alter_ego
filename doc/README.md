@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-17 — Powers step shows read-only race powers and equipment powers. Feats step shows read-only race feats and class feats, including Ritual Caster.
+**Last agent sync:** 2026-10-17 — Same-type defense bonuses of every named kind keep the highest. Untyped bonuses still add. The red exclamation uses that rule.

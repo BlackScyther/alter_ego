@@ -18,8 +18,12 @@ import {
 } from '../../character/equipment-selections.js';
 import {
   enhancementFromLevel,
+  SAME_TYPE_BONUS_WARNING,
   getDefenseEnhancementInfo,
+  getEquipmentStats,
+  itemDefenseBonusContributions,
   levelFromEntry,
+  overlappingSameTypeBonusInstanceIds,
   isEnhanceableEntry,
   magicDisplayName,
   magicTierForBonus,
@@ -272,6 +276,57 @@ export async function renderEquipmentStep(panel, ctx) {
     }
   }
 
+  /** @type {Set<string>} */
+  let enhancementOverlapIds = new Set();
+
+  async function refreshEnhancementOverlap() {
+    const equipped = getEquippedBySlot(character);
+    /** @type {Array<{ instanceId: string, defense: string, amount: number }>} */
+    const contributions = [];
+    await Promise.all(
+      EQUIPMENT_SLOTS.map(async (slot) => {
+        const item = equipped[slot.id];
+        if (!item) return;
+        const entry = await compendium.getEntry(item.compendiumId);
+        if (!entry) return;
+        for (const bonus of itemDefenseBonusContributions(item, entry, getEquipmentStats(entry))) {
+          contributions.push({
+            instanceId: item.instanceId,
+            defense: bonus.defense,
+            type: bonus.type,
+            amount: bonus.amount
+          });
+        }
+      })
+    );
+    enhancementOverlapIds = overlappingSameTypeBonusInstanceIds(contributions);
+  }
+
+  /**
+   * Red exclamation on an equipped item that shares a bonus type with another
+   * equipped item on the same defense. The warning is the tooltip and the accessible name.
+   * @param {Element | null | undefined} wrap
+   * @param {boolean} show
+   */
+  function manageSlotEnhancementWarning(wrap, show) {
+    if (!wrap) return;
+    const existing = wrap.querySelector(':scope > .equipment-enh-warn');
+    if (!show) {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
+    const mark = document.createElement('span');
+    mark.className = 'equipment-enh-warn';
+    mark.tabIndex = 0;
+    mark.title = SAME_TYPE_BONUS_WARNING;
+    mark.setAttribute('aria-label', SAME_TYPE_BONUS_WARNING);
+    mark.textContent = '!';
+    const openLink = wrap.querySelector('.power-slot-open');
+    if (openLink) wrap.insertBefore(mark, openLink);
+    else wrap.appendChild(mark);
+  }
+
   function updateSlotListUi() {
     panel.querySelectorAll('.equipment-slot-row').forEach((row) => {
       const sid = row.dataset.slotId;
@@ -282,6 +337,7 @@ export async function renderEquipmentStep(panel, ctx) {
   }
 
   async function refreshSlotLabels() {
+    await refreshEnhancementOverlap();
     const equipped = getEquippedBySlot(character);
     const rows = panel.querySelectorAll('.equipment-slot-row');
     await Promise.all(
@@ -300,6 +356,7 @@ export async function renderEquipmentStep(panel, ctx) {
         if (!item) {
           manageSlotLevelControl(wrap, null, null);
           manageSlotMagicControl(wrap, null, null);
+          manageSlotEnhancementWarning(wrap, false);
           if (metaEl) metaEl.textContent = 'Empty — click to choose';
           return;
         }
@@ -315,6 +372,7 @@ export async function renderEquipmentStep(panel, ctx) {
         }
         manageSlotLevelControl(wrap, item, entry);
         manageSlotMagicControl(wrap, item, entry);
+        manageSlotEnhancementWarning(wrap, enhancementOverlapIds.has(item.instanceId));
       })
     );
   }
@@ -338,7 +396,6 @@ export async function renderEquipmentStep(panel, ctx) {
 
     const level = item.level ?? levelFromEntry(entry) ?? 1;
     const bonus = enhancementFromLevel(level);
-    const defenseList = info.defenses.map((d) => d.toUpperCase()).join('/');
     const inputId = `equipment-slot-level-${esc(item.instanceId)}`;
 
     let control = existing;
@@ -348,7 +405,7 @@ export async function renderEquipmentStep(panel, ctx) {
       control.innerHTML = `
         <label class="equipment-slot-level-label" for="${inputId}">Item level</label>
         <input type="number" id="${inputId}" class="equipment-slot-level-input" min="1" max="30" step="1" />
-        <span class="equipment-slot-level-hint" aria-live="polite"></span>`;
+        <span class="equipment-slot-level-hint" aria-live="polite" title="Only the selected level applies."></span>`;
       wrap.appendChild(control);
       const input = control.querySelector('.equipment-slot-level-input');
       // Read the instance id from the control at change time (the same slot row
@@ -371,7 +428,10 @@ export async function renderEquipmentStep(panel, ctx) {
     }
     control.querySelector('.equipment-slot-level-label')?.setAttribute('for', inputId);
     const hint = control.querySelector('.equipment-slot-level-hint');
-    if (hint) hint.textContent = `+${bonus} ${defenseList}`;
+    if (hint) {
+      const short = { ac: 'AC', fort: 'Fort', ref: 'Ref', will: 'Will' };
+      hint.textContent = `+${bonus} ${info.defenses.map((id) => short[id] || id).join(', ')}`;
+    }
   }
 
   /**
@@ -443,6 +503,7 @@ export async function renderEquipmentStep(panel, ctx) {
 
   async function renderInventoryList() {
     if (!inventoryListEl) return;
+    await refreshEnhancementOverlap();
     const items = getInventoryItems(character);
     if (!items.length) {
       inventoryListEl.innerHTML = `<p class="equipment-inventory-empty">No items in inventory. Use the picker to add equipment.</p>`;
@@ -458,8 +519,13 @@ export async function renderEquipmentStep(panel, ctx) {
         const eligible = entry ? getEligibleSlotsForEntry(entry) : [];
         const canEquip = eligible.length > 0;
         const isSelected = item.instanceId === selectedInventoryId;
+        const overlap = enhancementOverlapIds.has(item.instanceId);
+        const warn = overlap
+          ? `<span class="equipment-enh-warn" tabindex="0" title="${esc(SAME_TYPE_BONUS_WARNING)}" aria-label="${esc(SAME_TYPE_BONUS_WARNING)}">!</span>`
+          : '';
         return `
           <div class="equipment-inventory-row-wrap" role="listitem">
+            ${warn}
             <button
               type="button"
               class="${pickerCardClass(isSelected)} equipment-inventory-row"
