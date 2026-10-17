@@ -16,7 +16,8 @@ import {
   buildPowerEligibilityContext,
   filterPowerEntries,
   formatPowerListingMeta,
-  formatPowerTypeBadge
+  formatPowerTypeBadge,
+  normalizePowerType
 } from '../power-filter.js';
 import {
   renderComboboxHtml,
@@ -35,6 +36,8 @@ import {
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 import { pickerCardClass } from '../picker/picker-card.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
+import { collectEquippedItemPowerGrants } from '../../character/item-power-grants.js';
+import { groupsForUsage, renderGrantSectionHtml } from './grant-section-html.js';
 
 const PICKER_KEY = 'powers';
 
@@ -191,6 +194,7 @@ export async function renderPowerStep(panel, ctx) {
           <div id="power-shared-picker" class="power-shared-picker"></div>
         </div>
       </div>
+      <div id="power-granted-sections" class="power-granted-sections"></div>
     </section>`;
 
   const pickerCol = panel.querySelector('#power-shared-picker');
@@ -505,10 +509,76 @@ export async function renderPowerStep(panel, ctx) {
     refreshPicker(input?.value ?? '');
   });
 
+  async function renderGrantedPowerSections() {
+    const host = panel.querySelector('#power-granted-sections');
+    if (!host) return;
+    const pathname = location.pathname;
+
+    const raceNames = new Map(
+      (character.selections?.grantSlots?.racePowers ?? []).map((slot) => [
+        String(slot.id).toLowerCase(),
+        slot.name
+      ])
+    );
+    const raceRows = [];
+    for (const raw of character.selections?.racePowerIds ?? []) {
+      const id = String(raw).toLowerCase();
+      const entry = await compendium.getEntry(id);
+      const name = raceNames.get(id) || entry?.listing_fields?.Name || id;
+      raceRows.push({
+        name,
+        meta: 'From your race',
+        usage: normalizePowerType(entry?.listing_fields?.Type),
+        links: [
+          {
+            href: compendiumEntryPageUrl(id, pathname),
+            ariaLabel: `Open ${name} in compendium`
+          }
+        ]
+      });
+    }
+
+    const equipmentRows = (await collectEquippedItemPowerGrants(character, compendium)).map((grant) => ({
+      name: grant.itemName,
+      meta: `${grant.slotLabel} · ${grant.powerName}`,
+      usage: grant.usage,
+      links: [
+        {
+          href: compendiumEntryPageUrl(grant.itemId, pathname),
+          ariaLabel: `Open item ${grant.itemName} in compendium`,
+          text: 'Item'
+        },
+        {
+          href: compendiumEntryPageUrl(grant.powerId, pathname),
+          ariaLabel: `Open power ${grant.powerName} in compendium`,
+          text: 'Power'
+        }
+      ]
+    }));
+
+    host.innerHTML = [
+      renderGrantSectionHtml({
+        kind: 'race',
+        title: 'Race',
+        ariaLabel: 'Race powers',
+        note: 'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
+        groups: groupsForUsage(raceRows)
+      }),
+      renderGrantSectionHtml({
+        kind: 'equipment',
+        title: 'Equipment',
+        ariaLabel: 'Equipment powers',
+        note: 'Granted by equipped items. These slots cannot be edited here. Equip or unequip the item on the Equipment step to change them.',
+        groups: groupsForUsage(equipmentRows)
+      })
+    ].join('');
+  }
+
   updateSlotListUi();
   await refreshSlotLabels();
   await syncPickerFromSlot();
   await refreshPicker('');
+  await renderGrantedPowerSections();
   onActiveSlotChange?.(activeSlotId);
   await onCollectionRefresh?.();
 

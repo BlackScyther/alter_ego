@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-10-16
+**Last updated:** 2026-10-17
 
 ## Automation status
 
@@ -49,6 +49,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/class-parse.test.mjs` | Class HTML traits, builds, and CLASS FEATURES grants (Tactical keeps Combat Leader and lists Tactical Presence; Insightful replaces Combat Leader; a trailing period is stripped from the last build name; feature names are hover links) |
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
+| `tests/item-power-grants.test.mjs` | Equipped items that link a power; inventory and powerless items ignored; usage grouping; item link then power link; empty Equipment section omitted |
 | `tests/starting-equipment.test.mjs` | Level-1 kit resolve/seed; create-only gate; `getRecommendedStartingKitMeta`; `clearAllEquipment`; `applyStartingKit` force re-apply; sheet fields after seed |
 | `tests/equipment-sheet-sync.test.mjs` | Equipment stats overrides; name/type armor fallback; armor/shield/weapon → defenses and attacks; level→enhancement mapping; Amulet of Protection → Fort/Ref/Will enh by item level; magic weapon → atk/dmg enh and magic armor → AC enh; magic implement → its bonus on the attack lines + `implement-enh` card field, melee line uses max(weapon, implement); `isEnhanceableEntry` (incl. implements)/`magicDisplayName`/`magicTierForBonus`/`magicTotalCostGp` + enhancement clamping |
 | `tests/defense-formulas.test.mjs` | `defenseAbilityMod` (higher of two ability mods per defense); feeds defense total (FORT level-3 example = 18) |

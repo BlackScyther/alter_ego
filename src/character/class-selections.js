@@ -21,6 +21,7 @@ import {
 } from './class-parse.js';
 import { detectClassEffectsForCharacter, applyClassEffects, formatClassEffectNotes } from './class-effects.js';
 import { clearGrantGroup, writeGrantGroup } from './grant-slots.js';
+import { RITUAL_CASTER_FEAT_ID } from './ritual-selections.js';
 import { ensurePowerSelectionsShape, syncPowerIdsFromSelections, getPowerSlotsForLevel } from './power-selections.js';
 import {
   ensureFeatSelectionsShape,
@@ -155,8 +156,14 @@ export function collectClassGrantIds(character, classEntry) {
     parsed
   );
   const choices = character.selections?.classBuildChoices ?? {};
-  const powerIds = new Set(extractPowerIdsFromClassHtml(classEntry?.body_html ?? ''));
-  const featIds = new Set(extractFeatIdsFromClassHtml(classEntry?.body_html ?? ''));
+  const html = classEntry?.body_html ?? '';
+  const powerIds = new Set(extractPowerIdsFromClassHtml(html));
+  const featIds = new Set(extractFeatIdsFromClassHtml(html));
+  // Classes such as Wizard grant Ritual Caster in prose ("Ritual Casting")
+  // without always linking the feat id.
+  if (/ritual\s+caster|ritual\s+casting/i.test(html)) {
+    featIds.add(RITUAL_CASTER_FEAT_ID);
+  }
 
   const classId = classEntry?.id ?? character.selections?.classId;
   const className = classEntry?.listing_fields?.Name;

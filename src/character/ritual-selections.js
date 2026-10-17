@@ -5,7 +5,7 @@
 import classRitualGrantsMeta from '../../metadata/class-ritual-grants.json' with { type: 'json' };
 import { extractRitualIdsFromHtml } from './ritual-parse.js';
 
-const RITUAL_CASTER_FEAT_ID = 'feat159';
+export const RITUAL_CASTER_FEAT_ID = 'feat159';
 const GRANTS_BY_ID = classRitualGrantsMeta.byClassId ?? {};
 const GRANTS_BY_NAME = classRitualGrantsMeta.byClassName ?? {};
 

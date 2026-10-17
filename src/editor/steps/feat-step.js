@@ -10,8 +10,11 @@ import {
 } from '../../character/feat-selections.js';
 import {
   applyRecommendedClassFeats,
+  collectClassGrantIds,
   resolveRecommendedFeatSeeds
 } from '../../character/class-selections.js';
+import { writeGrantGroup } from '../../character/grant-slots.js';
+import { RITUAL_CASTER_FEAT_ID } from '../../character/ritual-selections.js';
 import {
   buildFeatEligibilityContext,
   filterFeatEntries,
@@ -34,6 +37,7 @@ import {
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 import { pickerCardClass } from '../picker/picker-card.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
+import { renderGrantSectionHtml } from './grant-section-html.js';
 
 const PICKER_KEY = 'feats';
 
@@ -184,6 +188,7 @@ export async function renderFeatStep(panel, ctx) {
           <div id="feat-shared-picker" class="power-shared-picker"></div>
         </div>
       </div>
+      <div id="feat-granted-sections" class="power-granted-sections"></div>
     </section>`;
 
   const pickerCol = panel.querySelector('#feat-shared-picker');
@@ -373,6 +378,13 @@ export async function renderFeatStep(panel, ctx) {
     for (const [sid, fid] of Object.entries(character.selections.featSelections ?? {})) {
       if (fid && sid !== slot.id) excludeIds.add(fid);
     }
+    for (const fid of [
+      ...(character.selections.raceFeatIds ?? []),
+      ...(character.selections.classFeatIds ?? [])
+    ]) {
+      const id = String(fid);
+      if (id && id !== selectedId) excludeIds.add(id);
+    }
 
     const ctxElig = await buildFeatEligibilityContext(character, compendium, slot);
     const pool = await loadFeatPool(query);
@@ -482,9 +494,109 @@ export async function renderFeatStep(panel, ctx) {
     refreshPicker(input?.value ?? '');
   });
 
+  function sameIdList(left, right) {
+    const norm = (ids) =>
+      [...ids].map((id) => String(id).toLowerCase()).sort().join(',');
+    return norm(left) === norm(right);
+  }
+
+  async function syncClassGrantFeats() {
+    if (!classEntry) return [];
+    const { classFeatIds } = collectClassGrantIds(character, classEntry);
+    const items = [];
+    for (const raw of classFeatIds) {
+      const id = String(raw).toLowerCase();
+      const entry = await compendium.getEntry(id);
+      const name =
+        entry?.listing_fields?.Name ||
+        (id === RITUAL_CASTER_FEAT_ID ? 'Ritual Caster' : id);
+      items.push({ id, name, entry });
+    }
+    const stored = character.selections.classFeatIds ?? [];
+    const storedNames = new Map(
+      (character.selections.grantSlots?.classFeats ?? []).map((slot) => [
+        String(slot.id).toLowerCase(),
+        slot.name
+      ])
+    );
+    const namesMatch = items.every((item) => storedNames.get(item.id) === item.name);
+    if (!sameIdList(stored, items.map((item) => item.id)) || !namesMatch) {
+      character.selections.classFeatIds = items.map((item) => item.id);
+      writeGrantGroup(
+        character,
+        'classFeats',
+        items.map((item) => ({ id: item.id, name: item.name }))
+      );
+      await onPersist?.();
+    }
+    return items;
+  }
+
+  async function renderGrantedFeatSections(classFeats) {
+    const host = panel.querySelector('#feat-granted-sections');
+    if (!host) return;
+    const pathname = location.pathname;
+    const raceNames = new Map(
+      (character.selections?.grantSlots?.raceFeats ?? []).map((slot) => [
+        String(slot.id).toLowerCase(),
+        slot.name
+      ])
+    );
+    const raceRows = [];
+    for (const raw of character.selections?.raceFeatIds ?? []) {
+      const id = String(raw).toLowerCase();
+      const entry = await compendium.getEntry(id);
+      const name = raceNames.get(id) || entry?.listing_fields?.Name || id;
+      const meta = [entry?.listing_fields?.Tier, entry?.listing_fields?.SourceBook].filter(Boolean).join(' · ');
+      raceRows.push({
+        name,
+        meta: meta || 'From your race',
+        links: [
+          {
+            href: compendiumEntryPageUrl(id, pathname),
+            ariaLabel: `Open ${name} in compendium`
+          }
+        ]
+      });
+    }
+    const classRows = classFeats.map((item) => {
+      const meta = [item.entry?.listing_fields?.Tier, item.entry?.listing_fields?.SourceBook]
+        .filter(Boolean)
+        .join(' · ');
+      return {
+        name: item.name,
+        meta: meta || 'From your class',
+        links: [
+          {
+            href: compendiumEntryPageUrl(item.id, pathname),
+            ariaLabel: `Open ${item.name} in compendium`
+          }
+        ]
+      };
+    });
+    host.innerHTML = [
+      renderGrantSectionHtml({
+        kind: 'race-feats',
+        title: 'Race',
+        ariaLabel: 'Race feats',
+        note: 'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
+        groups: [{ rows: raceRows }]
+      }),
+      renderGrantSectionHtml({
+        kind: 'class-feats',
+        title: 'Class',
+        ariaLabel: 'Class feats',
+        note: 'Granted by your class. These slots cannot be edited here. Choose a different class to change them.',
+        groups: [{ rows: classRows }]
+      })
+    ].join('');
+  }
+
   updateSlotListUi();
   await refreshSlotLabels();
   await syncPickerFromSlot();
+  const classGrantFeats = await syncClassGrantFeats();
+  await renderGrantedFeatSections(classGrantFeats);
   await refreshPicker('');
   onActiveSlotChange?.(activeSlotId);
   await onCollectionRefresh?.();

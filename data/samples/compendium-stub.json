@@ -66,7 +66,7 @@
         {
           "id": "class3",
           "listing_fields": { "Name": "Wizard", "RoleName": "Controller", "PowerSourceText": "Arcane", "SourceBook": "PHB" },
-          "body_html": "<p>Arcane controller.</p>",
+          "body_html": "<p>Arcane controller. <b>Ritual Casting:</b> You gain the Ritual Caster feat as a bonus feat.</p>",
           "index_text": "Wizard controller arcane"
         }
       ]

@@ -14,6 +14,7 @@ import {
   seedClassPowerSelections,
   applyRecommendedClassPowers,
   applyRecommendedClassFeats,
+  collectClassGrantIds,
   getRecommendedPowerSeeds,
   hasRecommendedClassPowers,
   buildStarterPowerSlotSeeds,
@@ -279,4 +280,22 @@ test('applyRecommendedClassFeats overwrites level-1 slot from seeds', () => {
   });
 
   assert.equal(character.selections.featSelections['feat-1'], 'feat261');
+});
+
+test('a class that describes Ritual Casting grants the Ritual Caster feat', () => {
+  const character = createCharacter();
+  const wizard = {
+    id: 'class3',
+    listing_fields: { Name: 'Wizard' },
+    body_html: '<p><b>Ritual Casting:</b> You gain the Ritual Caster feat as a bonus feat.</p>'
+  };
+  const grants = collectClassGrantIds(character, wizard);
+  assert.ok(grants.classFeatIds.includes('feat159'));
+
+  const linked = {
+    ...wizard,
+    body_html: `${wizard.body_html}<p>See feat159.</p>`
+  };
+  const again = collectClassGrantIds(character, linked);
+  assert.equal(again.classFeatIds.filter((id) => id === 'feat159').length, 1);
 });
