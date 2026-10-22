@@ -2820,6 +2820,62 @@ button.comp-link.class-feature-link {
   margin-top: 8px;
 }
 
+.theme-preview-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.theme-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: var(--editor-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.theme-meta-list,
+.theme-power-list {
+  margin: 0 0 8px;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.theme-meta-list li,
+.theme-power-list li {
+  margin-bottom: 4px;
+}
+
+.theme-power-status {
+  color: var(--editor-muted);
+}
+
+.theme-feature-fold,
+.theme-flavor-fold {
+  margin-top: 8px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.theme-feature-fold summary,
+.theme-flavor-fold summary {
+  cursor: pointer;
+  color: var(--editor-muted);
+  font-weight: 700;
+}
+
+.theme-feature-fold--locked summary {
+  font-weight: 600;
+}
+
+.theme-feature-text,
+.theme-flavor-body {
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
 .race-preview-variant {
   margin-top: 16px;
   padding-top: 12px;

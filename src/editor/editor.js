@@ -62,6 +62,7 @@ import {
   pendingAbilityIncreaseLevels
 } from '../character/tutor.js';
 import { renderBackgroundStep } from './steps/background-step.js';
+import { renderThemeStep } from './steps/theme-step.js';
 import { renderFeatStep } from './steps/feat-step.js';
 import { renderPowerStep } from './steps/power-step.js';
 import { renderEquipmentStep } from './steps/equipment-step.js';
@@ -70,6 +71,8 @@ import { renderClassStep } from './steps/class-step.js';
 import { ensureRaceSelectionsShape, applyGenasiManifestationAbilities } from '../character/race-selections.js';
 import { resetBackgroundBonusChoices } from '../character/background-selections.js';
 import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
+import { parseThemeEntry, buildThemeNotesText } from '../character/theme-parse.js';
+import { syncThemeSelection } from '../character/theme-selections.js';
 import { getHpSubstituteTutorHint } from '../character/hp.js';
 import { buildCompendiumLinkIndex } from '../data/compendium-link-index.js';
 import { attachCompendiumHoverDelegates } from '../ui/compendium-hover-card.js';
@@ -548,6 +551,17 @@ async function renderStepPanel() {
         renderTutorHint: (p) => renderSelectionTutorHint(p, 'background')
       });
       break;
+    case 'theme':
+      await renderThemeStep(panel, {
+        character,
+        compendium,
+        def,
+        applySelection: applyCompendiumSelection,
+        onPersist: async () => persist(),
+        refreshBonuses: refreshBonusesFromSelections,
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'theme')
+      });
+      break;
     case 'race':
       await renderRaceStep(panel, {
         character,
@@ -673,6 +687,7 @@ function renderBasics(panel) {
     ensurePowerSelectionsShape(character);
     prunePowerSelections(character);
     renderNav();
+    void refreshBonusesFromSelections().then(() => persist());
   });
   bind(panel, 'f-alignment', (v) => (character.identity.alignment = v));
   bind(panel, 'f-deity', (v) => (character.identity.deity = v));
@@ -693,7 +708,8 @@ async function refreshBonusesFromSelections() {
   const map = [
     ['race', character.selections.raceId],
     ['class', character.selections.classId],
-    ['background', character.selections.backgroundId]
+    ['background', character.selections.backgroundId],
+    ['theme', character.selections.themeId]
   ];
   for (const [source, id] of map) {
     if (!id) continue;
@@ -717,6 +733,7 @@ async function refreshBonusesFromSelections() {
   } catch {
     /* equipment sync is best-effort; never block bonus refresh */
   }
+  await syncThemeSelection(character, entries.theme ?? null, compendium);
   await syncCollectionNotes(character, compendium);
   renderSheetMirror(character);
   await refreshCharacterCollection();
@@ -1199,6 +1216,7 @@ function formatSelections(sel) {
   const parts = [];
   if (sel.raceId) parts.push(`race: ${sel.raceId}`);
   if (sel.classId) parts.push(`class: ${sel.classId}`);
+  if (sel.themeId) parts.push(`theme: ${sel.themeId}`);
   if (sel.featIds?.length) parts.push(`feats: ${sel.featIds.length}`);
   if (sel.powerIds?.length) parts.push(`powers: ${sel.powerIds.length}`);
   return parts.join(' · ') || '—';
@@ -1209,6 +1227,7 @@ function getSelectionIdForStep(stepId) {
     race: 'raceId',
     class: 'classId',
     background: 'backgroundId',
+    theme: 'themeId',
     paragon: 'paragonPathId',
     epic: 'epicDestinyId'
   };
@@ -1218,12 +1237,14 @@ function getSelectionIdForStep(stepId) {
 function getNotesForStep(stepId) {
   if (stepId === 'class') return character.notes.classFeatures;
   if (stepId === 'background') return character.notes.backgroundFeatures ?? '';
+  if (stepId === 'theme') return character.notes.themeFeatures ?? '';
   return '';
 }
 
 function setNotesForStep(stepId, text) {
   if (stepId === 'class') character.notes.classFeatures = text;
   if (stepId === 'background') character.notes.backgroundFeatures = text;
+  if (stepId === 'theme') character.notes.themeFeatures = text;
 }
 
 function applyCompendiumSelection(stepId, entry) {
@@ -1259,6 +1280,14 @@ function applyCompendiumSelection(stepId, entry) {
       );
       break;
     }
+    case 'theme':
+      character.selections.themeId = entry.id;
+      character.identity.theme = name;
+      character.notes.themeFeatures = buildThemeNotesText(
+        parseThemeEntry(entry),
+        character.identity.level
+      );
+      break;
     case 'paragon':
       character.selections.paragonPathId = entry.id;
       character.identity.paragonPath = name;

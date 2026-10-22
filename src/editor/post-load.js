@@ -48,7 +48,7 @@ export function retrainingBuilderStart(builderFlow) {
   if (idx < 0) idx = steps.indexOf('review');
   if (idx < 0) idx = 0;
   return {
-    completedSteps: ['basics', 'race', 'background', 'class', 'abilities'],
+    completedSteps: ['basics', 'race', 'background', 'theme', 'class', 'abilities'],
     startStepIndex: idx
   };
 }

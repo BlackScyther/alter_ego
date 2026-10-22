@@ -42,6 +42,7 @@ export function ensureDerivedBonuses(character) {
       initiativeBackground: 0,
       initiativeClass: 0,
       initiativeFeat: 0,
+      initiativeTheme: 0,
       hpSubstituteAbility: null,
       hpSubstituteScore: null
     };
@@ -50,12 +51,13 @@ export function ensureDerivedBonuses(character) {
     if (d.initiativeBackground == null) d.initiativeBackground = 0;
     if (d.initiativeClass == null) d.initiativeClass = 0;
     if (d.initiativeFeat == null) d.initiativeFeat = 0;
+    if (d.initiativeTheme == null) d.initiativeTheme = 0;
   }
   return character;
 }
 
 /**
- * Rebuild the derived initiative total from background, class, and feat parts.
+ * Rebuild the derived initiative total from background, class, feat, and theme parts.
  * @param {object} character
  */
 export function recomposeDerivedInitiative(character) {
@@ -64,7 +66,8 @@ export function recomposeDerivedInitiative(character) {
   derived.initiative =
     (Number(derived.initiativeBackground) || 0) +
     (Number(derived.initiativeClass) || 0) +
-    (Number(derived.initiativeFeat) || 0);
+    (Number(derived.initiativeFeat) || 0) +
+    (Number(derived.initiativeTheme) || 0);
   return character;
 }
 

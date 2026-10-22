@@ -101,6 +101,9 @@ function formatClassFeaturesForSheet(notes) {
   if (notes.backgroundFeatures?.trim()) {
     parts.push(`Background\n${notes.backgroundFeatures.trim()}`);
   }
+  if (notes.themeFeatures?.trim()) {
+    parts.push(`Theme\n${notes.themeFeatures.trim()}`);
+  }
   if (notes.classFeatures?.trim()) {
     parts.push(notes.classFeatures.trim());
   }

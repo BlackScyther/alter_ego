@@ -7,6 +7,7 @@ import { validateFeatsStep } from './feat-selections.js';
 import { validatePowersStep } from './power-selections.js';
 import { validateRaceStep } from './race-selections.js';
 import { validateBackgroundStep } from './background-selections.js';
+import { validateThemeStep } from './theme-selections.js';
 import { validateClassStep } from './class-selections.js';
 import { levelIncreaseDraftReady, pendingAbilityIncreaseLevels } from './tutor.js';
 
@@ -40,6 +41,7 @@ export function createCharacter(partial = {}) {
       deity: '',
       company: '',
       background: '',
+      theme: '',
       role: '',
       totalXp: 0,
       ...partial.identity
@@ -69,7 +71,8 @@ export function createCharacter(partial = {}) {
         racePowers: [],
         raceFeats: [],
         classPowers: [],
-        classFeats: []
+        classFeats: [],
+        themePowers: []
       },
       classId: null,
       classBuildChoices: {},
@@ -114,6 +117,10 @@ export function createCharacter(partial = {}) {
       initMisc: 0,
       derivedBonuses: {
         initiative: 0,
+        initiativeBackground: 0,
+        initiativeClass: 0,
+        initiativeFeat: 0,
+        initiativeTheme: 0,
         hpSubstituteAbility: null,
         hpSubstituteScore: null
       },
@@ -129,6 +136,8 @@ export function createCharacter(partial = {}) {
       classPowers: '',
       classFeats: '',
       backgroundFeatures: '',
+      themeFeatures: '',
+      themePowers: '',
       feats: '',
       powers: '',
       rituals: '',
@@ -262,6 +271,9 @@ export function validateStep(stepId, character, editorMeta) {
       break;
     case 'background':
       errors.push(...validateBackgroundStep(character, null));
+      break;
+    case 'theme':
+      errors.push(...validateThemeStep(character));
       break;
     case 'abilities': {
       const level = Number(character.identity?.level) || 1;

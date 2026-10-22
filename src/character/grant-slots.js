@@ -1,10 +1,10 @@
 /**
  * Categorized race/class grant slots stored on the character document.
- * The sheet mirror shows these read-only. Only the race and class steps
+ * The sheet mirror shows these read-only. The race, class, and theme steps
  * add or remove them.
  */
 
-/** @typedef {'racePowers' | 'raceFeats' | 'classPowers' | 'classFeats'} GrantSlotKey */
+/** @typedef {'racePowers' | 'raceFeats' | 'classPowers' | 'classFeats' | 'themePowers'} GrantSlotKey */
 
 /**
  * @typedef {object} GrantSlot
@@ -37,6 +37,12 @@ export const GRANT_GROUPS = [
     category: 'class-feat',
     label: 'Class Feats',
     note: 'Read-only. Added or removed on the Class step.'
+  },
+  {
+    key: 'themePowers',
+    category: 'theme-power',
+    label: 'Theme Powers',
+    note: 'Read-only. Added or removed on the Theme step.'
   }
 ];
 
@@ -44,7 +50,8 @@ const NOTE_KEY = {
   racePowers: 'racialPowers',
   raceFeats: 'raceFeats',
   classPowers: 'classPowers',
-  classFeats: 'classFeats'
+  classFeats: 'classFeats',
+  themePowers: 'themePowers'
 };
 
 /**
@@ -55,7 +62,8 @@ export function emptyGrantSlots() {
     racePowers: [],
     raceFeats: [],
     classPowers: [],
-    classFeats: []
+    classFeats: [],
+    themePowers: []
   };
 }
 
@@ -77,6 +85,7 @@ export function ensureGrantSlots(character) {
   if (typeof character.notes.raceFeats !== 'string') character.notes.raceFeats = '';
   if (typeof character.notes.classPowers !== 'string') character.notes.classPowers = '';
   if (typeof character.notes.classFeats !== 'string') character.notes.classFeats = '';
+  if (typeof character.notes.themePowers !== 'string') character.notes.themePowers = '';
   return slots;
 }
 

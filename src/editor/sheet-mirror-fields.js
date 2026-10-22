@@ -253,7 +253,7 @@ export function getSheetMirrorTabs() {
       id: 'collection',
       label: 'Collection',
       sections: [
-        { title: 'Granted by race and class', layout: 'grant-slots', fields: [] },
+        { title: 'Granted by race, class, and theme', layout: 'grant-slots', fields: [] },
         { title: 'Chosen feats, powers, and rituals', fields: collectionFields() }
       ]
     }

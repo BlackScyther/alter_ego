@@ -28,13 +28,14 @@ Order is fixed — do not reorder without updating `metadata/editor.json` → `c
 
 1. **Race**
 2. **Background**
-3. **Class**
-4. **Attributes** (ability scores / point-buy tutor, skills table)
-5. **Powers** (class slots by type — At-Will, Encounter, Daily, Utility; **Recommended powers for this class** button when build metadata includes starter picks or compendium build sections list suggested powers; source filters; prerequisite filter)
-6. **Feats** (level slots; **Recommended feats for this class** button when build metadata or compendium HTML includes a suggested feat; source filters; prerequisite filter by level and ability scores)
-7. **Equipment** — inventory list, body-slot equip UI (armor, weapons, implement, worn items), compendium picker with category tabs and source filter, manual gold (gp). No auto sheet stat apply or proficiency filter yet.
+3. **Theme** (optional; search, source filter, and a sectioned preview). The starting feature applies at level 1, including its granted power and any flat skill or initiative bonus. Level 5 and level 10 features apply when the character reaches those levels. Optional theme utilities and attacks stay in the description.
+4. **Class**
+5. **Attributes** (ability scores / point-buy tutor, skills table)
+6. **Powers** (class slots by type — At-Will, Encounter, Daily, Utility; **Recommended powers for this class** button when build metadata includes starter picks or compendium build sections list suggested powers; source filters; prerequisite filter)
+7. **Feats** (level slots; **Recommended feats for this class** button when build metadata or compendium HTML includes a suggested feat; source filters; prerequisite filter by level and ability scores)
+8. **Equipment** — inventory list, body-slot equip UI (armor, weapons, implement, worn items), compendium picker with category tabs and source filter, manual gold (gp). No auto sheet stat apply or proficiency filter yet.
 
-Optional steps (paragon, epic, review) remain in `builderFlow` for level-up and advanced editing. Themes are omitted in this version.
+Optional steps (paragon, epic, review) remain in `builderFlow` for level-up and advanced editing. Theme is also in that flow, after Background. A character can continue without a theme.
 
 ## Phase 4 — Level up (builder flow)
 

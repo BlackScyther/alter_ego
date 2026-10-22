@@ -5,6 +5,7 @@
   "creationFlow": [
     "race",
     "background",
+    "theme",
     "class",
     "abilities",
     "powers",
@@ -15,6 +16,7 @@
     "basics",
     "race",
     "background",
+    "theme",
     "class",
     "abilities",
     "powers",
@@ -97,6 +99,19 @@
         "selections.backgroundSkillBonusKind",
         "identity.background",
         "notes.backgroundFeatures"
+      ]
+    },
+    "theme": {
+      "title": "Theme",
+      "subtitle": "Optional theme. Starting feature at level 1; more features at levels 5 and 10.",
+      "compendiumCategory": "theme",
+      "selectionCardinality": 1,
+      "optional": true,
+      "writesTo": [
+        "selections.themeId",
+        "selections.grantSlots.themePowers",
+        "identity.theme",
+        "notes.themeFeatures"
       ]
     },
     "feats": {

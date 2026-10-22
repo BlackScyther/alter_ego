@@ -49,6 +49,6 @@ test('levelUpTooltip is empty when leveling is allowed', () => {
 test('retrainingBuilderStart opens builder flow at powers', () => {
   const flow = ['basics', 'race', 'background', 'class', 'abilities', 'powers', 'feats', 'review'];
   const { completedSteps, startStepIndex } = retrainingBuilderStart(flow);
-  assert.deepEqual(completedSteps, ['basics', 'race', 'background', 'class', 'abilities']);
+  assert.deepEqual(completedSteps, ['basics', 'race', 'background', 'theme', 'class', 'abilities']);
   assert.equal(startStepIndex, flow.indexOf('powers'));
 });

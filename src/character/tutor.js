@@ -14,6 +14,7 @@ import { detectBackgroundEffects, applyBackgroundEffects } from './background-ef
 import { ensureDerivedBonuses, recomposeDerivedInitiative } from './hp.js';
 import { syncClassTraitsToSheet } from './class-selections.js';
 import { applyFeatInitiative, classFeatureSkillBonusRows, featInitiativeTotal } from './class-effects.js';
+import { applyThemeInitiative, themeInitiativeTotal, themeSkillBonusRows } from './theme-selections.js';
 
 export const ABILITY_KEYS = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export const SKILL_IDS = SKILLS.map((s) => s.id);
@@ -314,7 +315,7 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
   const derivedSkill = [];
 
   for (const [source, entry] of Object.entries(entriesBySource)) {
-    if (!entry) continue;
+    if (!entry || source === 'theme') continue;
     const { ability, skill } = bonusesFromEntry(entry, source);
     for (const raw of ability) derivedAbility.push(toAbilityRow(raw, character));
     if (source === 'background') {
@@ -342,6 +343,12 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
     }
   }
 
+  if (entriesBySource.theme) {
+    for (const raw of themeSkillBonusRows(character, entriesBySource.theme)) {
+      derivedSkill.push(toSkillRow(raw, character));
+    }
+  }
+
   const abilityMerged = [...derivedAbility, ...manualAbility];
   const skillMerged = [...derivedSkill, ...manualSkill];
   applyDefaultChoiceGroups(abilityMerged);
@@ -360,6 +367,10 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
     recomposeDerivedInitiative(character);
   }
   applyFeatInitiative(character, featInitiativeTotal(featEntries));
+  applyThemeInitiative(
+    character,
+    entriesBySource.theme ? themeInitiativeTotal(character, entriesBySource.theme) : 0
+  );
   return character;
 }
 

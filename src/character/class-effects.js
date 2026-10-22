@@ -86,21 +86,23 @@ function detectInitiativeEffects(text, sourceId) {
 /**
  * @param {string} bonusType
  */
-function normalizeFeatureBonusType(bonusType) {
+function normalizeFeatureBonusType(bonusType, untypedType = 'class') {
   const t = String(bonusType ?? '').toLowerCase();
   if (t === 'power' || t === 'feat' || t === 'item') return t;
   if (t === 'untyped') return 'other';
-  return 'class';
+  return untypedType;
 }
 
 /**
  * Flat initiative and skill bonuses in unconditional sentences.
+ * Sentences with if, when, whenever, or unless are skipped.
  * @param {string} text
  * @param {string} sourceId
  * @param {string} [feature]
+ * @param {string} [untypedType] bonus type when the sentence names no type
  * @returns {ClassEffect[]}
  */
-function detectStaticFeatureBonuses(text, sourceId, feature) {
+export function detectStaticFeatureBonuses(text, sourceId, feature, untypedType = 'class') {
   /** @type {ClassEffect[]} */
   const out = [];
   const sentences = String(text ?? '').split(/(?<=[.!?])\s+/);
@@ -113,7 +115,7 @@ function detectStaticFeatureBonuses(text, sourceId, feature) {
       out.push({
         type: 'initiative-misc',
         amount: Number(m[1]) || 0,
-        bonusType: normalizeFeatureBonusType(m[2]),
+        bonusType: normalizeFeatureBonusType(m[2], untypedType),
         feature,
         sourceId
       });
@@ -127,7 +129,7 @@ function detectStaticFeatureBonuses(text, sourceId, feature) {
     );
     if (!amountMatch) continue;
     const amount = Number(amountMatch[1]) || 0;
-    const bonusType = normalizeFeatureBonusType(amountMatch[2]);
+    const bonusType = normalizeFeatureBonusType(amountMatch[2], untypedType);
     for (const skill of SKILLS) {
       if (!lower.includes(skill.name.toLowerCase())) continue;
       out.push({

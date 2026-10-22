@@ -538,6 +538,24 @@ export async function renderPowerStep(panel, ctx) {
       });
     }
 
+    const themeRows = [];
+    for (const slot of character.selections?.grantSlots?.themePowers ?? []) {
+      const id = String(slot.id).toLowerCase();
+      const entry = await compendium.getEntry(id);
+      const name = slot.name || entry?.listing_fields?.Name || id;
+      themeRows.push({
+        name,
+        meta: 'From your theme',
+        usage: normalizePowerType(entry?.listing_fields?.Type),
+        links: [
+          {
+            href: compendiumEntryPageUrl(id, pathname),
+            ariaLabel: `Open ${name} in compendium`
+          }
+        ]
+      });
+    }
+
     const equipmentRows = (await collectEquippedItemPowerGrants(character, compendium)).map((grant) => ({
       name: grant.itemName,
       meta: `${grant.slotLabel} · ${grant.powerName}`,
@@ -563,6 +581,13 @@ export async function renderPowerStep(panel, ctx) {
         ariaLabel: 'Race powers',
         note: 'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
         groups: groupsForUsage(raceRows)
+      }),
+      renderGrantSectionHtml({
+        kind: 'theme',
+        title: 'Theme',
+        ariaLabel: 'Theme powers',
+        note: 'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
+        groups: groupsForUsage(themeRows)
       }),
       renderGrantSectionHtml({
         kind: 'equipment',
