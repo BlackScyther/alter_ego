@@ -1,6 +1,6 @@
 # Tests
 
-**Last updated:** 2026-10-17
+**Last updated:** 2026-10-22
 
 ## Automation status
 
@@ -14,6 +14,7 @@
 | Compendium not in Git | **Script** | `npm run check:legal` |
 | Desktop app | **Manual** | `npm run tauri:dev`, `npm run tauri:build` (requires Rust) |
 | PDF export | **Manual / script** | `npm run pdf`, `npm run pdf:levels` |
+| Sheet print fit | **Script** | `npm run check:sheet` — dense level-10 sheet, A4 page, values at least 8pt |
 | Party index | **Dev script** | `npm run party:index` |
 | Player pack | **Legacy dev** | `npm run pack:player` |
 
@@ -43,9 +44,11 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering; ability score increases and point-buy bases apply only after confirm |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
+| `tests/theme-parse.test.mjs` | Theme level 1/5/10 features, Dark Sun feature heading, level-gated skill bonuses, conditional sentence skipped, starting-power source match |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
 | `tests/class-effects.test.mjs` | Class-feature static initiative (Tactical Warlord Combat Leader +2; action-point sentence ignored; Canny Leader replaces it), Improved Initiative +4 stacking to 6 without double-counting Misc, additive class+background composition |
 | `tests/skills-table.test.mjs` | Skills table markup and field maps: every number cell except Misc is read-only; Trained stays a checkbox |
+| `tests/sheet-print.test.mjs` | Printable sheet power index grouping, payload, and no editable fields on the sheet page |
 | `tests/class-parse.test.mjs` | Class HTML traits, builds, and CLASS FEATURES grants (Tactical keeps Combat Leader and lists Tactical Presence; Insightful replaces Combat Leader; a trailing period is stripped from the last build name; feature names are hover links) |
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |
 | `tests/equipment-selections.test.mjs` | Equipment inventory, equip/unequip/swap, slot eligibility (shields → off hand), legacy migration |
@@ -164,7 +167,8 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 
 - [ ] Post-load: **Edit character** opens full builder at current level (feats onward)
 - [ ] Post-load: **Level up** disabled until sheet Total XP meets next-level threshold; tooltip on hover when disabled
-- [ ] Creation flow: Race → Background → Class → Attributes → Powers → Feats → Equipment
+- [ ] Creation flow: Race → Background → Theme → Class → Attributes → Powers → Feats → Equipment
+- [ ] Theme step: source filter limits the list; a level 4 character shows the starting feature as active and level 5 and 10 as locked; the starting power appears under Theme on the Powers step
 - [ ] **Equipment step** — add item from compendium to inventory; equip to body slot; unequip (×); swap via occupied slot; gold (gp) field persists
 - [ ] Export downloads `.json`
 

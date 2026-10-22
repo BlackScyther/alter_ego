@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Export character sheet + level table to PDF (US Letter).
+ * Export character sheet + level table to PDF (A4).
  * Requires: npm install && npx playwright install chromium
  */
 import { chromium } from 'playwright';
@@ -61,7 +61,7 @@ async function main() {
 
   await page.pdf({
     path: outPath,
-    format: 'Letter',
+    format: 'A4',
     printBackground: true,
     margin: { top: '0', right: '0', bottom: '0', left: '0' }
   });

@@ -17,22 +17,65 @@ import {
   SKILLS,
   buildLevelTable
 } from './formulas.js';
+import { writeSheetField } from './sheet/sheet-fields.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 function num(id) {
   const el = document.getElementById(id);
   if (!el) return 0;
-  return Number(el.value) || 0;
+  if (el.dataset && el.dataset.value !== undefined && el.dataset.value !== '') {
+    return Number(el.dataset.value) || 0;
+  }
+  if ('value' in el && el.value !== undefined && el.value !== '') return Number(el.value) || 0;
+  return Number(el.textContent) || 0;
+}
+
+function textOf(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  if (el.dataset && el.dataset.value !== undefined && el.dataset.value !== '') return el.dataset.value;
+  return (el.textContent ?? '').trim();
+}
+
+function isOn(id) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  if (el.classList.contains('sheet-mark')) return el.dataset.value === '1';
+  return Boolean(el.checked);
+}
+
+function setSheetValue(id, value, display) {
+  const el = document.getElementById(id);
+  writeSheetField(el, value);
+  if (el && display !== undefined && !el.classList.contains('sheet-mark')) {
+    el.textContent = String(display);
+  }
 }
 
 function setCalc(id, value) {
-  const el = document.getElementById(id);
-  if (!el) return;
   const v = Number(value);
-  el.value = Number.isFinite(v) ? (Number.isInteger(v) ? v : v) : '';
-  if (el.dataset) el.dataset.value = String(v);
+  setSheetValue(id, Number.isFinite(v) ? (Number.isInteger(v) ? v : v) : '');
+}
+
+function formatSigned(n) {
+  const v = Number(n) || 0;
+  if (v > 0) return `+${v}`;
+  return String(v);
+}
+
+function shortenAttackName(text) {
+  const raw = String(text || '').trim();
+  const parts = raw.split(/\s+[—–-]\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : raw;
+}
+
+function formatDamage(dice, bonus) {
+  const d = String(dice || '').trim();
+  const b = Number(bonus) || 0;
+  if (!d || d === '0') return b ? formatSigned(b) : '';
+  if (!b) return d;
+  return `${d}${b > 0 ? `+${b}` : b}`;
 }
 
 function level() {
@@ -98,21 +141,21 @@ function recalcSkills() {
   const globalArmor = num('armor-penalty-global');
 
   for (const skill of SKILLS) {
-    const trained = $(`#skill-${skill.id}-trained`)?.checked ?? false;
+    const trained = isOn(`skill-${skill.id}-trained`);
     const misc = num(`skill-${skill.id}-misc`);
-    const pen = skill.armorPenalty ? globalArmor + num(`skill-${skill.id}-pen`) : num(`skill-${skill.id}-pen`);
+    const rawPen = num(`skill-${skill.id}-pen`);
+    const pen = skill.armorPenalty ? globalArmor + rawPen : rawPen;
     const bonus = skillBonus(scores[skill.ability], lvl, trained, pen, misc);
     setCalc(`skill-${skill.id}-bonus`, bonus);
     setCalc(`skill-${skill.id}-mod-half`, modPlusHalfLevel(scores[skill.ability], lvl));
+    if (skill.armorPenalty) {
+      const penEl = document.getElementById(`skill-${skill.id}-pen`);
+      if (penEl) penEl.textContent = String(pen);
+    }
   }
 
-  setCalc('passive-insight', passiveSense(num('skill-insight-bonus') || getSkillBonusDisplay('insight')));
-  setCalc('passive-perception', passiveSense(num('skill-perception-bonus') || getSkillBonusDisplay('perception')));
-}
-
-function getSkillBonusDisplay(skillId) {
-  const el = document.getElementById(`skill-${skillId}-bonus`);
-  return el ? Number(el.value) || 0 : 0;
+  setCalc('passive-insight', passiveSense(num('skill-insight-bonus')));
+  setCalc('passive-perception', passiveSense(num('skill-perception-bonus')));
 }
 
 function recalcMovement() {
@@ -128,28 +171,36 @@ function recalcAttacks() {
   const lvl = level();
   ['melee', 'ranged'].forEach((kind) => {
     setCalc(`${kind}-atk-half`, halfLevel(lvl));
-    setCalc(
-      `${kind}-atk-total`,
-      attackBonus(lvl, {
-        abil: num(`${kind}-atk-abil`),
-        class: num(`${kind}-atk-class`),
-        prof: num(`${kind}-atk-prof`),
-        feat: num(`${kind}-atk-feat`),
-        enh: num(`${kind}-atk-enh`),
-        misc: num(`${kind}-atk-misc`)
-      })
-    );
-    setCalc(
-      `${kind}-dmg-total`,
-      damageBonus({
-        abil: num(`${kind}-dmg-abil`),
-        feat: num(`${kind}-dmg-feat`),
-        enh: num(`${kind}-dmg-enh`),
-        misc: num(`${kind}-dmg-misc`),
-        misc2: num(`${kind}-dmg-misc2`)
-      })
-    );
+    const atk = attackBonus(lvl, {
+      abil: num(`${kind}-atk-abil`),
+      class: num(`${kind}-atk-class`),
+      prof: num(`${kind}-atk-prof`),
+      feat: num(`${kind}-atk-feat`),
+      enh: num(`${kind}-atk-enh`),
+      misc: num(`${kind}-atk-misc`)
+    });
+    setCalc(`${kind}-atk-total`, atk);
+    const dmg = damageBonus({
+      abil: num(`${kind}-dmg-abil`),
+      feat: num(`${kind}-dmg-feat`),
+      enh: num(`${kind}-dmg-enh`),
+      misc: num(`${kind}-dmg-misc`),
+      misc2: num(`${kind}-dmg-misc2`)
+    });
+    setCalc(`${kind}-dmg-total`, dmg);
+    const row = kind === 'melee' ? 'basic1' : 'basic2';
+    setSheetValue(`${row}-atk`, atk, formatSigned(atk));
+    const dice = textOf(`${kind}-dice`) || textOf(`${row}-dmg`);
+    setSheetValue(`${row}-damage`, formatDamage(dice, dmg));
+    const name = textOf(`${kind}-name`) || textOf(`${row}-weapon`);
+    if (name) setSheetValue(`${row}-weapon`, name, shortenAttackName(name));
   });
+  for (const n of [3, 4]) {
+    const row = document.getElementById(`basic${n}-weapon`)?.closest('tr');
+    if (!row) continue;
+    const filled = ['atk', 'vs', 'weapon', 'dmg'].some((key) => textOf(`basic${n}-${key}`).trim());
+    row.hidden = !filled;
+  }
 }
 
 function recalcActionPoints() {
@@ -191,7 +242,9 @@ function loadDimensions() {
       if (d.scale) applyScale(d.scale);
       const meta = $('#dim-meta');
       if (meta) {
-        meta.textContent = `Page ${d.page.widthIn}" × ${d.page.heightIn}" (content ${d.page.contentWidthIn}" × ${d.page.contentHeightIn}")`;
+        meta.textContent = d.page.widthMm && d.page.heightMm
+          ? `${d.page.name || 'Page'} ${d.page.widthMm} mm × ${d.page.heightMm} mm`
+          : `Page ${d.page.widthIn}" × ${d.page.heightIn}" (content ${d.page.contentWidthIn}" × ${d.page.contentHeightIn}")`;
       }
     })
     .catch(() => {});
@@ -215,17 +268,54 @@ function renderLevelTable() {
     .join('');
 }
 
+let screenScale = 1;
+
 function wireEvents() {
-  $$('input, textarea, select').forEach((el) => {
-    el.addEventListener('input', recalcAll);
-    el.addEventListener('change', recalcAll);
+  $('#scale-slider')?.addEventListener('input', (e) => {
+    screenScale = Number(e.target.value) / 100;
+    applyScale(screenScale);
   });
 
-  $('#scale-slider')?.addEventListener('input', (e) => {
-    applyScale(Number(e.target.value) / 100);
-  });
+  window.addEventListener('beforeprint', () => applyScale(1));
+  window.addEventListener('afterprint', () => applyScale(screenScale));
 
   $('#btn-print')?.addEventListener('click', () => window.print());
+
+  const cardsBox = $('#include-power-cards');
+  if (cardsBox) {
+    const stored = sessionStorage.getItem('sheet.includePowerCards');
+    if (stored !== null) cardsBox.checked = stored === '1';
+    cardsBox.addEventListener('change', () => {
+      sessionStorage.setItem('sheet.includePowerCards', cardsBox.checked ? '1' : '0');
+      refreshPowerCards();
+    });
+  }
+}
+
+async function refreshPowerCards() {
+  const host = document.getElementById('power-cards');
+  if (!host) return;
+  const include = document.getElementById('include-power-cards')?.checked;
+  if (!include) {
+    host.hidden = true;
+    host.replaceChildren();
+    return;
+  }
+  try {
+    const { loadActiveCharacter } = await import('./character/store.js');
+    const character = loadActiveCharacter();
+    if (!character) {
+      host.hidden = true;
+      host.replaceChildren();
+      return;
+    }
+    const { compendium } = await import('./data/compendium.js');
+    const { renderRuleCards } = await import('./print/rule-cards.js');
+    const count = await renderRuleCards(host, character, compendium, ['powers']);
+    host.hidden = count === 0;
+  } catch {
+    host.hidden = true;
+  }
 }
 
 function applyEditorPayload() {
@@ -239,10 +329,7 @@ function applyEditorPayload() {
   try {
     const payload = JSON.parse(raw);
     for (const [fieldId, value] of Object.entries(payload)) {
-      const el = document.getElementById(fieldId);
-      if (!el || value === undefined || value === null) continue;
-      if (el.type === 'checkbox') el.checked = Boolean(value);
-      else el.value = value;
+      writeSheetField(document.getElementById(fieldId), value);
     }
     recalcAll();
   } catch {
@@ -266,6 +353,7 @@ export function initSheet() {
   applyEditorPayload();
   wireBackLink();
   recalcAll();
+  refreshPowerCards();
 }
 
 // Sheet page calls initSheet() after inline DOM (skills, defenses, attacks) is built.

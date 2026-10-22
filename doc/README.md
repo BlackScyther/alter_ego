@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-17 — Genasi manifestation detail is a three-item list with no compendium link. Racial ability choices show the fixed bonus, a two-column or, the level-1 pick, and a summary of those bonuses.
+**Last agent sync:** 2026-10-22 — Printable character sheet is one read-only A4 page. Include power cards appends the character's power cards on A4. `npm run check:sheet` confirms a filled sheet stays on the page.

@@ -4,7 +4,7 @@
 
 - Use **[Tailwind CSS](https://tailwindcss.com/)** for all **non-print** app screens: home hub, character generator, playlist top, GM shell (when restyled).
 - Load Tailwind via the shared snippet in `src/ui/tailwind.html` (CDN for local dev). Prefer a built CSS bundle before production deploy.
-- Do **not** use Tailwind on the US Letter character sheet (`src/sheet/`); keep `sheet.css` for print fidelity.
+- Do **not** use Tailwind on the A4 character sheet (`src/sheet/`); keep `sheet.css` for print fidelity.
 
 ## Home hub (`src/index.html`)
 

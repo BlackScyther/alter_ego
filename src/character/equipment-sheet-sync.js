@@ -13,6 +13,7 @@ import {
   attackAbilityForWeapon,
   getEquipmentStats,
   itemDefenseBonusContributions,
+  magicDisplayName,
   stackDefenseBonuses
 } from './equipment-stats.js';
 import { parseClassEntry } from './class-parse.js';
@@ -98,7 +99,8 @@ function clearEquipmentDerivedSheet(character) {
     'basic1-vs',
     'basic2-weapon',
     'basic2-dmg',
-    'basic2-vs'
+    'basic2-vs',
+    'equipped-lines'
   ];
   for (const key of keysToClear) {
     delete character.sheet.extraFields[key];
@@ -136,12 +138,16 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
 
   /** @type {Array<{ slotId: string, stats: ReturnType<typeof getEquipmentStats>, enhancement: number }>} */
   const weapons = [];
+  /** @type {string[]} */
+  const equippedLines = [];
 
   for (const slot of EQUIPMENT_SLOTS) {
     const item = equipped[slot.id];
     if (!item) continue;
     const entry = await compendium.getEntry(item.compendiumId);
     if (!entry) continue;
+    const itemName = entry.listing_fields?.Name ?? item.compendiumId;
+    equippedLines.push(`${slot.label}: ${magicDisplayName(itemName, item.enhancement)}`);
 
     // Prefer normalized stats from the compendium DB when present; fall back to
     // runtime HTML parsing for any item not yet covered by the normalizer.
@@ -201,6 +207,7 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   character.sheet.armorPenaltyGlobal = checkPenalty;
   character.sheet.speed.armor = speedPenalty;
   character.sheet.armorIsHeavy = armorIsHeavy;
+  setExtra(character, 'equipped-lines', equippedLines.join('\n'));
 
   const scores = getFinalScores(character);
   const mainWeapon = weapons.find((w) => w.slotId === 'mainHand') ?? weapons[0];

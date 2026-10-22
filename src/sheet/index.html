@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>D&amp;D 4e Character Sheet — Page 1</title>
+  <link rel="stylesheet" href="../print/cards.css" />
   <link rel="stylesheet" href="../sheet.css" />
 </head>
 <body class="sheet-body">
   <div class="toolbar no-print">
     <label>Scale: <input type="range" id="scale-slider" min="75" max="125" value="100" /> <span id="scale-label">100%</span></label>
     <span id="dim-meta"></span>
+    <label><input type="checkbox" id="include-power-cards" checked /> Include power cards</label>
     <button type="button" id="btn-print">Print / Save as PDF</button>
     <a href="../editor/index.html" id="back-to-editor" class="toolbar-back">← Character generator</a>
     <a href="../index.html">Home</a>
@@ -21,340 +23,331 @@
     <header class="sheet-header">
       <div class="logo-block">DUNGEONS &amp;<br />DRAGONS</div>
       <div class="sheet-title">Character Sheet</div>
-      <div class="identity-grid">
-        <div class="field"><label>Player Name</label><input type="text" id="player-name" /></div>
-        <div class="field"><label>Character Name</label><input type="text" id="character-name" /></div>
-        <div class="field"><label>Level</label><input type="number" id="level" min="1" max="30" value="1" /></div>
-        <div class="field"><label>Class</label><input type="text" id="class" /></div>
-        <div class="field"><label>Paragon Path</label><input type="text" id="paragon-path" /></div>
-        <div class="field"><label>Epic Destiny</label><input type="text" id="epic-destiny" /></div>
+      <div class="id-grid">
+        <div class="id-field"><span class="sheet-label">Player Name</span><span class="sheet-val sheet-text" id="player-name" aria-label="Player Name"></span></div>
+        <div class="id-field"><span class="sheet-label">Character Name</span><span class="sheet-val sheet-text" id="character-name" aria-label="Character Name"></span></div>
+        <div class="id-field"><span class="sheet-label">Level</span><span class="sheet-val" id="level" data-value="1" aria-label="Level">1</span></div>
+        <div class="id-field"><span class="sheet-label">Class</span><span class="sheet-val sheet-text" id="class" aria-label="Class"></span></div>
+        <div class="id-field"><span class="sheet-label">Paragon Path</span><span class="sheet-val sheet-text" id="paragon-path" aria-label="Paragon Path"></span></div>
+        <div class="id-field"><span class="sheet-label">Epic Destiny</span><span class="sheet-val sheet-text" id="epic-destiny" aria-label="Epic Destiny"></span></div>
       </div>
-      <div class="identity-grid row2">
-        <div class="field"><label>Race</label><input type="text" id="race" /></div>
-        <div class="field"><label>Size</label><input type="text" id="size" /></div>
-        <div class="field"><label>Age</label><input type="text" id="age" /></div>
-        <div class="field"><label>Gender</label><input type="text" id="gender" /></div>
-        <div class="field"><label>Height</label><input type="text" id="height" /></div>
-        <div class="field"><label>Weight</label><input type="text" id="weight" /></div>
-        <div class="field"><label>Alignment</label><input type="text" id="alignment" /></div>
-        <div class="field"><label>Deity</label><input type="text" id="deity" /></div>
-        <div class="field"><label>Adventuring Company</label><input type="text" id="company" /></div>
-        <div class="field"><label>Total XP</label><input type="number" id="total-xp" min="0" value="0" /></div>
-        <div class="field no-print"><label class="note" id="xp-for-level"></label></div>
+      <div class="id-grid row2">
+        <div class="id-field"><span class="sheet-label">Race</span><span class="sheet-val sheet-text" id="race" aria-label="Race"></span></div>
+        <div class="id-field"><span class="sheet-label">Size</span><span class="sheet-val sheet-text" id="size" aria-label="Size"></span></div>
+        <div class="id-field"><span class="sheet-label">Age</span><span class="sheet-val" id="age" aria-label="Age"></span></div>
+        <div class="id-field"><span class="sheet-label">Gender</span><span class="sheet-val sheet-text" id="gender" aria-label="Gender"></span></div>
+        <div class="id-field"><span class="sheet-label">Height</span><span class="sheet-val" id="height" aria-label="Height"></span></div>
+        <div class="id-field"><span class="sheet-label">Weight</span><span class="sheet-val" id="weight" aria-label="Weight"></span></div>
+        <div class="id-field"><span class="sheet-label">Alignment</span><span class="sheet-val sheet-text" id="alignment" aria-label="Alignment"></span></div>
+        <div class="id-field"><span class="sheet-label">Deity</span><span class="sheet-val sheet-text" id="deity" aria-label="Deity"></span></div>
+        <div class="id-field"><span class="sheet-label">Company</span><span class="sheet-val sheet-text" id="company" aria-label="Company"></span></div>
+        <div class="id-field"><span class="sheet-label">Total XP</span><span class="sheet-val" id="total-xp" data-value="0" aria-label="Total XP">0</span></div>
       </div>
+      <p class="no-print xp-hint" id="xp-for-level"></p>
     </header>
 
-    <div class="sheet-columns">
-      <!-- LEFT COLUMN -->
-      <section class="col" aria-label="Abilities and skills">
+    <div class="sheet-layout">
+      <section class="area-left" aria-label="Abilities and hit points">
         <div class="panel">
           <div class="panel-title">Initiative</div>
-          <div class="big-score">
-            <div class="total"><input class="calc" id="init-total" readonly tabindex="-1" /></div>
-            <div>
-              <div class="breakdown">
-                <span class="hdr">DEX</span><span class="hdr">1/2 LVL</span><span class="hdr">MISC</span>
-              </div>
-              <div class="breakdown">
-                <span class="cell"><input id="init-dex" class="calc" readonly /></span>
-                <span class="cell"><input id="init-half" class="calc" readonly /></span>
-                <span class="cell"><input type="number" id="init-misc" value="0" /></span>
-              </div>
+          <div class="score-line">
+            <span class="sheet-val sheet-total" id="init-total" aria-label="Initiative total"></span>
+            <div class="breakdown breakdown-3">
+              <span class="sheet-label">Dex</span>
+              <span class="sheet-label">1/2 Lvl</span>
+              <span class="sheet-label">Misc</span>
+              <span class="sheet-val" id="init-dex" aria-label="Initiative Dexterity"></span>
+              <span class="sheet-val" id="init-half" aria-label="Initiative half level"></span>
+              <span class="sheet-val" id="init-misc" data-value="0" aria-label="Initiative misc">0</span>
             </div>
           </div>
-          <div class="conditional"><label>Conditional Modifiers</label><textarea id="init-conditional"></textarea></div>
+          <div class="prose-block">
+            <div class="sheet-prose sheet-note" id="init-conditional" aria-label="Initiative conditional modifiers"></div>
+          </div>
         </div>
 
         <div class="panel">
           <div class="panel-title">Ability Scores</div>
           <table class="abilities-table">
             <thead>
-              <tr><th>Ability</th><th>Score</th><th>Abil Mod</th><th>Mod + 1/2 Lvl</th></tr>
+              <tr>
+                <th class="sheet-label">Ability</th>
+                <th class="sheet-label">Score</th>
+                <th class="sheet-label">Mod</th>
+                <th class="sheet-label">Mod + 1/2</th>
+              </tr>
             </thead>
             <tbody>
-              <tr><th>STR</th><td><input type="number" id="str-score" value="10" /></td><td class="calc-cell"><input class="calc" id="str-mod" readonly /></td><td class="calc-cell"><input class="calc" id="str-mod-half" readonly /></td></tr>
-              <tr><th>CON</th><td><input type="number" id="con-score" value="10" /></td><td class="calc-cell"><input class="calc" id="con-mod" readonly /></td><td class="calc-cell"><input class="calc" id="con-mod-half" readonly /></td></tr>
-              <tr><th>DEX</th><td><input type="number" id="dex-score" value="10" /></td><td class="calc-cell"><input class="calc" id="dex-mod" readonly /></td><td class="calc-cell"><input class="calc" id="dex-mod-half" readonly /></td></tr>
-              <tr><th>INT</th><td><input type="number" id="int-score" value="10" /></td><td class="calc-cell"><input class="calc" id="int-mod" readonly /></td><td class="calc-cell"><input class="calc" id="int-mod-half" readonly /></td></tr>
-              <tr><th>WIS</th><td><input type="number" id="wis-score" value="10" /></td><td class="calc-cell"><input class="calc" id="wis-mod" readonly /></td><td class="calc-cell"><input class="calc" id="wis-mod-half" readonly /></td></tr>
-              <tr><th>CHA</th><td><input type="number" id="cha-score" value="10" /></td><td class="calc-cell"><input class="calc" id="cha-mod" readonly /></td><td class="calc-cell"><input class="calc" id="cha-mod-half" readonly /></td></tr>
+              <tr><th>STR</th><td><span class="sheet-val" id="str-score" data-value="10">10</span></td><td><span class="sheet-val" id="str-mod"></span></td><td><span class="sheet-val" id="str-mod-half"></span></td></tr>
+              <tr><th>CON</th><td><span class="sheet-val" id="con-score" data-value="10">10</span></td><td><span class="sheet-val" id="con-mod"></span></td><td><span class="sheet-val" id="con-mod-half"></span></td></tr>
+              <tr><th>DEX</th><td><span class="sheet-val" id="dex-score" data-value="10">10</span></td><td><span class="sheet-val" id="dex-mod"></span></td><td><span class="sheet-val" id="dex-mod-half"></span></td></tr>
+              <tr><th>INT</th><td><span class="sheet-val" id="int-score" data-value="10">10</span></td><td><span class="sheet-val" id="int-mod"></span></td><td><span class="sheet-val" id="int-mod-half"></span></td></tr>
+              <tr><th>WIS</th><td><span class="sheet-val" id="wis-score" data-value="10">10</span></td><td><span class="sheet-val" id="wis-mod"></span></td><td><span class="sheet-val" id="wis-mod-half"></span></td></tr>
+              <tr><th>CHA</th><td><span class="sheet-val" id="cha-score" data-value="10">10</span></td><td><span class="sheet-val" id="cha-mod"></span></td><td><span class="sheet-val" id="cha-mod-half"></span></td></tr>
             </tbody>
           </table>
         </div>
 
         <div class="panel">
           <div class="panel-title">Hit Points</div>
-          <div class="hp-grid">
-            <div class="field"><label>Max HP</label><input type="number" id="max-hp" min="0" value="0" /></div>
-            <div class="field"><label>Bloodied (1/2 HP)</label><input class="calc" id="bloodied" readonly /></div>
-            <div class="field"><label>Surge Value (1/4 HP)</label><input class="calc" id="surge-value" readonly /></div>
+          <div class="stat-grid">
+            <div class="id-field"><span class="sheet-label">Max HP</span><span class="sheet-val" id="max-hp" data-value="0">0</span></div>
+            <div class="id-field"><span class="sheet-label">Bloodied</span><span class="sheet-val" id="bloodied"></span></div>
+            <div class="id-field"><span class="sheet-label">Surge Value</span><span class="sheet-val" id="surge-value"></span></div>
+            <div class="id-field"><span class="sheet-label">Surges/Day</span><span class="sheet-val" id="surges-day" data-value="0">0</span></div>
+            <div class="id-field"><span class="sheet-label">Current HP</span><span class="sheet-val" id="current-hp" data-value="0">0</span></div>
+            <div class="id-field"><span class="sheet-label">Temp HP</span><span class="sheet-val" id="temp-hp" data-value="0">0</span></div>
+            <div class="id-field"><span class="sheet-label">Surge Uses</span><span class="sheet-val" id="surge-uses" data-value="0">0</span></div>
+            <div class="id-field mark-field">
+              <span class="sheet-label">2nd Wind</span>
+              <span class="sheet-mark" id="second-wind" role="checkbox" aria-checked="false" aria-label="Second Wind used"></span>
+            </div>
           </div>
-          <div class="hp-subgrid">
-            <div class="field"><label>Surges/Day</label><input type="number" id="surges-day" min="0" value="0" /></div>
-            <div class="field"><label>Current Surge Uses</label><input type="number" id="surge-uses" min="0" value="0" /></div>
-            <div class="field"><label>Current Hit Points</label><input type="number" id="current-hp" /></div>
-            <div class="field"><label>Temporary Hit Points</label><input type="number" id="temp-hp" min="0" value="0" /></div>
+          <div class="mark-row">
+            <span class="sheet-label">Death saves</span>
+            <span class="sheet-mark" id="death-fail-1" role="checkbox" aria-checked="false" aria-label="Death save failure 1"></span>
+            <span class="sheet-mark" id="death-fail-2" role="checkbox" aria-checked="false" aria-label="Death save failure 2"></span>
+            <span class="sheet-mark" id="death-fail-3" role="checkbox" aria-checked="false" aria-label="Death save failure 3"></span>
           </div>
-          <div class="checkbox-row">
-            <label><input type="checkbox" id="second-wind" /> Second Wind — Used</label>
-          </div>
-          <div class="death-saves">
-            <span>Death Saving Throw Failures:</span>
-            <label><input type="checkbox" id="death-fail-1" /></label>
-            <label><input type="checkbox" id="death-fail-2" /></label>
-            <label><input type="checkbox" id="death-fail-3" /></label>
-          </div>
-          <div class="field"><label>Saving Throw Mods</label><input type="text" id="save-mods" /></div>
-          <div class="field"><label>Resistances</label><textarea id="resistances" rows="2"></textarea></div>
-          <div class="field"><label>Current Conditions and Effects</label><textarea id="conditions" rows="3"></textarea></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">Skills</div>
-          <p class="no-print" style="font-size:6pt;margin:0 0 4px">Global armor penalty (applied to Acrobatics, Endurance, Stealth, Thievery): <input type="number" id="armor-penalty-global" value="0" style="width:3em" /></p>
-          <table class="skills-table" id="skills-table">
-            <thead>
-              <tr>
-                <th>Bonus</th><th>Skill Name</th><th>Abil</th><th>Abil Mod + 1/2 Lvl</th>
-                <th>Trnd (+5)</th><th>Armor Penalty</th><th>Misc</th>
-              </tr>
-            </thead>
-            <tbody id="skills-body"></tbody>
-          </table>
+          <div class="prose-block"><span class="sheet-label">Saves</span><div class="sheet-prose" id="save-mods" aria-label="Saving throw mods"></div></div>
+          <div class="prose-block"><span class="sheet-label">Resistances</span><div class="sheet-prose" id="resistances" aria-label="Resistances"></div></div>
+          <div class="prose-block"><span class="sheet-label">Conditions</span><div class="sheet-prose" id="conditions" aria-label="Current conditions and effects"></div></div>
         </div>
       </section>
 
-      <!-- CENTER COLUMN -->
-      <section class="col" aria-label="Defenses and features">
-        <div class="panel" id="defenses-panel">
+      <section class="area-mid" aria-label="Defenses and action points">
+        <div class="panel">
           <div class="panel-title">Defenses</div>
-          <!-- AC -->
-          <div class="big-score" style="margin-bottom:6px">
-            <div><strong>AC</strong><div class="total"><input class="calc" id="ac-total" readonly /></div></div>
-            <div style="flex:1">
-              <div class="breakdown">
-                <span class="hdr">10+</span><span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span><span class="hdr">ARMOR</span>
-              </div>
-              <div class="breakdown">
-                <span class="cell"><input id="ac-ten" class="calc" readonly /></span>
-                <span class="cell"><input id="ac-half" class="calc" readonly /></span>
-                <span class="cell"><input type="number" id="ac-abil" value="0" /></span>
-                <span class="cell"><input type="number" id="ac-class" value="0" /></span>
-                <span class="cell"><input type="number" id="ac-feat" value="0" /></span>
-                <span class="cell"><input type="number" id="ac-enh" value="0" /></span>
-                <span class="cell"><input type="number" id="ac-misc" value="0" /></span>
-                <span class="cell"><input type="number" id="ac-armor" value="0" /></span>
-              </div>
-            </div>
-          </div>
-          <input type="hidden" id="ac-misc2" value="0" />
-          <div class="conditional"><label>Conditional Bonuses (AC)</label><textarea id="ac-conditional"></textarea></div>
-          <!-- FORT REF WILL - compact -->
-          <div id="other-defenses"></div>
+          <div id="defense-blocks"></div>
         </div>
-
         <div class="panel">
           <div class="panel-title">Action Points</div>
-          <div class="hp-subgrid">
-            <div class="field"><label>Action Points</label><input class="calc" id="action-points-total" readonly /></div>
-            <div class="field"><label>Milestones (0–2)</label><input type="number" id="milestones" min="0" max="2" value="0" /></div>
+          <div class="score-line">
+            <span class="sheet-val sheet-total" id="action-points-total" aria-label="Action points"></span>
+            <div class="id-field">
+              <span class="sheet-label">Milestones</span>
+              <span class="sheet-val" id="milestones" data-value="0">0</span>
+            </div>
           </div>
-          <p style="font-size:5.5pt;margin:4px 0">Milestones: 0→1 AP, 1→2 AP, 2→3 AP</p>
-          <div class="field"><label>Additional Effects for Spending Action Points</label><textarea id="ap-effects" rows="2"></textarea></div>
-        </div>
-
-        <div class="panel lined-area">
-          <div class="panel-title">Race Features</div>
-          <textarea id="race-features"></textarea>
-        </div>
-
-        <div class="panel lined-area sm">
-          <div class="panel-title">Racial Powers</div>
-          <textarea id="racial-powers"></textarea>
-        </div>
-
-        <div class="panel lined-area">
-          <div class="panel-title">Class / Path / Destiny Features</div>
-          <textarea id="class-features"></textarea>
-        </div>
-
-        <div class="panel lined-area sm">
-          <div class="panel-title">Class Powers</div>
-          <textarea id="class-powers"></textarea>
-        </div>
-
-        <div class="panel lined-area sm">
-          <div class="panel-title">Languages Known</div>
-          <textarea id="languages"></textarea>
+          <p class="sheet-label ap-note">0 milestones = 1, 1 = 2, 2 = 3</p>
+          <div class="prose-block"><div class="sheet-prose sheet-note" id="ap-effects" aria-label="Action point effects"></div></div>
         </div>
       </section>
 
-      <!-- RIGHT COLUMN -->
-      <section class="col" aria-label="Movement and attacks">
+      <section class="area-right" aria-label="Movement, attacks, and feats">
         <div class="panel">
           <div class="panel-title">Movement</div>
-          <div class="big-score">
-            <div class="total"><input class="calc" id="speed-total" readonly /></div>
-            <div>
-              <div class="breakdown">
-                <span class="hdr">BASE</span><span class="hdr">ARMOR</span><span class="hdr">ITEM</span><span class="hdr">MISC</span>
-              </div>
-              <div class="breakdown">
-                <span class="cell"><input type="number" id="speed-base" value="0" /></span>
-                <span class="cell"><input type="number" id="speed-armor" value="0" /></span>
-                <span class="cell"><input type="number" id="speed-item" value="0" /></span>
-                <span class="cell"><input type="number" id="speed-misc" value="0" /></span>
-              </div>
+          <div class="score-line">
+            <span class="sheet-val sheet-total" id="speed-total" aria-label="Speed"></span>
+            <div class="breakdown breakdown-4">
+              <span class="sheet-label">Base</span>
+              <span class="sheet-label">Armor</span>
+              <span class="sheet-label">Item</span>
+              <span class="sheet-label">Misc</span>
+              <span class="sheet-val" id="speed-base" data-value="0">0</span>
+              <span class="sheet-val" id="speed-armor" data-value="0">0</span>
+              <span class="sheet-val" id="speed-item" data-value="0">0</span>
+              <span class="sheet-val" id="speed-misc" data-value="0">0</span>
             </div>
           </div>
-          <div class="conditional"><label>Special Movement</label><textarea id="special-movement"></textarea></div>
+          <div class="prose-block"><div class="sheet-prose sheet-note" id="special-movement" aria-label="Special movement"></div></div>
         </div>
 
         <div class="panel">
           <div class="panel-title">Senses</div>
-          <div class="hp-subgrid">
-            <div class="field"><label>Passive Insight (10 + skill)</label><input class="calc" id="passive-insight" readonly /></div>
-            <div class="field"><label>Passive Perception (10 + skill)</label><input class="calc" id="passive-perception" readonly /></div>
+          <div class="stat-grid stat-grid-2">
+            <div class="id-field"><span class="sheet-label">Passive Insight</span><span class="sheet-val" id="passive-insight"></span></div>
+            <div class="id-field"><span class="sheet-label">Passive Perception</span><span class="sheet-val" id="passive-perception"></span></div>
           </div>
-          <div class="conditional"><label>Special Senses</label><textarea id="special-senses"></textarea></div>
+          <div class="prose-block"><div class="sheet-prose sheet-note" id="special-senses" aria-label="Special senses"></div></div>
         </div>
-
-        <div class="panel" id="attack-panels"></div>
 
         <div class="panel">
           <div class="panel-title">Basic Attacks</div>
           <table class="basic-attacks-table">
-            <thead><tr><th>Attack</th><th>vs</th><th>Weapon or Power</th><th>Damage</th></tr></thead>
+            <thead>
+              <tr>
+                <th class="sheet-label">Atk</th>
+                <th class="sheet-label">vs</th>
+                <th class="sheet-label">Weapon or Power</th>
+                <th class="sheet-label">Damage</th>
+              </tr>
+            </thead>
             <tbody>
               <tr>
-                <td><input type="number" id="basic1-atk" /></td>
-                <td><input type="text" id="basic1-vs" value="AC" /></td>
-                <td><input type="text" id="basic1-weapon" value="Melee Basic Attack — Unarmed" /></td>
-                <td><input type="text" id="basic1-dmg" value="1d4" /></td>
+                <td><span class="sheet-val" id="basic1-atk" aria-label="Basic attack 1 attack"></span></td>
+                <td><span class="sheet-val" id="basic1-vs" data-value="AC">AC</span></td>
+                <td><span class="sheet-val sheet-text" id="basic1-weapon" data-value="Melee Basic Attack — Unarmed">Melee Basic Attack — Unarmed</span></td>
+                <td><span class="sheet-val" id="basic1-damage" aria-label="Basic attack 1 damage"></span></td>
               </tr>
               <tr>
-                <td><input type="number" id="basic2-atk" /></td>
-                <td><input type="text" id="basic2-vs" value="AC" /></td>
-                <td><input type="text" id="basic2-weapon" value="Ranged Basic Attack — Unarmed" /></td>
-                <td><input type="text" id="basic2-dmg" value="1d4" /></td>
+                <td><span class="sheet-val" id="basic2-atk" aria-label="Basic attack 2 attack"></span></td>
+                <td><span class="sheet-val" id="basic2-vs" data-value="AC">AC</span></td>
+                <td><span class="sheet-val sheet-text" id="basic2-weapon" data-value="Ranged Basic Attack — Unarmed">Ranged Basic Attack — Unarmed</span></td>
+                <td><span class="sheet-val" id="basic2-damage" aria-label="Basic attack 2 damage"></span></td>
               </tr>
               <tr>
-                <td><input type="number" id="basic3-atk" /></td>
-                <td><input type="text" id="basic3-vs" /></td>
-                <td><input type="text" id="basic3-weapon" /></td>
-                <td><input type="text" id="basic3-dmg" /></td>
+                <td><span class="sheet-val" id="basic3-atk" aria-label="Basic attack 3 attack"></span></td>
+                <td><span class="sheet-val" id="basic3-vs" aria-label="Basic attack 3 defense"></span></td>
+                <td><span class="sheet-val sheet-text" id="basic3-weapon" aria-label="Basic attack 3 weapon"></span></td>
+                <td><span class="sheet-val" id="basic3-dmg" aria-label="Basic attack 3 damage"></span></td>
               </tr>
               <tr>
-                <td><input type="number" id="basic4-atk" /></td>
-                <td><input type="text" id="basic4-vs" /></td>
-                <td><input type="text" id="basic4-weapon" /></td>
-                <td><input type="text" id="basic4-dmg" /></td>
+                <td><span class="sheet-val" id="basic4-atk" aria-label="Basic attack 4 attack"></span></td>
+                <td><span class="sheet-val" id="basic4-vs" aria-label="Basic attack 4 defense"></span></td>
+                <td><span class="sheet-val sheet-text" id="basic4-weapon" aria-label="Basic attack 4 weapon"></span></td>
+                <td><span class="sheet-val" id="basic4-dmg" aria-label="Basic attack 4 damage"></span></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="panel lined-area">
+        <div class="panel feats-panel">
           <div class="panel-title">Feats</div>
-          <textarea id="feats"></textarea>
+          <div class="sheet-prose" id="feats" aria-label="Feats"></div>
         </div>
+      </section>
 
-        <div class="panel lined-area sm">
-          <div class="panel-title">Rituals Known</div>
-          <textarea id="rituals"></textarea>
+      <section class="area-skills panel" aria-label="Skills">
+        <div class="panel-title">Skills</div>
+        <table class="skills-table" id="skills-table">
+          <thead>
+            <tr>
+              <th class="sheet-label">Bonus</th>
+              <th class="sheet-label">Skill</th>
+              <th class="sheet-label">Abil</th>
+              <th class="sheet-label">Mod + 1/2</th>
+              <th class="sheet-label">Trained</th>
+              <th class="sheet-label">Armor</th>
+              <th class="sheet-label">Misc</th>
+            </tr>
+          </thead>
+          <tbody id="skills-body"></tbody>
+        </table>
+      </section>
+
+      <section class="area-features panel" aria-label="Features">
+        <div class="panel-title">Race Features</div>
+        <div class="sheet-prose" id="race-features" aria-label="Race features"></div>
+        <div class="panel-title section-gap">Class / Path / Destiny</div>
+        <div class="sheet-prose" id="class-features" aria-label="Class features"></div>
+        <div class="prose-block">
+          <div class="sheet-label">Languages</div>
+          <div class="sheet-prose" id="languages" aria-label="Languages"></div>
         </div>
+        <div class="prose-block">
+          <div class="sheet-label">Rituals</div>
+          <div class="sheet-prose" id="rituals" aria-label="Rituals"></div>
+        </div>
+      </section>
+
+      <section class="area-powers panel" aria-label="Powers">
+        <div class="panel-title">Powers</div>
+        <div id="power-index" data-render="power-index"></div>
+      </section>
+
+      <section class="area-gear panel" aria-label="Equipped items">
+        <div class="panel-title">Equipped</div>
+        <div id="equipped-lines" data-render="equipped-lines"></div>
       </section>
     </div>
 
     <footer class="sheet-footer">Page 1</footer>
+    <div id="sheet-data" hidden></div>
   </main>
 
-  <script type="module" src="../app.js"></script>
+  <section id="power-cards" class="power-cards-pages" hidden></section>
+
   <script type="module">
     import { initBuildStamp } from '../shared/build-stamp.js';
     import { SKILLS } from '../formulas.js';
-    initBuildStamp();
+    import { initSheet } from '../app.js';
+    try {
+      initBuildStamp();
+    } catch {
+      /* A static file server has no Vite env. The sheet still fills and prints. */
+    }
 
     const tbody = document.getElementById('skills-body');
     tbody.innerHTML = SKILLS.map((s) => `
       <tr>
-        <td class="bonus"><input class="calc" id="skill-${s.id}-bonus" readonly tabindex="-1" /></td>
+        <td><span class="sheet-val" id="skill-${s.id}-bonus"></span></td>
         <td class="skill-name">${s.name}</td>
         <td>${s.ability.toUpperCase()}</td>
-        <td><input class="calc" id="skill-${s.id}-mod-half" readonly tabindex="-1" /></td>
-        <td><input type="checkbox" id="skill-${s.id}-trained" /></td>
-        <td>${s.armorPenalty ? `<input type="number" id="skill-${s.id}-pen" value="0" />` : 'n/a'}</td>
-        <td><input type="number" id="skill-${s.id}-misc" value="0" /></td>
+        <td><span class="sheet-val" id="skill-${s.id}-mod-half"></span></td>
+        <td><span class="sheet-mark" id="skill-${s.id}-trained" role="checkbox" aria-checked="false" aria-label="${s.name} trained"></span></td>
+        <td>${s.armorPenalty
+          ? `<span class="sheet-val" id="skill-${s.id}-pen" data-value="0">0</span>`
+          : '<span class="sheet-val" aria-hidden="true">—</span>'}</td>
+        <td><span class="sheet-val" id="skill-${s.id}-misc" data-value="0">0</span></td>
       </tr>
     `).join('');
 
-    const defs = ['fort', 'ref', 'will'];
-    const labels = { fort: 'FORT', ref: 'REF', will: 'WILL' };
-    document.getElementById('other-defenses').innerHTML = defs.map((d) => `
-      <div class="big-score" style="margin-bottom:6px">
-        <div><strong>${labels[d]}</strong><div class="total"><input class="calc" id="${d}-total" readonly /></div></div>
-        <div style="flex:1">
-          <div class="breakdown">
-            <span class="hdr">10+</span><span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span>
-          </div>
-          <div class="breakdown">
-            <span class="cell"><input id="${d}-ten" class="calc" readonly /></span>
-            <span class="cell"><input id="${d}-half" class="calc" readonly /></span>
-            <span class="cell"><input type="number" id="${d}-abil" value="0" /></span>
-            <span class="cell"><input type="number" id="${d}-class" value="0" /></span>
-            <span class="cell"><input type="number" id="${d}-feat" value="0" /></span>
-            <span class="cell"><input type="number" id="${d}-enh" value="0" /></span>
-            <span class="cell"><input type="number" id="${d}-misc" value="0" /></span>
-          </div>
-        </div>
-      </div>
-      <input type="hidden" id="${d}-armor" value="0" />
-      <input type="hidden" id="${d}-misc2" value="0" />
-      <div class="conditional"><label>Conditional Bonuses (${labels[d]})</label><textarea id="${d}-conditional"></textarea></div>
-    `).join('');
-
-    const attacks = [
-      { id: 'melee', label: 'Melee Basic Attack — Unarmed' },
-      { id: 'ranged', label: 'Ranged Basic Attack — Unarmed' }
+    const defs = [
+      ['ac', 'AC'],
+      ['fort', 'Fort'],
+      ['ref', 'Ref'],
+      ['will', 'Will']
     ];
-    document.getElementById('attack-panels').innerHTML = attacks.map((a) => `
-      <div class="attack-block">
-        <div class="attack-name"><input type="text" id="${a.id}-name" value="${a.label}" /></div>
-        <div class="panel-title">Attack Workspace</div>
-        <div class="big-score">
-          <div class="total">+ <input class="calc" id="${a.id}-atk-total" readonly style="width:2.5em;border:none;background:transparent;font-size:14pt" /></div>
-          <div>
-            <div class="breakdown">
-              <span class="hdr">1/2 LVL</span><span class="hdr">ABIL</span><span class="hdr">CLASS</span><span class="hdr">PROF</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span>
-            </div>
-            <div class="breakdown">
-              <span class="cell"><input id="${a.id}-atk-half" class="calc" readonly /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-abil" value="0" /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-class" value="0" /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-prof" value="0" /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-feat" value="0" /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-enh" value="0" /></span>
-              <span class="cell"><input type="number" id="${a.id}-atk-misc" value="0" /></span>
-            </div>
+    document.getElementById('defense-blocks').innerHTML = defs.map(([id, label]) => `
+      <div class="defense">
+        <div class="score-line">
+          <div class="defense-name">
+            <span class="sheet-label">${label}</span>
+            <span class="sheet-val sheet-total" id="${id}-total" aria-label="${label} total"></span>
+          </div>
+          <div class="breakdown breakdown-7">
+            <span class="sheet-label">10+</span>
+            <span class="sheet-label">Abl</span>
+            <span class="sheet-label">Arm</span>
+            <span class="sheet-label">Cls</span>
+            <span class="sheet-label">Feat</span>
+            <span class="sheet-label">Enh</span>
+            <span class="sheet-label">Misc</span>
+            <span class="sheet-val" id="${id}-ten" aria-label="${label} 10 plus half level"></span>
+            <span class="sheet-val" id="${id}-abil" data-value="0" aria-label="${label} ability">0</span>
+            <span class="sheet-val" id="${id}-armor" data-value="0" aria-label="${label} armor">0</span>
+            <span class="sheet-val" id="${id}-class" data-value="0" aria-label="${label} class">0</span>
+            <span class="sheet-val" id="${id}-feat" data-value="0" aria-label="${label} feat">0</span>
+            <span class="sheet-val" id="${id}-enh" data-value="0" aria-label="${label} enhancement">0</span>
+            <span class="sheet-val" id="${id}-misc" data-value="0" aria-label="${label} misc">0</span>
           </div>
         </div>
-        <div class="panel-title">Damage Workspace</div>
-        <div class="field"><label>Damage dice (manual)</label><input type="text" id="${a.id}-dice" value="1d4" /></div>
-        <div class="breakdown" style="grid-template-columns:repeat(5,1fr)">
-          <span class="hdr">ABIL</span><span class="hdr">FEAT</span><span class="hdr">ENH</span><span class="hdr">MISC</span><span class="hdr">MISC</span>
-        </div>
-        <div class="breakdown" style="grid-template-columns:repeat(5,1fr)">
-          <span class="cell"><input type="number" id="${a.id}-dmg-abil" value="0" /></span>
-          <span class="cell"><input type="number" id="${a.id}-dmg-feat" value="0" /></span>
-          <span class="cell"><input type="number" id="${a.id}-dmg-enh" value="0" /></span>
-          <span class="cell"><input type="number" id="${a.id}-dmg-misc" value="0" /></span>
-          <span class="cell"><input type="number" id="${a.id}-dmg-misc2" value="0" /></span>
-        </div>
-        <p style="font-size:6pt">Flat damage bonus (calc): +<input class="calc" id="${a.id}-dmg-total" readonly style="width:2em;border:none" /></p>
+        <div class="sheet-prose sheet-note" id="${id}-conditional" aria-label="${label} conditional bonuses"></div>
       </div>
     `).join('');
 
-    import('../app.js').then((m) => m.initSheet());
+    const hidden = [
+      'armor-penalty-global',
+      'ac-half', 'fort-half', 'ref-half', 'will-half',
+      'ac-misc2', 'fort-misc2', 'ref-misc2', 'will-misc2',
+      'melee-name', 'melee-dice', 'ranged-name', 'ranged-dice',
+      'basic1-dmg', 'basic2-dmg'
+    ];
+    const attackParts = ['half', 'abil', 'class', 'prof', 'feat', 'enh', 'misc'];
+    const damageParts = ['abil', 'feat', 'enh', 'misc', 'misc2'];
+    for (const kind of ['melee', 'ranged']) {
+      hidden.push(`${kind}-atk-total`, `${kind}-dmg-total`);
+      for (const part of attackParts) hidden.push(`${kind}-atk-${part}`);
+      for (const part of damageParts) hidden.push(`${kind}-dmg-${part}`);
+    }
+    const data = document.getElementById('sheet-data');
+    data.innerHTML = hidden.map((id) => `<span class="sheet-val" id="${id}" data-value="0"></span>`).join('');
+    for (const [id, value] of [
+      ['melee-dice', '1d4'],
+      ['ranged-dice', '1d4'],
+      ['basic1-dmg', '1d4'],
+      ['basic2-dmg', '1d4'],
+      ['melee-name', 'Melee Basic Attack — Unarmed'],
+      ['ranged-name', 'Ranged Basic Attack — Unarmed']
+    ]) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.dataset.value = value;
+      el.textContent = value;
+    }
+
+    initSheet();
   </script>
 </body>
 </html>

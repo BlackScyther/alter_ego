@@ -3,8 +3,11 @@
  */
 
 import { getFinalScores, getSkillBonusTotals } from './tutor.js';
+import { buildPowerIndex, writeSheetField } from '../sheet/sheet-fields.js';
 
 const ABIL_MAP = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
+
+export { buildPowerIndex, writeSheetField };
 
 export function characterToSheetPayload(character) {
   const id = character.identity;
@@ -51,6 +54,7 @@ export function characterToSheetPayload(character) {
     ...flattenDefenses(sheet.defenses),
     ...flattenSpeed(sheet.speed),
     ...flattenSkillBonuses(getSkillBonusTotals(character)),
+    'power-index': buildPowerIndex(character.notes),
     'init-conditional': extras['init-conditional'] ?? '',
     'save-mods': extras['save-mods'] ?? '',
     resistances: extras.resistances ?? '',
@@ -140,10 +144,7 @@ function flattenSpeed(speed) {
 export function applyCharacterToSheetDom(character, root = document) {
   const payload = characterToSheetPayload(character);
   for (const [fieldId, value] of Object.entries(payload)) {
-    const el = root.getElementById(fieldId);
-    if (!el || value === undefined || value === null) continue;
-    if (el.type === 'checkbox') el.checked = Boolean(value);
-    else el.value = value;
+    writeSheetField(root.getElementById(fieldId), value);
   }
   root.dispatchEvent(new CustomEvent('character-applied', { detail: { character } }));
 }

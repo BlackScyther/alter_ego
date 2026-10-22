@@ -1,15 +1,18 @@
 {
   "$schema": "./dimensions.schema.json",
-  "description": "Official D&D 4e PHB character sheet page 1 — US Letter layout. All positions in inches from top-left of the printable area. Change scale to resize output; proportions stay fixed.",
+  "description": "Printable character sheet page size. The live layout is the CSS grid in src/sheet.css. Page size is A4. Region inches below are the older reference grid; they still sit inside the A4 page.",
   "page": {
-    "widthIn": 8.5,
-    "heightIn": 11,
+    "name": "A4",
+    "widthMm": 210,
+    "heightMm": 297,
+    "widthIn": 8.27,
+    "heightIn": 11.69,
     "marginTopIn": 0.25,
     "marginRightIn": 0.25,
     "marginBottomIn": 0.25,
     "marginLeftIn": 0.25,
-    "contentWidthIn": 8,
-    "contentHeightIn": 10.5
+    "contentWidthIn": 7.77,
+    "contentHeightIn": 11.19
   },
   "scale": 1,
   "columns": {

@@ -94,6 +94,8 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
     assert.equal(c.sheet.extraFields['melee-atk-abil'], 3);
     assert.match(c.sheet.extraFields['basic1-weapon'], /Longsword/);
+    assert.match(c.sheet.extraFields['equipped-lines'], /Armor: Scale Armor/);
+    assert.match(c.sheet.extraFields['equipped-lines'], /Main hand: Longsword/);
   });
 
   it('maps item level to enhancement bonus (+1..+6 in steps of 5)', () => {

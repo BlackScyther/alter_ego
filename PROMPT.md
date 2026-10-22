@@ -9,7 +9,7 @@ Use this file as the primary context when working in this repository.
 Build and maintain **Alter Ego**: offline D&D 4e tools for a private table. Current code focuses on a **formula-driven character sheet (page 1)** with:
 
 - Live calculations (`src/formulas.js`, `src/app.js`)
-- US Letter print/PDF (`dimensions.json`, `scripts/export-pdf.mjs`)
+- A4 print/PDF (`dimensions.json`, `scripts/export-pdf.mjs`). The printed sheet is read-only. **Include power cards** adds A4 power cards after page 1. `npm run check:sheet` confirms a filled sheet stays on the page
 - Home hub, character generator, and playlist top (`src/index.html`, `src/editor/`, `src/playlist/`; UI rules in `rules/`)
 - Local export/import and GM party view (`src/character/`, `src/party/`, `src/gm/`)
 

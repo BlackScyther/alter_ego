@@ -2,7 +2,7 @@
 
 One-line role for each tracked file. Update this table when the tree changes.
 
-**Last updated:** 2026-10-16 (required racial ability choice)
+**Last updated:** 2026-10-22
 
 **Project root:** `D:\Projects\web\4e\Alter_Ego` (Alter Ego). Master spec: [PROJECT.md](../PROJECT.md).
 
@@ -53,7 +53,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `docker-compose.yml` | Standalone single-host run (localhost:3000 + two data volumes) |
 | `app-icon.png` | Source for `npx tauri icon` (desktop icons) |
 | `package-lock.json` | Locked dependency versions (Playwright) |
-| `dimensions.json` | US Letter layout in inches; regions, columns, `--scale` |
+| `dimensions.json` | A4 page size (210 mm × 297 mm) and the older reference grid; `--scale` |
 | `output/*.pdf` | Generated PDFs from `npm run pdf` (not source) |
 
 ## `ops/` (VPS hosting)
@@ -97,7 +97,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `export-pdf.mjs` | Playwright: local HTTP server → Letter PDF in `output/` |
+| `export-pdf.mjs` | Playwright: local HTTP server → A4 PDF in `output/` |
+| `check-sheet-print.mjs` | Fills a dense level-10 sheet and checks every value stays inside the A4 page at 8pt or larger (`npm run check:sheet`) |
 | `build-party-index.mjs` | Scans `src/party/*.json` → writes `src/party/index.json` |
 | `pack-player.mjs` | Legacy: browser player zip with start scripts |
 | `post-build-app.mjs` | Copies metadata, party, favicon, and DB into `dist/app/` after Vite build |
@@ -217,17 +218,17 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `ui/app.css` | Tailwind build input (`@import tailwindcss`) |
 | `ui/player-mode.js` | Hides GM nav when `mode=player` or session flag set |
 | `ui/tailwind.html` | Legacy CDN snippet reference (prefer `app.css`) |
-| `sheet/sheet-entry.js` | Sheet DOM bootstrap + `initSheet()` |
 
 ## `src/sheet/` — character sheet (page 1)
 
 | File | Role |
 |------|------|
-| `index.html` | Main sheet DOM (character page only — the static level 1–30 table was moved to the Resources page so printing the sheet emits just the character); includes a dedicated **Racial Powers** textarea (`racial-powers`) so racial powers from the editor mirror print on the sheet |
+| `index.html` | Read-only A4 sheet. Identity, abilities, hit points, defenses, action points, movement, senses, basic attacks, feats, a wide skills table, features, a power index, and equipped items. No inputs on the page. Toolbar has Scale and **Include power cards** |
+| `sheet-fields.js` | Writes read-only cells and builds the power index (grouped At-Will / Encounter / Daily / Utility) and equipped-item lines. No compendium imports |
 | `levels.html` | Level reference page only (for `pdf:levels`) |
-| `app.js` | Binds inputs to `formulas.js`; recalculates on change |
-| `formulas.js` | D&D 4e math: ½ level, defenses (incl. `defenseAbilityMod` = higher of the two relevant ability mods), skills, attacks, HP, XP table |
-| `sheet.css` | Print layout; `@page { size: letter }` |
+| `../app.js` | Recalculates the sheet into the read-only cells. Print locks the scale at 100%. Include power cards appends A4 power cards after page 1 |
+| `../formulas.js` | D&D 4e math: half level, defenses, skills, attacks, HP, XP table |
+| `../sheet.css` | A4 layout (210 mm × 297 mm). Values are black and at least 8pt; labels are at least 7pt. Numbers are centered |
 
 ## `src/resources/` — shared player reference (character-independent)
 
@@ -260,7 +261,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `monster-fluff.js` | Curated race→monster flavor map (`getCuratedMonsterRefs`), loaded from `metadata/race-monster-fluff.json`; drives the monster-races lore lookup (supports `monsterIds`/`monsterNames`/`disabled`) |
 | `race-parse.js` | Parse race HTML → mechanics, flavor fold, compact notes, grants; ability bonus picker (combo `<select>` for "any one ability", buttons for limited choices) plus `renderRaceAbilityChoicesHostHtml` for the choice panel above the preview (a two-option bonus shows the fixed line, then the two bonuses in columns with the word or; after a pick, "You did choose at 1st level" names the selected bonus and the summary lists the fixed bonus and that bonus; any-one-ability stays a dropdown with its continue prompt); `parseGenasiManifestationBonuses` reads each elemental manifestation's always-on benefit (power clause removed) and `extractPowerFlavorSentence` reads a power's opening flavor line for the manifestation detail box; structured trait parsers (`parseRaceLanguages`/`parseRaceResistances`/`parseRaceSenses`/`parseRaceTraits`/`parseSpeedSquares`, `getRaceStructuredTraits`) + formatters; subrace replacement parsing (`parseRaceReplacements`, `resolveReplacedBaseItems`) that suppresses replaced base trait rows + grant folds in the combined preview; `extractMonsterFlavorFolds` pulls lore-only prose (strips stats/powers/tables) from a related Monster entry into a collapsed fold; renders descriptive traits in one collapsed "Racial Traits" fold (ability choice stays visible) and a per-power ability `<select>` inside racial-power grant folds |
 | `power-ability-parse.js` | `parsePowerAbilityOptions(entry)` — detects an attack-line ability "or"-list (e.g. "Strength, Dexterity, or Constitution vs. AC") or a `Special:` "choose ... as the ability score" clause (Dragon Breath); `parsePowerDamageOptions(entry)` — detects a "damage type: acid, cold, fire, lightning, or poison" choice list. Both return the offered keys/types |
-| `grant-slots.js` | Categorized race/class grant slots (`writeGrantGroup`, `syncGrantSlotsFromIds`). The sheet mirror renders them read-only; only the race and class steps add or remove them |
+| `grant-slots.js` | Categorized race/class/theme grant slots (`writeGrantGroup`, `syncGrantSlotsFromIds`). The sheet mirror renders them read-only. Race, class, and theme steps add or remove their own groups |
 | `race-selections.js` | Race step validation, build/bonus choices, grant sync; Watersoul and Windsoul swap the second ability to Constitution or Intelligence while keeping Strength (`genasiAbilityBenefitModel`, `applyGenasiManifestationAbilities`); subraces are optional (`validateRaceStep`/`raceSubraceComplete` treat any set `raceId` — a subrace or the base race chosen via "None" — as complete), `setRacePowerAbilityChoice`/`setRacePowerDamageChoice` (per-power ability + damage picks, recorded as required reqs and annotated in notes e.g. `Dragon Breath (Dexterity, fire)`, enforced by `validateRaceStep`), `applyRaceTraitsToSheet`/`clearRaceTraitsFromSheet` (write Languages/Resistances/Special Senses/Speed with manual-vs-derived precedence); drops base power/feat grants and trait note lines a subrace replaces (`collectRaceGrantIds`/`syncRaceNotesAndGrants` honor the replacement set) |
 | `background-parse.js` | Parse background HTML (iws.mx inline skills + raw narrative), preview fold, skill picker, compact notes |
 | `background-selections.js` | Background associated-skill +2/+1 choices and step validation |
@@ -269,11 +270,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `class-effects.js` | Flat initiative and skill bonuses from granted class features (conditional sentences skipped; curated override only when the class has no feature section); feat initiative such as Improved Initiative +4; composes background + class + feat |
 | `class-parse.js` | Parse class HTML (traits, builds, italic class skills, build suggested skills and starter power names, CLASS FEATURES blocks, embedded `featN` grant ids). A build with no Class Feature line still grants the matching Presence. The chosen presence is listed with the other granted features |
 | `class-selections.js` | Class build/trained-skill choices, suggested-skill seeding, recommended power resolution (metadata + compendium name lookup), recommended ability priorities from class Key Abilities, grants (`classPowerIds` and `classFeatIds`, including Ritual Caster when the class text says Ritual Casting), sheet sync; persists class HP params and recomputes Max HP for the current level; `applyHybridClassStats` merges two normalized classes (PH3) into sheet HP/surges/speed and persists `selections.hybridMerged` |
-| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape (initiative is background + class + feat), `initiativeHandMisc`, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
+| `hp.js` | Max HP helpers: `computeMaxHp` (`classBase + CON/substitute + (level − 1) × hpPerLevel`), `computeLevel1MaxHp`, `getClassMaxHpAt1`, `getClassHpPerLevel`, derived-bonus shape (initiative is background + class + feat + theme), `initiativeHandMisc`, HP-substitute tutor hint; HP resolution prefers `selections.hybridMerged` when hybrid mode is on |
 | `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; per-instance `level` and magic `enhancement` (`setEquipmentItemEnhancement`, +1/+2/+3); shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
 | `item-power-grants.js` | Powers linked from equipped item bodies (`power123`). Unequipped inventory is ignored. Usage comes from the power's Type, or the closest At-Will / Encounter / Daily / Utility word before the link |
 | `equipment-stats.js` | Parse compendium equipment entries + PHB override table for AC, check penalty, weapon dice/prof; implements resolve to a `kind: 'implement'` stat (no AC/dice, enhancement only); falls back to a name/category armor table (Plate/Scale/Chainmail/Hide/Leather/Cloth) when no override or inline AC text; `getDefenseEnhancementInfo`/`enhancementFromLevel`/`levelFromEntry` drive level-scaled defense items (Amulet of Protection → Fort/Ref/Will from the selected level only); `parseDefenseBonuses` reads "+N enhancement/item/circumstance/… bonus to Fortitude" (no type word means untyped, and those add); `stackDefenseBonuses` keeps the highest of each named type; `overlappingSameTypeBonusInstanceIds` finds equipped items that share one type on one defense; magic-item helpers `getMagicTiers`/`magicTierForBonus`/`isEnhanceableEntry` (weapon/armor/implement)/`magicDisplayName`/`baseCostGpFromEntry`/`magicTotalCostGp` (config-driven +1/+2/+3) |
-| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`) and magic weapon/armor/implement enhancement (weapon → melee/ranged atk+dmg `enh`; armor → AC `enh`; implement → its bonus). Named bonuses of the same type to the same defense do not add: the sheet keeps the highest of each type, adds different types, and adds untyped bonuses. Enhancement stays in the enh column; other equipment bonus types go in misc2. The melee/ranged line `enh` shows the higher of the weapon's and the implement's bonus; per-source values (`weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`) are also stored for the power cards |
+| `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines; applies level-scaled neck enhancement items (Amulet of Protection → Fort/Ref/Will `enh`) and magic weapon/armor/implement enhancement (weapon → melee/ranged atk+dmg `enh`; armor → AC `enh`; implement → its bonus). Named bonuses of the same type to the same defense do not add: the sheet keeps the highest of each type, adds different types, and adds untyped bonuses. Enhancement stays in the enh column; other equipment bonus types go in misc2. The melee/ranged line `enh` shows the higher of the weapon's and the implement's bonus; per-source values (`weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`) are also stored for the power cards. Equipped items are also written to `equipped-lines` (`Slot: Name`) for the printable sheet |
 | `starting-equipment.js` | Level-1 kit resolve/apply (`resolveStartingKit`, `applyStartingKit`, `getRecommendedStartingKitMeta`); auto-seed on create; force-apply for recommend button |
 | `bonus-stacking.js` | Same-type bonus stacking (highest per type) |
 | `power-card-values.js` | Per-character attack/damage math for printable power cards: `buildPowerCardContext` (ability mods, half level, synced weapon proficiency, and per-source magic enhancement: `weapon-melee-enh`/`weapon-ranged-enh`/`implement-enh`), `attackTotalFor` (half + ability + weapon proficiency + enhancement + inline bonus), `damageModFor` (ability + enhancement), `abilityKeyFromName`, `formatSigned`. Weapon powers use the weapon's enhancement (per line), implement powers use the implement's |
@@ -281,7 +282,9 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `monster-parse.js` | Parse monster listing + stat-line HTML → combat stats, abilities, skills, resistances, powers, traits; `resolveMonsterSpawnStats` for GM spawn |
 | `feat-parse.js` | Parse feat listing, prerequisite atoms, skill/ability bonuses, grants (Ritual Caster), benefit text |
 | `ritual-parse.js` | Ritual listing; `extractRitualIdsFromHtml` for class ritual grants |
-| `path-parse.js` | Paragon path, epic destiny, and theme listing passthrough |
+| `path-parse.js` | Paragon path, epic destiny, and theme listing passthrough (name, prerequisite, source book) |
+| `theme-parse.js` | Theme body HTML: level 1/5/10 features, embedded powers, flavor fold, preview |
+| `theme-selections.js` | Theme validation, unlocked skill and initiative bonuses, starting-power grant (`grantSlots.themePowers`) |
 | `reference-parse.js` | Trap/companion/deity/disease/poison/glossary listing + `extractCompendiumLinks` for `entry_links` |
 | `party-loader.js` | Loads party JSON for GM console |
 
@@ -301,18 +304,19 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `post-load.js` | Level-up XP gate (`canLevelUp`, tooltip text) and retraining builder entry index |
 | `editor.css` | Editor layout, race step, sheet-mirror tabs (resizable body: `height: max(40vh, 220px)`, `resize: vertical`), `.sheet-mirror-print` header button, compendium hover cards |
 | `collapsible-chevron.js` | Shared SVG chevron for collapsible editor panels (sheet mirror, character collection) |
-| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields; Collection tab shows read-only Race Powers, Race Feats, Class Powers, and Class Feats slots; renders a top-right **Print sheet** button in the mirror header (via the `onPrintSheet` callback) that opens the populated scalable sheet in a new tab |
+| `sheet-mirror.js` | Persistent wizard character-sheet mirror: tab UI, payload sync, collapse state; adds `sheet-mirror-field--total` class for flagged result fields; Collection tab shows read-only Race Powers, Race Feats, Class Powers, Class Feats, and Theme Powers slots; renders a top-right **Print sheet** button in the mirror header (via the `onPrintSheet` callback) that opens the populated scalable sheet in a new tab |
 | `sheet-mirror-fields.js` | Mirror field manifest grouped into tabs (Identity, Combat, Skills, Attacks, Collection grant slots, …); `total` flag marks summed result fields (AC/FORT/REF/WILL Total, Initiative, Max HP, attack/damage bonus, passive senses, speed, action points); the `${def}-abil` parts and all four `${def}-enh` parts are readonly (auto-derived from ability scores / equipped enhancement items: magic armor → AC enh, neck items → Fort/Ref/Will enh). Skill total, ability, armor, and the global armor penalty are readonly; Misc stays the typed column |
 | `skills-table.js` | Shared skills table markup and handlers; class-skill trained checkboxes reflect build suggested skills. Number cells hide stepper arrows. Total, ability, armor, and the global armor penalty are read-only for the user; only Misc accepts typing (a non-zero Misc value stays locked) |
 | `print-cards-dialog.js` | Native `<dialog>` shown when clicking "Print cards": per-category checkboxes (Powers/Feats/Rituals — universal actions are excluded; they live on the Resources page) limited to categories the character has; remembers the last selection in `sessionStorage` (`editor.printCards.categories`); resolves to the chosen keys or `null` on cancel |
 | `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build choices and the racial ability-score choice sit above the race preview, immediately after the race is confirmed; the subrace list shows a "None (play the base race)" option first so subrace-bearing races can be played without one (subraces are optional); build decisions with >6 options render as a compact combo `<select>`; the Genasi manifestation combo has no compendium link — after a choice, a read-only bulleted list shows the power flavor, the static benefit, and the power name followed by the word Power; Dragonborn radios keep one ↗ per option; for monster races with no own flavor, pulls lore-only folds from the matching Monster entry (exact name match + `metadata/race-monster-fluff.json` overrides) |
 | `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, granted class-feature list with hover cards, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
-| `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); the list is the slot's level and lower (same type), not higher levels; each type heading (At-Will, Encounter, Daily, Utility) shows filled vs available slots, e.g. At-Will (2 of 2), and slot labels stay level + type only; compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker. Below the picker, read-only **Race** powers (only usage types the race grants) and **Equipment** powers (only when an equipped item links a power; item link, then the power link under it; body slot shown, not editable) |
+| `steps/theme-step.js` | Theme picker after Background: source combo, search, sectioned preview (features, powers, description) |
+| `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); the list is the slot's level and lower (same type), not higher levels; each type heading (At-Will, Encounter, Daily, Utility) shows filled vs available slots, e.g. At-Will (2 of 2), and slot labels stay level + type only; compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker. Below the picker, read-only **Race** powers, **Theme** powers (the starting power), and **Equipment** powers (only when an equipped item links a power; item link, then the power link under it; body slot shown, not editable) |
 | `steps/feat-step.js` | Feat slots grouped by tier + shared combobox; feats above the character's level are hidden; **Recommended feats for this class** button; compendium open link (↗) on filled slots; source combo filter above picker. Read-only **Race** and **Class** feat sections (Ritual Caster and other class grants) sit under the slots and are omitted from the picker |
 | `steps/grant-section-html.js` | Read-only grant section markup shared by the power and feat steps. Rows are not buttons. Usage groups omit empty At-Will / Encounter / Daily / Utility headings |
 | `steps/equipment-step.js` | Equipment inventory + body-slot equip UI; auto-seeds level-1 starting kits on first visit during **create** flow; **Recommended equipment** button (level 1) force-applies build kit; syncs sheet/mirror on equip changes; category tabs; source combo + combobox picker; manual gold (gp) field; inline **Item level** control on equipped level-scaled defense items (Amulet of Protection) shows the selected level's bonus (for example +1 Fort, Ref, Will); when two equipped items share the same bonus type on one defense, each shows a red exclamation whose tooltip says only the highest is used; inline **Magic bonus** selector (None/+1/+2/+3) on equipped base weapons/armor/implements (shows derived name "+2 Chainmail", item level, and price) |
-| `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, power, feat, equipment); opt-in "released on/before" date filter (`showDate`) with `resolveSourceBooksByDate(dateMap, cutoff)` (used by the GM Workshop duplicate picker) |
+| `picker/picker-source-combo.js` | All + source-book dropdown filter (race, class, theme, power, feat, equipment); opt-in "released on/before" date filter (`showDate`) with `resolveSourceBooksByDate(dateMap, cutoff)` (used by the GM Workshop duplicate picker) |
 | `choice-guide.js` | Sequential pending-choice highlight, scroll, and focus (race + class steps) |
 | `steps/race-grants-panel.js` | Racial power/feat tile cards on race step; per-power ability `<select>` for powers offering an ability-score choice and a per-power damage-type `<select>` for powers offering a damage choice (persist `selections.racePowerAbilityChoices` / `selections.racePowerDamageChoices`) |
 
@@ -343,9 +347,10 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `cards.html` | Printable rule-cards page shell (toolbar + grid; links `cards.css`) |
-| `cards.js` | Renders one condensed tile per power/universal action/feat/ritual the character has; reads the `editor.printCards` localStorage handoff (`{ character, categories }`; falls back to the active stored character + all categories), rendering only the chosen categories, reusing `collectAllCollectionItems` + `condenseRuleHtml`. Power tiles are personalized via `power-card-values.js`: Attack ability terms gain this character's full to-hit (e.g. `Strength +9`) and `<ability> modifier` damage terms gain the modifier value (e.g. `(+5)`), styled `.rule-card-calc`. Weapon vs implement vs ranged is detected from the rule text so the correct magic enhancement is folded in (weapon powers use the equipped weapon's bonus, implement powers the implement's). The A4 layout is a two-column grid with at most four large cards per page; long cards grow past the minimum height instead of clipping |
-| `cards.css` | Self-contained card grid + frequency accents (at-will/encounter/daily); `@page { size: A4 }`, a 2-column grid with a `--card-h` per-card minimum height and `--card-gap` so at most four cards print per page yet long cards grow past the minimum (`break-inside: avoid`, no clipping), and `@media print` rules |
+| `cards.html` | Printable rule-cards page shell (toolbar + grid; links `cards.css`; its own `@page` is A4) |
+| `cards.js` | Cards page entry. Reads the `editor.printCards` handoff and calls `renderRuleCards` |
+| `rule-cards.js` | Shared card renderer. One condensed tile per power, feat, or ritual. Power tiles are personalized via `power-card-values.js` (attack to-hit and damage modifier). The sheet print asks for powers only |
+| `cards.css` | Card grid and frequency accents (at-will / encounter / daily). Two columns, at most four cards per page; long cards grow instead of clipping. Calculated numbers are black. Page size is A4 on the cards page and on the sheet |
 
 ## `src/encounter/`
 

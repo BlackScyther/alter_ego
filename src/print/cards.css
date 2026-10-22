@@ -19,7 +19,7 @@
   box-sizing: border-box;
 }
 
-body {
+body:not(.sheet-body) {
   margin: 0;
   background: #f1f5f9;
   color: var(--ink);
@@ -184,13 +184,8 @@ body {
 /* Character-specific computed attack/damage values injected into rule text. */
 .rule-card-calc {
   font-weight: 700;
-  color: #1d4ed8;
+  color: #000;
   white-space: nowrap;
-}
-
-@page {
-  size: A4;
-  margin: 10mm;
 }
 
 @media print {
