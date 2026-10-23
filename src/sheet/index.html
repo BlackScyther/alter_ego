@@ -296,13 +296,14 @@
             <span class="sheet-label">${label}</span>
             <span class="sheet-val sheet-total" id="${id}-total" aria-label="${label} total"></span>
           </div>
-          <div class="breakdown breakdown-7">
-            <span class="sheet-label">10+</span>
+          <div class="breakdown breakdown-8">
+            <span class="sheet-label">10 + ½</span>
             <span class="sheet-label">Abl</span>
             <span class="sheet-label">Arm</span>
             <span class="sheet-label">Cls</span>
             <span class="sheet-label">Feat</span>
             <span class="sheet-label">Enh</span>
+            <span class="sheet-label">Misc</span>
             <span class="sheet-label">Misc</span>
             <span class="sheet-val" id="${id}-ten" aria-label="${label} 10 plus half level"></span>
             <span class="sheet-val" id="${id}-abil" data-value="0" aria-label="${label} ability">0</span>
@@ -311,6 +312,7 @@
             <span class="sheet-val" id="${id}-feat" data-value="0" aria-label="${label} feat">0</span>
             <span class="sheet-val" id="${id}-enh" data-value="0" aria-label="${label} enhancement">0</span>
             <span class="sheet-val" id="${id}-misc" data-value="0" aria-label="${label} misc">0</span>
+            <span class="sheet-val" id="${id}-misc2" data-value="0" aria-label="${label} item misc">0</span>
           </div>
         </div>
         <div class="sheet-prose sheet-note" id="${id}-conditional" aria-label="${label} conditional bonuses"></div>
@@ -320,7 +322,6 @@
     const hidden = [
       'armor-penalty-global',
       'ac-half', 'fort-half', 'ref-half', 'will-half',
-      'ac-misc2', 'fort-misc2', 'ref-misc2', 'will-misc2',
       'melee-name', 'melee-dice', 'ranged-name', 'ranged-dice',
       'basic1-dmg', 'basic2-dmg'
     ];

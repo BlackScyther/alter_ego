@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-10-22 (B-037 printable sheet overflow)
+**Last updated:** 2026-10-23 (B-038 item bonus columns)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-038 | 2026-10-23 | Chainmail plus a light shield showed AC Armor 8 and Enhancement 0. The light shield's "Shield Bonus: +1" was missed, so every unread shield became a heavy shield (+2 AC, +1 Reflex, −2 check), and that shield bonus was added into the Armor column. The compendium stat block is now read after tags are stripped. Chainmail stays armor +6, check −1, speed −1. A light shield is +1 AC only. A heavy shield is +2 AC, +1 Reflex, check −2. The Armor column is the armor bonus only; the shield goes to MISC 2; a magic +1 stays in Enhancement. A level 4 hero with +1 chainmail and a light shield is AC 20 (12 + 6 + 1 + 1). Defined items use the printed step for the equipped level (Belt of Vigor is +2 at level 12; the generic formula would say +3). A bonus that applies only against, while, when, or if does not fill a defense box. `armor_stats` in the database was not rewritten. The sheet uses the parser for armor and shields until a later normalize. Files: `src/character/equipment-stats.js`, `src/character/equipment-sheet-sync.js`, `src/editor/sheet-mirror-fields.js`, `metadata/equipment-stats-overrides.json`, `tests/fixtures/item-bodies.json`. |
 | B-036 | 2026-10-13 | Firefox drew stepper arrows on the skills table number cells and those arrows could still change a value. Total, ability, per-skill armor, and the global armor penalty are now read-only (sheet logic still writes them). Misc stays the typed column. Stepper arrows are hidden, and arrow keys or the mouse wheel cannot change a locked cell. Trained checkboxes are unchanged. Files: `src/editor/skills-table.js`, `src/editor/sheet-mirror-fields.js`, `src/editor/sheet-mirror.js`, `src/editor/editor.css`. |
 | B-037 | 2026-10-22 | The printable character sheet ran past the page. The right column stacked two attack workspaces, and number steppers plus textarea resize grips made the columns wider than the page, so Save as PDF clipped the attacks. Fixed: page 1 is a read-only A4 layout (210 mm × 297 mm; skills in a wide table, basic attacks instead of the workspaces, power index, equipped items). Values are black, numbers are centered, and print stays at 100% scale. Include power cards appends A4 power cards after the sheet. Check: `npm run check:sheet`. |
 | B-035 | 2026-10-12 | Warlord builds other than Insightful and Skirmishing did not name a Commanding Presence, so the Class features list omitted Inspiring Presence and Tactical Presence. A trailing period on the last build option also broke the Tactical Warlord id. Starter power slots did not match the suggested powers on the class entry, and Insightful Warlord had no slots. Fixed: the matching Presence is granted and listed; Battlefront Shift is granted only with Battlefront Leader; starter slots follow the compendium suggested powers for all six builds. |

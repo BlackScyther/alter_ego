@@ -76,7 +76,7 @@ describe('starting-equipment', () => {
     assert.equal(getEquippedBySlot(c).armor?.compendiumId, 'armor5');
     assert.equal(getEquippedBySlot(c).mainHand?.compendiumId, 'weapon3612');
     assert.equal(getInventoryItems(c).length, 6);
-    assert.equal(c.sheet.defenses.ac.armor, 8);
+    assert.equal(c.sheet.defenses.ac.armor, 7);
     assert.equal(c.sheet.extraFields['melee-dice'], '1d12');
     assert.equal(c.sheet.extraFields['melee-atk-prof'], 3);
 
@@ -166,7 +166,8 @@ describe('starting-equipment', () => {
     assert.equal(getEquippedBySlot(c).offHand?.compendiumId, 'armor8');
     assert.equal(getEquippedBySlot(c).mainHand?.compendiumId, 'weapon3610');
     assert.equal(getInventoryItems(c).length, 6);
-    assert.equal(c.sheet.defenses.ac.armor, 10);
+    assert.equal(c.sheet.defenses.ac.armor, 7);
+    assert.equal(c.sheet.defenses.ac.misc2, 2);
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
     assert.equal(c.sheet.extraFields['melee-atk-prof'], 3);
   });

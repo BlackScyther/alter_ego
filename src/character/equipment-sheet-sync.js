@@ -149,13 +149,17 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     const itemName = entry.listing_fields?.Name ?? item.compendiumId;
     equippedLines.push(`${slot.label}: ${magicDisplayName(itemName, item.enhancement)}`);
 
-    // Prefer normalized stats from the compendium DB when present; fall back to
-    // runtime HTML parsing for any item not yet covered by the normalizer.
+    // Armor and shields use the runtime parser. Normalized armor_stats still
+    // hold the old heavy-shield default and are not rewritten in this pass.
+    const parsedStats = getEquipmentStats(entry);
     const normalizedStats =
       typeof compendium.getNormalizedItemStats === 'function'
         ? await compendium.getNormalizedItemStats(item.compendiumId)
         : null;
-    const stats = normalizedStats ?? getEquipmentStats(entry);
+    const stats =
+      parsedStats?.kind === 'armor' || parsedStats?.kind === 'shield'
+        ? parsedStats
+        : (normalizedStats ?? parsedStats);
 
     for (const bonus of itemDefenseBonusContributions(item, entry, stats)) {
       defenseBonuses.push({ instanceId: item.instanceId, ...bonus });
@@ -188,18 +192,17 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
   }
 
   const stacked = stackDefenseBonuses(defenseBonuses);
-  // Armor bonus and shield bonus are different types, so both apply. The sheet
-  // keeps them in the armor column. Every other type, and untyped bonuses, go
-  // in misc2 so they still count and do not overwrite a handwritten misc value.
+  // The armor column is the armor bonus only. A shield bonus is a different
+  // type and is filed in misc2 (the visible item-misc box) so it still counts
+  // and does not overwrite a handwritten misc value. Enhancement stays in enh.
   for (const def of ['ac', 'fort', 'ref', 'will']) {
     const byType = stacked[def].byType;
     character.sheet.defenses[def].enh = byType.enhancement || 0;
-    const armorColumn = (def === 'ac' || def === 'ref' ? (byType.armor || 0) + (byType.shield || 0) : 0);
-    if (def === 'ac' || def === 'ref') character.sheet.defenses[def].armor = armorColumn;
+    if (def === 'ac') character.sheet.defenses.ac.armor = byType.armor || 0;
     let misc2 = stacked[def].untyped;
     for (const [type, amount] of Object.entries(byType)) {
       if (type === 'enhancement') continue;
-      if ((def === 'ac' || def === 'ref') && (type === 'armor' || type === 'shield')) continue;
+      if (def === 'ac' && type === 'armor') continue;
       misc2 += amount;
     }
     character.sheet.defenses[def].misc2 = misc2;

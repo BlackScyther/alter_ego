@@ -9,13 +9,16 @@ import {
   unequipSlot
 } from '../src/character/equipment-selections.js';
 import { syncEquipmentToSheet } from '../src/character/equipment-sheet-sync.js';
+import itemBodies from './fixtures/item-bodies.json' with { type: 'json' };
 import {
   enhancementFromLevel,
   getDefenseEnhancementInfo,
   getEquipmentStats,
+  magicTableDefenseBonuses,
   overlappingSameTypeBonusInstanceIds,
   parseDefenseBonuses,
   parseEnhancementDefenseBonuses,
+  printedBonusesAtLevel,
   isEnhanceableEntry,
   magicDisplayName,
   magicTierForBonus,
@@ -31,6 +34,12 @@ const amulet = {
   category_slug: 'item',
   listing_fields: { Name: 'Amulet of Protection', Type: 'Neck slot', Level: '1' }
 };
+
+function fixtureEntry(id) {
+  const entry = itemBodies.find((row) => row.id === id);
+  if (!entry) throw new Error(`missing fixture ${id}`);
+  return entry;
+}
 
 const fighterClass = {
   id: 'class3',
@@ -55,8 +64,8 @@ const compendium = {
 describe('equipment-sheet-sync', () => {
   it('reads PHB stats from overrides', () => {
     const stats = getEquipmentStats(scale);
-    assert.equal(stats?.acBonus, 8);
-    assert.equal(stats?.checkPenalty, -1);
+    assert.equal(stats?.acBonus, 7);
+    assert.equal(stats?.checkPenalty, 0);
   });
 
   it('infers AC bonus by armor name when no override or inline text', () => {
@@ -87,9 +96,11 @@ describe('equipment-sheet-sync', () => {
 
     await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
 
-    assert.equal(c.sheet.defenses.ac.armor, 10);
-    assert.equal(c.sheet.defenses.ref.armor, 1);
-    assert.equal(c.sheet.armorPenaltyGlobal, -3);
+    assert.equal(c.sheet.defenses.ac.armor, 7);
+    assert.equal(c.sheet.defenses.ac.misc2, 2);
+    assert.equal(c.sheet.defenses.ref.armor, 0);
+    assert.equal(c.sheet.defenses.ref.misc2, 1);
+    assert.equal(c.sheet.armorPenaltyGlobal, -2);
     assert.equal(c.sheet.speed.armor, 0);
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
     assert.equal(c.sheet.extraFields['melee-atk-abil'], 3);
@@ -276,8 +287,10 @@ describe('equipment-sheet-sync', () => {
     addEquipmentFromCompendium(c, shield, 'offHand');
     addEquipmentFromCompendium(c, band, 'waist');
     await syncEquipmentToSheet(c, local, { classEntry: fighterClass });
-    assert.equal(c.sheet.defenses.ac.armor, 10);
-    assert.equal(c.sheet.defenses.ref.armor, 1);
+    assert.equal(c.sheet.defenses.ac.armor, 7);
+    assert.equal(c.sheet.defenses.ac.misc2, 2);
+    assert.equal(c.sheet.defenses.ref.armor, 0);
+    assert.equal(c.sheet.defenses.ref.misc2, 1);
   });
 
   it('clears equipment bonuses after unequip', async () => {
@@ -348,7 +361,7 @@ describe('equipment-sheet-sync', () => {
 
     await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
     assert.equal(c.sheet.defenses.ac.enh, 3);
-    assert.equal(c.sheet.defenses.ac.armor, 8);
+    assert.equal(c.sheet.defenses.ac.armor, 7);
 
     unequipSlot(c, 'armor');
     await syncEquipmentToSheet(c, compendium, { classEntry: fighterClass });
@@ -391,6 +404,113 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.extraFields['melee-dmg-enh'], 3);
     assert.equal(c.sheet.extraFields['weapon-melee-enh'], 1);
     assert.equal(c.sheet.extraFields['implement-enh'], 3);
+  });
+
+  it('reads compendium stat blocks for chainmail and both shields', () => {
+    const chain = fixtureEntry('armor4');
+    const light = fixtureEntry('armor7');
+    const heavy = fixtureEntry('armor8');
+    const cloth = fixtureEntry('armor1');
+    const scaleArmor = fixtureEntry('armor5');
+
+    const chainStats = getEquipmentStats(chain);
+    assert.equal(chainStats?.acBonus, 6);
+    assert.equal(chainStats?.checkPenalty, -1);
+    assert.equal(chainStats?.speedPenalty, -1);
+
+    const lightStats = getEquipmentStats(light);
+    assert.equal(lightStats?.kind, 'shield');
+    assert.equal(lightStats?.acBonus, 1);
+    assert.equal(lightStats?.refBonus, 0);
+    assert.equal(lightStats?.checkPenalty, 0);
+
+    const heavyStats = getEquipmentStats(heavy);
+    assert.equal(heavyStats?.acBonus, 2);
+    assert.equal(heavyStats?.refBonus, 1);
+    assert.equal(heavyStats?.checkPenalty, -2);
+
+    assert.equal(getEquipmentStats(cloth)?.acBonus, 0);
+    assert.equal(getEquipmentStats(scaleArmor)?.acBonus, 7);
+  });
+
+  it('uses a defined item\'s printed level step, not the generic formula', () => {
+    const amuletBody = fixtureEntry('item498');
+    assert.equal(magicTableDefenseBonuses(amuletBody.body_html, 1)[0]?.amount, 1);
+    assert.equal(magicTableDefenseBonuses(amuletBody.body_html, 7)[0]?.amount, 2);
+    assert.equal(magicTableDefenseBonuses(amuletBody.body_html, 11)[0]?.amount, 3);
+    assert.deepEqual(
+      magicTableDefenseBonuses(amuletBody.body_html, 11).map((row) => row.defense).sort(),
+      ['fort', 'ref', 'will']
+    );
+
+    const belt = fixtureEntry('item654');
+    const at12 = printedBonusesAtLevel(belt.body_html, 12);
+    assert.equal(at12[0]?.amount, 2);
+    assert.match(at12[0]?.target ?? '', /healing surge/i);
+    assert.equal(enhancementFromLevel(12), 3);
+
+    const bracers = fixtureEntry('item934');
+    const at16 = printedBonusesAtLevel(bracers.body_html, 16).find((row) => row.defenses.includes('ac'));
+    assert.equal(at16?.amount, 2);
+    assert.equal(at16?.conditional, true);
+    assert.equal(enhancementFromLevel(16), 4);
+
+    const stepped = printedBonusesAtLevel(
+      '<p>+1 item bonus to Fortitude. Level 13 or 18: Gain a +2 item bonus. Level 22 or higher: +4 item bonus.</p>',
+      18
+    );
+    assert.equal(stepped[0]?.amount, 2);
+    assert.equal(printedBonusesAtLevel(
+      '<p>+1 item bonus to Fortitude. Level 13 or 18: Gain a +2 item bonus. Level 22 or higher: +4 item bonus.</p>',
+      22
+    )[0]?.amount, 4);
+  });
+
+  it('files chainmail, light shield, and enhancement like the character builder', async () => {
+    const chain = fixtureEntry('armor4');
+    const light = fixtureEntry('armor7');
+    const local = {
+      async getEntry(id) {
+        if (id === chain.id) return chain;
+        if (id === light.id) return light;
+        return null;
+      },
+      async getNormalizedItemStats(id) {
+        if (id === light.id) return { kind: 'shield', name: 'Light Shield', acBonus: 2, refBonus: 1, checkPenalty: -2 };
+        if (id === chain.id) return { kind: 'armor', name: 'Chainmail', acBonus: 8, checkPenalty: -1, speedPenalty: -1, armorCategory: 'chainmail' };
+        return null;
+      }
+    };
+    const c = createCharacter({
+      identity: { level: 4 },
+      selections: { classId: 'class3' }
+    });
+    addEquipmentFromCompendium(c, chain, 'armor');
+    addEquipmentFromCompendium(c, light, 'offHand');
+    setEquipmentItemEnhancement(c, c.selections.equipmentItems[0].instanceId, 1);
+    await syncEquipmentToSheet(c, local, { classEntry: fighterClass });
+
+    assert.equal(c.sheet.defenses.ac.armor, 6);
+    assert.equal(c.sheet.defenses.ac.enh, 1);
+    assert.equal(c.sheet.defenses.ac.misc2, 1);
+    assert.equal(c.sheet.defenses.ref.misc2, 0);
+    assert.equal(c.sheet.armorPenaltyGlobal, -1);
+    assert.equal(defenseTotal(4, { ...c.sheet.defenses.ac, abil: 0 }), 20);
+  });
+
+  it('does not add a conditional defined-item bonus to AC', async () => {
+    const bracers = fixtureEntry('item934');
+    const local = {
+      async getEntry(id) {
+        return id === bracers.id ? bracers : null;
+      }
+    };
+    const c = createCharacter({ selections: { classId: 'class3' } });
+    addEquipmentFromCompendium(c, bracers, 'arms');
+    setEquipmentItemLevel(c, c.selections.equipmentItems[0].instanceId, 16);
+    await syncEquipmentToSheet(c, local, { classEntry: fighterClass });
+    assert.equal(c.sheet.defenses.ac.misc2, 0);
+    assert.equal(c.sheet.defenses.ac.enh, 0);
   });
 
   it('clamps enhancement to the 1..3 range (null when <= 0)', () => {

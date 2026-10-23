@@ -1,8 +1,8 @@
 {
   "armor5": {
     "kind": "armor",
-    "acBonus": 8,
-    "checkPenalty": -1,
+    "acBonus": 7,
+    "checkPenalty": 0,
     "speedPenalty": -1,
     "armorCategory": "scale"
   },
@@ -14,7 +14,7 @@
   },
   "armor1": {
     "kind": "armor",
-    "acBonus": 7,
+    "acBonus": 6,
     "checkPenalty": -1,
     "speedPenalty": -1,
     "armorCategory": "chainmail"

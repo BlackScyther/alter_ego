@@ -20,28 +20,73 @@ const MAGIC_TIERS = [...(magicTiers?.tiers ?? [])]
   .filter((t) => t.bonus > 0)
   .sort((a, b) => a.bonus - b.bonus);
 
-const ARMOR_AC_RE = /(?:AC\s*Bonus|Armor\s*Bonus)\s*[:\s]*\+?\s*(\d+)/i;
-const CHECK_PEN_RE = /(?:Check\s*Penalty|Armor\s*Check\s*Penalty)\s*[:\s]*([+-]?\d+)/i;
-const SPEED_PEN_RE = /(?:Speed\s*Penalty)\s*[:\s]*([+-]?\d+)/i;
+const AC_BONUS_RE = /(?:AC|Armor)\s*Bonus\s*:\s*\+?\s*(-?\d+)/i;
+const SHIELD_BONUS_RE = /Shield\s*Bonus\s*:\s*\+?\s*(-?\d+)/i;
+const CHECK_PEN_RE = /(?:Armor\s*)?Check(?:\s*Penalty)?\s*:\s*([+-]?\d+)/i;
+const SPEED_PEN_RE = /Speed(?:\s*Penalty)?\s*:\s*([+-]?\d+)/i;
 const PROF_BONUS_RE = /(?:Proficiency\s*Bonus|Weapon\s*Bonus)\s*[:\s]*\+?\s*(\d+)/i;
 const DAMAGE_DICE_RE = /(?:Damage|Weapon\s*Damage)\s*[:\s]*(\d+d\d+)/i;
 const SHIELD_RE = /shield/i;
+const BONUS_TYPE_RE =
+  'enhancement|item|feat|power|racial|race|proficiency|circumstance|armor|shield|defense';
 
 /**
- * Standard PHB armor AC bonuses keyed by category keyword. Used as a fallback
- * when an armor entry has no stats override and no parseable "AC Bonus" text in
- * its body HTML (the compendium stores these in a table, not inline prose), so
- * equipped armor still contributes to AC instead of resolving to +0.
+ * PHB armor numbers used only when the stat block does not state that field.
+ * Chainmail speed is −1. A missing shield number stays 0; light and heavy
+ * shields supply their own fallback below, and never share one heavy default.
  * @type {Array<{ match: RegExp, category: string, acBonus: number, checkPenalty: number, speedPenalty: number }>}
  */
 const ARMOR_BASE_TABLE = [
   { match: /plate/i, category: 'plate', acBonus: 8, checkPenalty: -2, speedPenalty: -1 },
   { match: /scale/i, category: 'scale', acBonus: 7, checkPenalty: 0, speedPenalty: -1 },
-  { match: /chain(?:mail)?/i, category: 'chainmail', acBonus: 6, checkPenalty: -1, speedPenalty: 0 },
+  { match: /chain(?:mail)?/i, category: 'chainmail', acBonus: 6, checkPenalty: -1, speedPenalty: -1 },
   { match: /hide/i, category: 'hide', acBonus: 3, checkPenalty: -1, speedPenalty: 0 },
   { match: /leather/i, category: 'leather', acBonus: 2, checkPenalty: 0, speedPenalty: 0 },
   { match: /cloth/i, category: 'cloth', acBonus: 0, checkPenalty: 0, speedPenalty: 0 }
 ];
+
+/** @type {{ light: { acBonus: number, refBonus: number, checkPenalty: number }, heavy: { acBonus: number, refBonus: number, checkPenalty: number } }} */
+const SHIELD_FALLBACK = {
+  light: { acBonus: 1, refBonus: 0, checkPenalty: 0 },
+  heavy: { acBonus: 2, refBonus: 1, checkPenalty: -2 }
+};
+
+/**
+ * @param {string} html
+ */
+export function plainItemText(html) {
+  return String(html ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * @param {string} text
+ * @param {RegExp} re
+ */
+function labeledNumber(text, re) {
+  const match = String(text ?? '').match(re);
+  if (!match?.[1]) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Stat-block fields only. Prose such as "grants +7 AC at levels 6–10" is the
+ * magic total, not the armor bonus, and does not match these labels.
+ * @param {string} html
+ */
+function readArmorBlock(html) {
+  const text = plainItemText(html);
+  return {
+    acBonus: labeledNumber(text, AC_BONUS_RE),
+    shieldBonus: labeledNumber(text, SHIELD_BONUS_RE),
+    checkPenalty: labeledNumber(text, CHECK_PEN_RE),
+    speedPenalty: labeledNumber(text, SPEED_PEN_RE)
+  };
+}
 
 /**
  * @param {string} name
@@ -56,42 +101,69 @@ function inferArmorBase(name, type) {
 }
 
 /**
+ * An override written for a different item (live Cloth is `armor1`, the stub
+ * used that id for Chainmail) must not replace the named armor.
+ * @param {object | undefined} override
+ * @param {{ category?: string } | null} base
+ */
+function usableArmorOverride(override, base) {
+  if (!override) return null;
+  if (override.armorCategory && base?.category && override.armorCategory !== base.category) return null;
+  return override;
+}
+
+/**
+ * @param {string} name
+ * @param {string} type
+ */
+function shieldFallback(name, type) {
+  const haystack = `${name ?? ''} ${type ?? ''}`;
+  if (/heavy/i.test(haystack)) return SHIELD_FALLBACK.heavy;
+  if (/light/i.test(haystack)) return SHIELD_FALLBACK.light;
+  return { acBonus: 0, refBonus: 0, checkPenalty: 0 };
+}
+
+/**
  * @param {{ id?: string, category_slug?: string, listing_fields?: Record<string, string>, body_html?: string }} entry
  */
 export function getEquipmentStats(entry) {
   if (!entry?.id) return null;
 
-  const override = OVERRIDE_BY_ID[entry.id];
-  if (override) {
-    return {
-      ...override,
-      name: entry.listing_fields?.Name ?? entry.id
-    };
-  }
-
   const category = entry.category_slug ?? '';
   const type = entry.listing_fields?.Type ?? '';
   const html = entry.body_html ?? '';
   const name = entry.listing_fields?.Name ?? entry.id;
+  const armorLike = category === 'armor' || /armor|shield/i.test(type);
 
-  if (category === 'armor' || /armor|shield/i.test(type)) {
-    if (SHIELD_RE.test(type)) {
+  if (!armorLike) {
+    const override = OVERRIDE_BY_ID[entry.id];
+    if (override) {
+      return { ...override, name };
+    }
+  }
+
+  if (armorLike) {
+    const block = readArmorBlock(html);
+    const base = inferArmorBase(name, type);
+    const override = usableArmorOverride(OVERRIDE_BY_ID[entry.id], base);
+    if (SHIELD_RE.test(type) || SHIELD_RE.test(name)) {
+      const fallback = shieldFallback(name, type);
+      const knownShield = /heavy|light/i.test(`${name} ${type}`);
       return {
         kind: 'shield',
         name,
-        acBonus: numFrom(html, ARMOR_AC_RE) ?? 2,
-        refBonus: 1,
-        checkPenalty: numFrom(html, CHECK_PEN_RE) ?? -2
+        acBonus: block.shieldBonus ?? block.acBonus ?? override?.acBonus ?? fallback.acBonus,
+        refBonus: knownShield ? fallback.refBonus : (override?.refBonus ?? fallback.refBonus),
+        checkPenalty: block.checkPenalty ?? override?.checkPenalty ?? fallback.checkPenalty
       };
     }
-    const base = inferArmorBase(name, type);
     return {
       kind: 'armor',
       name,
-      acBonus: numFrom(html, ARMOR_AC_RE) ?? base?.acBonus ?? 0,
-      checkPenalty: numFrom(html, CHECK_PEN_RE) ?? base?.checkPenalty ?? 0,
-      speedPenalty: numFrom(html, SPEED_PEN_RE) ?? base?.speedPenalty ?? 0,
-      armorCategory: base?.category ?? type
+      acBonus: block.acBonus ?? override?.acBonus ?? base?.acBonus ?? 0,
+      checkPenalty: block.checkPenalty ?? override?.checkPenalty ?? base?.checkPenalty ?? 0,
+      speedPenalty: block.speedPenalty ?? override?.speedPenalty ?? base?.speedPenalty ?? 0,
+      armorCategory: base?.category ?? override?.armorCategory ?? type
     };
   }
 
@@ -234,9 +306,140 @@ function defensesInPhrase(phrase) {
 }
 
 /**
+ * @param {string | undefined} rawType
+ */
+function normalizeBonusType(rawType) {
+  const raw = String(rawType ?? '').toLowerCase();
+  if (!raw) return 'untyped';
+  return raw === 'race' ? 'racial' : raw;
+}
+
+/**
+ * @param {string} phrase
+ */
+function isConditionalPhrase(phrase) {
+  return /\bagainst\b|\bwhile\b|\bwhen\b|\bif\b/i.test(phrase);
+}
+
+/**
+ * Magic-item table rows (`Lvl 6 +2`) whose "Enhancement Bonus:" line names
+ * defenses. The amount is the highest row at or below the equipped level.
+ * Empty bonus cells (Belt of Vigor) are ignored.
+ * @param {string} html
+ * @param {number} level
+ * @returns {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>}
+ */
+export function magicTableDefenseBonuses(html, level) {
+  const text = plainItemText(html);
+  const header = text.match(/Enhancement\s+Bonus\s*:\s*([^.]*)/i);
+  if (!header) return [];
+  const defenses = defensesInPhrase(header[1]);
+  if (!defenses.length) return [];
+  const n = Math.floor(Number(level) || 0);
+  let bestLevel = -1;
+  let bestAmount = 0;
+  const re = /Lvl\s*(\d+)\s+\+(\d+)/gi;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const tierLevel = Number(match[1]);
+    const amount = Number(match[2]);
+    if (tierLevel <= n && tierLevel >= bestLevel && amount > 0) {
+      bestLevel = tierLevel;
+      bestAmount = amount;
+    }
+  }
+  if (bestLevel < 0) return [];
+  return defenses.map((defense) => ({ type: 'enhancement', defense, amount: bestAmount }));
+}
+
+/**
+ * Printed property bonuses, including "Level 12: Gain a +2 item bonus" steps
+ * that raise the previous bonus. A step that names its own target starts a
+ * new track. "Level 13 or 18" and "Level 22 or higher" use the first level
+ * as the step that starts applying.
+ * @param {string} html
+ * @returns {Array<{ type: string, defenses: Array<'ac'|'fort'|'ref'|'will'>, target: string, conditional: boolean, steps: Array<{ minLevel: number, amount: number }> }>}
+ */
+export function parsePrintedBonusTracks(html) {
+  const text = plainItemText(html);
+  const re = new RegExp(
+    String.raw`Level\s+(\d+)(?:\s+or\s+(?:higher|\d+))?\s*:\s*(?:(?:Gain|You gain)\s+(?:a\s+)?)?\+\s*(\d+)\s+(?:(${BONUS_TYPE_RE})\s+)?bonus(?:es)?(?:\s+to\s+([^.<]*))?|\+\s*(\d+)\s+(?:(${BONUS_TYPE_RE})\s+)?bonus(?:es)?(?:\s+to\s+([^.<]*))?`,
+    'gi'
+  );
+  /** @type {Array<{ type: string, defenses: Array<'ac'|'fort'|'ref'|'will'>, target: string, conditional: boolean, steps: Array<{ minLevel: number, amount: number }> }>} */
+  const tracks = [];
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    if (match[1]) {
+      const minLevel = Number(match[1]);
+      const amount = Number(match[2]);
+      const type = match[3] ? normalizeBonusType(match[3]) : null;
+      const phrase = String(match[4] ?? '').trim();
+      if (phrase) {
+        tracks.push({
+          type: type ?? 'untyped',
+          defenses: defensesInPhrase(phrase),
+          target: phrase,
+          conditional: isConditionalPhrase(phrase),
+          steps: [{ minLevel, amount }]
+        });
+      } else if (tracks.length && amount > 0) {
+        const last = tracks[tracks.length - 1];
+        if (type) last.type = type;
+        last.steps.push({ minLevel, amount });
+      }
+      continue;
+    }
+    const amount = Number(match[5]);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    const phrase = String(match[7] ?? '').trim();
+    tracks.push({
+      type: normalizeBonusType(match[6]),
+      defenses: defensesInPhrase(phrase),
+      target: phrase,
+      conditional: isConditionalPhrase(phrase),
+      steps: [{ minLevel: 0, amount }]
+    });
+  }
+  return tracks;
+}
+
+/**
+ * The printed bonus that applies at an item level. This is the text's own
+ * step, not `1 + floor((level - 1) / 5)`.
+ * @param {string} html
+ * @param {number} level
+ */
+export function printedBonusesAtLevel(html, level) {
+  const n = Math.floor(Number(level) || 0);
+  /** @type {Array<{ type: string, amount: number, defenses: Array<'ac'|'fort'|'ref'|'will'>, target: string, conditional: boolean }>} */
+  const out = [];
+  for (const track of parsePrintedBonusTracks(html)) {
+    let amount = 0;
+    let min = -1;
+    for (const step of track.steps) {
+      if (step.minLevel <= n && step.minLevel >= min) {
+        min = step.minLevel;
+        amount = step.amount;
+      }
+    }
+    if (amount <= 0) continue;
+    out.push({
+      type: track.type,
+      amount,
+      defenses: track.defenses,
+      target: track.target,
+      conditional: track.conditional
+    });
+  }
+  return out;
+}
+
+/**
  * Bonuses this item grants to defenses. Worn armor contributes an armor bonus
- * to Armor Class. A shield contributes a shield bonus. Magic armor's +1/+2/+3
- * is an enhancement bonus to Armor Class.
+ * to Armor Class. A shield contributes a shield bonus, kept separate from the
+ * armor bonus. Magic armor's +1/+2/+3 is an enhancement bonus to Armor Class.
+ * A defined item uses the bonus printed for the equipped level.
  * @param {{ level?: number | null, enhancement?: number | null }} item
  * @param {{ listing_fields?: Record<string, string>, body_html?: string }} entry
  * @param {{ kind?: string, acBonus?: number, refBonus?: number } | null} [stats]
@@ -245,13 +448,22 @@ function defensesInPhrase(phrase) {
 export function itemDefenseBonusContributions(item, entry, stats = null) {
   /** @type {Array<{ type: string, defense: 'ac'|'fort'|'ref'|'will', amount: number }>} */
   const out = [];
+  const html = entry?.body_html ?? '';
+  const level = item?.level ?? levelFromEntry(entry) ?? 1;
+  const fromTable = magicTableDefenseBonuses(html, level);
+  out.push(...fromTable);
+  const covered = new Set(fromTable.map((bonus) => bonus.defense));
   const info = getDefenseEnhancementInfo(entry);
   if (info) {
-    const level = item?.level ?? levelFromEntry(entry) ?? 1;
     const bonus = enhancementFromLevel(level);
-    for (const defense of info.defenses) out.push({ type: 'enhancement', defense, amount: bonus });
+    for (const defense of info.defenses) {
+      if (!covered.has(defense)) out.push({ type: 'enhancement', defense, amount: bonus });
+    }
   }
-  out.push(...parseDefenseBonuses(entry?.body_html ?? ''));
+  for (const row of printedBonusesAtLevel(html, level)) {
+    if (row.conditional) continue;
+    for (const defense of row.defenses) out.push({ type: row.type, defense, amount: row.amount });
+  }
   const magic = Math.max(0, Math.floor(Number(item?.enhancement) || 0));
   if (magic > 0 && stats?.kind === 'armor') out.push({ type: 'enhancement', defense: 'ac', amount: magic });
   if (stats?.kind === 'armor' && Number(stats.acBonus) > 0) {

@@ -8,10 +8,10 @@ import { SKILLS } from '../formulas.js';
 const ABILITIES = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 const ABIL_LABELS = { str: 'STR', con: 'CON', dex: 'DEX', int: 'INT', wis: 'WIS', cha: 'CHA' };
 const DEFENSES = [
-  { id: 'ac', label: 'AC', parts: ['abil', 'class', 'feat', 'enh', 'misc', 'armor'] },
-  { id: 'fort', label: 'FORT', parts: ['abil', 'class', 'feat', 'enh', 'misc'] },
-  { id: 'ref', label: 'REF', parts: ['abil', 'class', 'feat', 'enh', 'misc'] },
-  { id: 'will', label: 'WILL', parts: ['abil', 'class', 'feat', 'enh', 'misc'] }
+  { id: 'ac', label: 'AC', parts: ['abil', 'class', 'feat', 'enh', 'misc', 'misc2', 'armor'] },
+  { id: 'fort', label: 'FORT', parts: ['abil', 'class', 'feat', 'enh', 'misc', 'misc2'] },
+  { id: 'ref', label: 'REF', parts: ['abil', 'class', 'feat', 'enh', 'misc', 'misc2'] },
+  { id: 'will', label: 'WILL', parts: ['abil', 'class', 'feat', 'enh', 'misc', 'misc2'] }
 ];
 const ATTACK_KINDS = ['melee', 'ranged'];
 
@@ -107,14 +107,12 @@ function defenseFields() {
   const out = [];
   for (const def of DEFENSES) {
     out.push(field(`${def.id}-total`, `${def.label} Total`, 'number', { readonly: true, total: true, row: def.id }));
-    out.push(field(`${def.id}-ten`, `${def.label} — 10+`, 'number', { readonly: true, row: def.id }));
-    out.push(field(`${def.id}-half`, `${def.label} — ½ Lvl`, 'number', { readonly: true, row: def.id }));
+    out.push(field(`${def.id}-ten`, `${def.label} — 10 + ½ Lvl`, 'number', { readonly: true, row: def.id }));
     for (const part of def.parts) {
-      const partLabel = part === 'abil' ? 'ABIL' : part.toUpperCase();
-      // ABIL is derived from ability scores; ENH on every defense is managed by
-      // equipped items (magic armor sets AC enh; neck items such as the Amulet
-      // of Protection set Fort/Ref/Will enh). Both readonly.
-      const derived = part === 'abil' || part === 'enh';
+      const partLabel = part === 'abil' ? 'ABIL' : part === 'misc2' ? 'MISC 2' : part.toUpperCase();
+      // ABIL is derived from ability scores. ENH and MISC 2 are managed by
+      // equipped items (magic armor sets AC enh; a shield sets MISC 2).
+      const derived = part === 'abil' || part === 'enh' || part === 'misc2';
       out.push(
         field(`${def.id}-${part}`, `${def.label} — ${partLabel}`, 'number', {
           row: def.id,

@@ -1,0 +1,117 @@
+[
+  {
+    "id": "armor1",
+    "category_slug": "armor",
+    "listing_fields": {
+      "ID": "armor1",
+      "Name": "Cloth Armor (Basic Clothing)",
+      "Type": "Cloth",
+      "Level": "",
+      "Cost": "1 gp",
+      "Rarity": "Mundane",
+      "SourceBook": "PHB, HotFL"
+    },
+    "body_html": "<h1 class=player>Cloth Armor (Basic Clothing)</h1><br><b>Description</b>: Jackets, mantles, woven robes, and padded vests don't, by themselves, provide any significant protection. However, you can imbue them with protective magic. Cloth armor doesn't slow you down or hinder your movement at all. All characters have proficiency with cloth armor.<br>    Magic appears at higher item levels, and grants higher armor bonuses than its mundane counterparts. Cloth armor grants +1 AC at levels 16-25, and +2 AC at levels 26-30.<br><b>Weight</b>: 4 lb.<br><b>Cost</b>: 1 gp.<br><b>Type</b>: Cloth<br><p class=publishedIn>Published in Player's Handbook, page(s) 214, Heroes of the Fallen Lands, page(s) 325.</p>"
+  },
+  {
+    "id": "armor5",
+    "category_slug": "armor",
+    "listing_fields": {
+      "ID": "armor5",
+      "Name": "Scale Armor",
+      "Type": "Scale",
+      "Level": "",
+      "Cost": "45 gp",
+      "Rarity": "Mundane",
+      "SourceBook": "PHB, HotFL"
+    },
+    "body_html": "<h1 class=player>Scale Armor</h1><br><b>Description</b>: Overlapping pieces of highly durable material, such as steel or even dragon scales, make up scale armor. Despite its heaviness, scale is surprisingly easy to wear; its straps and buckles make it adjustable and able to fit snugly on the body, allowing for flexibility and agility.<br>    Magic appears at higher item levels, and grants higher armor bonuses than its mundane counterparts. Scale armor grants +8 AC at levels 6-10, +9 AC at levels 11-15, +10 AC at levels 16-20, +11 AC at levels 21-25, and +13 AC at levels 26-30.<br><b>AC Bonus</b>: +7<br><b>Speed</b>: -1<br><b>Weight</b>: 45 lb.<br><b>Cost</b>: 45 gp.<br><b>Type</b>: Scale<br><p class=publishedIn>Published in Player's Handbook, page(s) 214, Heroes of the Fallen Lands, page(s) 325.</p>"
+  },
+  {
+    "id": "armor4",
+    "category_slug": "armor",
+    "listing_fields": {
+      "ID": "armor4",
+      "Name": "Chainmail",
+      "Type": "Chainmail",
+      "Level": "",
+      "Cost": "40 gp",
+      "Rarity": "Mundane",
+      "SourceBook": "PHB, HotFL"
+    },
+    "body_html": "<h1 class=player>Chainmail</h1><br><b>Description</b>: Metal rings woven together into a shirt, leggings, and a hood make up a suit of chainmail. Chainmail grants good protection, but it's cumbersome, so it reduces your mobility and agility.<br>    Magic appears at higher item levels, and grants higher armor bonuses than its mundane counterparts. Chainmail grants +7 AC at levels 6-10, +8 AC at levels 11-15, +9 AC at levels 16-20, +10 AC at levels 21-25, and +12 AC at levels 26-30.<br><b>AC Bonus</b>: +6<br><b>Check</b>: -1<br><b>Speed</b>: -1<br><b>Weight</b>: 40 lb.<br><b>Cost</b>: 40 gp.<br><b>Type</b>: Chainmail<br><p class=publishedIn>Published in Player's Handbook, page(s) 214, Heroes of the Fallen Lands, page(s) 325.</p>"
+  },
+  {
+    "id": "armor7",
+    "category_slug": "armor",
+    "listing_fields": {
+      "ID": "armor7",
+      "Name": "Light Shield",
+      "Type": "Light Shield",
+      "Level": "",
+      "Cost": "5 gp",
+      "Rarity": "Mundane",
+      "SourceBook": "PHB, HotFL"
+    },
+    "body_html": "<h1 class=player>Light Shield</h1><br><b>Description</b>: While you're using a light shield, you can use your shield hand to hold another item, to climb, and the like, but you can't make attacks with that hand or with anything in it.<br><b>Shield Bonus</b>: +1<br><b>Weight</b>: 6 lb.<br><b>Cost</b>: 5 gp.<br><b>Type</b>: Light Shields<br><p class=publishedIn>Published in Player's Handbook, page(s) 214, Heroes of the Fallen Lands, page(s) 325.</p>"
+  },
+  {
+    "id": "armor8",
+    "category_slug": "armor",
+    "listing_fields": {
+      "ID": "armor8",
+      "Name": "Heavy Shield",
+      "Type": "Heavy Shield",
+      "Level": "",
+      "Cost": "10 gp",
+      "Rarity": "Mundane",
+      "SourceBook": "PHB, HotFL"
+    },
+    "body_html": "<h1 class=player>Heavy Shield</h1><br><b>Description</b>: While you're using a heavy shield, you can't use your shield hand for any other task, since you must use that hand to handle the shield.<br><b>Shield Bonus</b>: +2<br><b>Check</b>: -2<br><b>Weight</b>: 15 lb.<br><b>Cost</b>: 10 gp.<br><b>Type</b>: Heavy Shields<br><p class=publishedIn>Published in Player's Handbook, page(s) 214, Heroes of the Fallen Lands, page(s) 325.</p>"
+  },
+  {
+    "id": "item498",
+    "category_slug": "item",
+    "listing_fields": {
+      "ID": "item498",
+      "Name": "Amulet of Protection",
+      "Category": "Neck",
+      "Type": "",
+      "Level": "1+,1,16,6,21,11,26",
+      "Cost": "360+ gp,360,45000,1800,225000,9000,1125000",
+      "Rarity": "Common",
+      "SourceBook": "PHB, HotFL, HotFK"
+    },
+    "body_html": "<h1 class=mihead>Amulet of Protection<span class=milevel id=headerlevel>Level 1+ Common</span></h1><p class=miflavor>This light blue amulet increases your defenses.</p><table class=magicitem><tr><td class=mic1>Lvl 1<td class=mic2>+1<td class=mic3>360 gp<td class=mic4> <td class=mic1>Lvl 16<td class=mic2>+4<td class=mic3>45,000 gp<tr><td class=mic1>Lvl 6<td class=mic2>+2<td class=mic3>1,800 gp<td class=mic4> <td class=mic1>Lvl 21<td class=mic2>+5<td class=mic3>225,000 gp<tr><td class=mic1>Lvl 11<td class=mic2>+3<td class=mic3>9,000 gp<td class=mic4> <td class=mic1>Lvl 26<td class=mic2>+6<td class=mic3>1,125,000 gp</table><p class=mistat><b>Neck Slot</b></p><p class=mistat><b>Enhancement Bonus:</b> Fortitude, Reflex, and Will</p><br><br><p class=publishedIn>Published in Player's Handbook, page(s) 249, Heroes of the Fallen Lands, page(s) 351, Heroes of the Forgotten Kingdoms, page(s) 351.</p>"
+  },
+  {
+    "id": "item654",
+    "category_slug": "item",
+    "listing_fields": {
+      "ID": "item654",
+      "Name": "Belt of Vigor",
+      "Category": "Waist",
+      "Type": "",
+      "Level": "2+,2,22,12",
+      "Cost": "520+ gp,520,325000,13000",
+      "Rarity": "Common",
+      "SourceBook": "PHB, HotFL, HotFK"
+    },
+    "body_html": "<h1 class=mihead>Belt of Vigor<span class=milevel id=headerlevel>Level 2+ Common</span></h1><p class=miflavor>This chain metal belt improves your recuperative abilities.</p><table class=magicitem><tr><td class=mic1>Lvl 2<td class=mic2><td class=mic3>520 gp<td class=mic4> <td class=mic1>Lvl 22<td class=mic2><td class=mic3>325,000 gp<tr><td class=mic1>Lvl 12<td class=mic2><td class=mic3>13,000 gp<td><td><td><td></table><p class=mistat><b>Waist Slot</b></p><h2 class=mihead>Property</h2><p class=mistat>You gain a +1 item bonus to your healing surge value.<br>    <i>Level 12:</i> Gain a +2 item bonus.<br>    <i>Level 22:</i> Gain a +3 item bonus.</p><br><br><p class=publishedIn>Published in Player's Handbook, page(s) 253, Heroes of the Fallen Lands, page(s) 351, Heroes of the Forgotten Kingdoms, page(s) 351.</p>"
+  },
+  {
+    "id": "item934",
+    "category_slug": "item",
+    "listing_fields": {
+      "ID": "item934",
+      "Name": "Cold Iron Bracers",
+      "Category": "Arms",
+      "Type": "",
+      "Level": "6+,6,26,16",
+      "Cost": "1,800+ gp,1800,1125000,45000",
+      "Rarity": "Common",
+      "SourceBook": "AV"
+    },
+    "body_html": "<h1 class=mihead>Cold Iron Bracers<span class=milevel id=headerlevel>Level 6+ Common</span></h1><p class=miflavor>The creatures of the Feywild recoil at the touch of these iron bracers.</p><table class=magicitem><tr><td class=mic1>Lvl 6<td class=mic2><td class=mic3>1,800 gp<td class=mic4> <td class=mic1>Lvl 26<td class=mic2><td class=mic3>1,125,000 gp<tr><td class=mic1>Lvl 16<td class=mic2><td class=mic3>45,000 gp<td><td><td><td></table><p class=mistat><b>Arms Slot</b></p><h2 class=mihead>Property</h2><p class=mistat>Gain a +1 item bonus to AC and Reflex defense against fey creatures' attacks.<br>    <i>Level 16:</i> Gain a +2 item bonus.<br>    <i>Level 26:</i> Gain a +3 item bonus.</p><br><br><p class=publishedIn>Published in Adventurer's Vault, page(s) 116.</p>"
+  }
+]

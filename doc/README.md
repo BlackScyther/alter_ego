@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-10-22 — Printable character sheet is one read-only A4 page. Include power cards appends the character's power cards on A4. `npm run check:sheet` confirms a filled sheet stays on the page.
+**Last agent sync:** 2026-10-23 — Item bonus parser: chainmail +6 in Armor, light shield +1 in MISC 2, magic +1 in Enhancement. Defined items use the printed level step. `armor_stats` was not rewritten.
