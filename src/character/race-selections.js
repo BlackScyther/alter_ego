@@ -17,6 +17,8 @@ import {
   formatRaceLanguagesText,
   formatRaceResistancesText,
   formatRaceSensesText,
+  formatGenasiManifestationNote,
+  genasiManifestationSheetExtras,
   resolveReplacedBaseItems
 } from './race-parse.js';
 import {
@@ -111,8 +113,10 @@ function ensureRaceSheetShape(character) {
     languages: '',
     resistances: '',
     senses: '',
+    saveMods: '',
     speedBase: null
   };
+  character.sheet.derived.race.saveMods = character.sheet.derived.race.saveMods ?? '';
   character.notes = character.notes ?? {};
   return character;
 }
@@ -147,9 +151,25 @@ export function applyRaceTraitsToSheet(character, baseEntry, variantEntry) {
   const prev = sheet.derived.race;
   const traits = getRaceStructuredTraits(baseEntry, variantEntry);
 
+  const extras = genasiManifestationSheetExtras(
+    baseEntry ?? variantEntry,
+    character.selections?.raceBuildChoices?.manifestation
+  );
+  const resistances = [...traits.resistances];
+  for (const extra of extras.resistances) {
+    const index = resistances.findIndex((row) => row.damageType === extra.damageType);
+    if (index >= 0) resistances[index] = extra;
+    else resistances.push(extra);
+  }
+  const senses = [...traits.senses];
+  for (const sense of extras.senses) {
+    if (!senses.includes(sense)) senses.push(sense);
+  }
+
   const newLanguages = formatRaceLanguagesText(traits.languages);
-  const newResist = formatRaceResistancesText(traits.resistances);
-  const newSenses = formatRaceSensesText(traits.senses);
+  const newResist = formatRaceResistancesText(resistances);
+  const newSenses = formatRaceSensesText(senses);
+  const newSaves = extras.saveMods.join('\n');
 
   character.notes.languages = recomposeManaged(character.notes.languages, prev.languages, newLanguages);
   sheet.extraFields.resistances = recomposeManaged(sheet.extraFields.resistances, prev.resistances, newResist);
@@ -158,6 +178,7 @@ export function applyRaceTraitsToSheet(character, baseEntry, variantEntry) {
     prev.senses,
     newSenses
   );
+  sheet.extraFields['save-mods'] = recomposeManaged(sheet.extraFields['save-mods'], prev.saveMods, newSaves);
   if (traits.speedSquares != null) {
     sheet.speed.base = traits.speedSquares;
   }
@@ -166,6 +187,7 @@ export function applyRaceTraitsToSheet(character, baseEntry, variantEntry) {
     languages: newLanguages,
     resistances: newResist,
     senses: newSenses,
+    saveMods: newSaves,
     speedBase: traits.speedSquares ?? prev.speedBase ?? null
   };
   return character;
@@ -179,8 +201,9 @@ export function clearRaceTraitsFromSheet(character) {
   character.notes.languages = recomposeManaged(character.notes.languages, prev.languages, '');
   sheet.extraFields.resistances = recomposeManaged(sheet.extraFields.resistances, prev.resistances, '');
   sheet.extraFields['special-senses'] = recomposeManaged(sheet.extraFields['special-senses'], prev.senses, '');
+  sheet.extraFields['save-mods'] = recomposeManaged(sheet.extraFields['save-mods'], prev.saveMods ?? '', '');
   if (prev.speedBase != null) sheet.speed.base = 6;
-  sheet.derived.race = { languages: '', resistances: '', senses: '', speedBase: null };
+  sheet.derived.race = { languages: '', resistances: '', senses: '', saveMods: '', speedBase: null };
   return character;
 }
 
@@ -273,7 +296,13 @@ export function buildBuildChoiceSummary(character, baseEntry, variantEntry) {
     const picked = choices[d.id];
     if (!picked) continue;
     const opt = d.options?.find((o) => o.id === picked);
-    if (opt) lines.push(`${d.label}: ${opt.label}`);
+    if (!opt) continue;
+    if (d.id === 'manifestation') {
+      const text = formatGenasiManifestationNote(baseEntry, opt.id, opt.label);
+      lines.push(`${d.label}: ${text || opt.label}`);
+      continue;
+    }
+    lines.push(`${d.label}: ${opt.label}`);
   }
   return lines;
 }

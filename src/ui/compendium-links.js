@@ -61,7 +61,10 @@ function walkTextNodes(root, fn) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes = [];
   while (walker.nextNode()) nodes.push(walker.currentNode);
-  for (const node of nodes) fn(node);
+  for (const node of nodes) {
+    if (node.parentElement?.closest('a')) continue;
+    fn(node);
+  }
 }
 
 /**

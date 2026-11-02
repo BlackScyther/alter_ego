@@ -9,6 +9,8 @@ import {
   extractPowerFlavorSentence,
   extractPowerIdsFromRaceHtml,
   parseGenasiManifestationBonuses,
+  parseGenasiManifestations,
+  summarizeGenasiManifestationBenefit,
   mergeRaceMechanics,
   parseRaceMechanics,
   renderCombinedRacePreviewHtml,
@@ -444,6 +446,95 @@ test('parseGenasiManifestationBonuses keeps the static benefit and drops the pow
 
 test('parseGenasiManifestationBonuses is empty when the race has no manifestation block', () => {
   assert.deepEqual(parseGenasiManifestationBonuses('<b>Size</b>: Medium'), {});
+});
+
+test('a chosen manifestation shortens bonuses and splits sheet values', () => {
+  const all = parseGenasiManifestations(genasiManifestationHtml);
+  assert.equal(all.firesoul.powerName, 'Firepulse');
+  assert.equal(all.firesoul.shortText, '+1 Reflex. Resist 5 Fire (10 at 11th, 15 at 21st)');
+  assert.equal(all.firesoul.resistances[0].damageType, 'fire');
+  assert.equal(all.firesoul.resistances[0].amount, 5);
+  assert.equal(all.watersoul.powerName, 'Swiftcurrent');
+  assert.equal(all.watersoul.shortText, 'Breathe underwater. +2 saves vs ongoing damage');
+  assert.deepEqual(all.watersoul.senses, ['Water breathing']);
+  assert.deepEqual(all.watersoul.saveMods, [
+    '+2 racial bonus to saving throws against ongoing damage'
+  ]);
+  assert.equal(
+    all.causticsoul.shortText,
+    'Breathe underwater. Resist 5 Acid (10 at 11th, 15 at 21st)'
+  );
+  assert.deepEqual(all.causticsoul.senses, ['Water breathing']);
+  assert.equal(all.causticsoul.resistances[0].damageType, 'acid');
+  assert.equal(
+    all.magmasoul.shortText,
+    '+1 Fortitude. When you take fire damage, melee attacks deal 1d6 extra fire damage until the end of your next turn'
+  );
+  assert.equal(summarizeGenasiManifestationBenefit('').shortText, '');
+
+  const more = parseGenasiManifestations(
+    [
+      '<b>Elemental Manifestation</b>: Choose one manifestation.<br>',
+      '<i>Earthsoul</i>: You gain a +1 racial bonus to your Fortitude defense, a +1 racial bonus to saving throws, and the earthshock power.<br>',
+      '<i>Windsoul</i>: You gain resist 5 cold and the windwalker power. At 11th level, the resistance improves to 10 cold. At 21st level, the resistance improves to 15 cold.<br>',
+      '<i>Plaguesoul</i>: You gain resist 5 poison, a +5 racial bonus to saving throws against disease, and the plaguebearer power. At 11th level, the resistance improves to 10 poison. At 21st level, the resistance improves to 15 poison.<br>',
+      '<i>Embersoul</i>: You have a +1 racial bonus to Reflex and a +2 racial bonus to saving throws against ongoing fire damage. In addition, you have the ashfall evasion power.<br>',
+      '<i>Sandsoul</i>: You have a +4 racial bonus to Acrobatics checks and Athletics checks made when taking the escape action. You also have a +2 racial bonus to saving throws against effects that immobilize, restrain, or slow you. In addition, you have the sandslide power.<br>',
+      '<i>Sunsoul</i>: You have a +2 racial bonus to saving throws against ongoing damage that includes fire or radiant damage. You and your equipment suffer no ill effect from ambient temperatures between -50 and 140 degrees Fahrenheit, and you are immune to sun sickness. In addition, you have the sun flare power.<br>'
+    ].join('')
+  );
+  assert.equal(more.earthsoul.shortText, '+1 Fortitude. +1 saves');
+  assert.deepEqual(more.earthsoul.saveMods, ['+1 racial bonus to saving throws']);
+  assert.equal(more.earthsoul.powerName, 'Earthshock');
+  assert.equal(more.windsoul.shortText, 'Resist 5 Cold (10 at 11th, 15 at 21st)');
+  assert.equal(more.plaguesoul.shortText, 'Resist 5 Poison (10 at 11th, 15 at 21st). +5 saves vs disease');
+  assert.equal(more.embersoul.shortText, '+1 Reflex. +2 saves vs ongoing fire damage');
+  assert.equal(
+    more.sandsoul.shortText,
+    '+4 Acrobatics and Athletics when taking the escape action. +2 saves vs immobilize, restrain, or slow'
+  );
+  assert.equal(
+    more.sunsoul.shortText,
+    '+2 saves vs ongoing fire or radiant damage. No harm from temperatures between -50 and 140 °F. Immune to sun sickness'
+  );
+});
+
+test('the Racial Traits fold shows the chosen manifestation, short bonuses, and a power link', () => {
+  const entry = {
+    id: 'race33',
+    listing_fields: { Name: 'Genasi' },
+    body_html: `<blockquote>${genasiManifestationHtml}</blockquote>`
+  };
+  const html = renderCombinedRacePreviewHtml(entry, null, {
+    manifestation: {
+      label: 'Watersoul',
+      shortText: 'Breathe underwater. +2 saves vs ongoing damage',
+      powerName: 'Swiftcurrent',
+      powerHref: '../compendium/entry.html?id=power1770'
+    }
+  });
+  assert.match(html, /Elemental Manifestation:/);
+  assert.match(html, /Watersoul\. Breathe underwater\. \+2 saves vs ongoing damage\./);
+  assert.match(html, /class="race-trait-power-open"/);
+  assert.match(html, /Swiftcurrent ↗/);
+  assert.match(html, /entry\.html\?id=power1770/);
+  assert.match(html, /target="_blank"/);
+  assert.doesNotMatch(html, /Choose one manifestation/);
+});
+
+test('buildRaceNotesText keeps the short manifestation line and drops the choose-one sentence', () => {
+  const entry = {
+    id: 'race33',
+    listing_fields: { Name: 'Genasi' },
+    body_html: `<blockquote>${genasiManifestationHtml}</blockquote>`
+  };
+  const notes = buildRaceNotesText(entry, null, {
+    buildSummary: [
+      'Elemental Manifestation: Watersoul. Breathe underwater. +2 saves vs ongoing damage. Swiftcurrent'
+    ]
+  });
+  assert.match(notes, /Elemental Manifestation: Watersoul\. Breathe underwater/);
+  assert.doesNotMatch(notes, /Choose one manifestation/);
 });
 
 test('extractPowerFlavorSentence reads the power flavor paragraph', () => {

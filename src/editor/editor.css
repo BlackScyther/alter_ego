@@ -2549,6 +2549,18 @@ button.comp-link.class-feature-link {
   color: var(--editor-accent);
 }
 
+.race-trait-power-open {
+  color: var(--editor-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.race-trait-power-open:hover {
+  color: var(--editor-text, var(--editor-accent));
+}
+
 .race-benefit-ability {
   list-style: disc;
 }

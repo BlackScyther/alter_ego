@@ -39,7 +39,8 @@ import {
   renderRaceAbilityChoicesHostHtml,
   extractFlavorFolds,
   extractPowerFlavorSentence,
-  parseGenasiManifestationBonuses
+  parseGenasiManifestationBonuses,
+  buildGenasiManifestationPreview
 } from '../../character/race-parse.js';
 import { getCuratedMonsterRefs } from '../../character/monster-fluff.js';
 import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
@@ -141,18 +142,17 @@ const BUILD_COMBO_OPTION_THRESHOLD = 6;
 
 /**
  * Read-only explanation of the selected Genasi manifestation.
- * Three bullets: appearance flavor, the always-on benefit, and the power name.
- * The power itself stays on the Powers step, so this list has no compendium link.
+ * Flavor and the full benefit stay here. The power is only its name, with an
+ * arrow that opens the compendium entry in a new window.
  * @param {HTMLFieldSetElement} fieldset
- * @param {{ fluff?: string, bonus?: string, powerName?: string } | null} detail
+ * @param {{ fluff?: string, bonus?: string, powerName?: string, powerHref?: string } | null} detail
  */
 function renderManifestationDetail(fieldset, detail) {
   if (!detail) return;
-  const items = [];
-  if (detail.fluff) items.push(detail.fluff);
-  if (detail.bonus) items.push(detail.bonus);
-  if (detail.powerName) items.push(`${detail.powerName} Power`);
-  if (!items.length) return;
+  const texts = [];
+  if (detail.fluff) texts.push(detail.fluff);
+  if (detail.bonus) texts.push(detail.bonus);
+  if (!texts.length && !detail.powerName) return;
 
   const box = document.createElement('div');
   box.className = 'race-build-detail';
@@ -161,9 +161,26 @@ function renderManifestationDetail(fieldset, detail) {
 
   const list = document.createElement('ul');
   list.className = 'race-build-detail-list';
-  for (const text of items) {
+  for (const text of texts) {
     const item = document.createElement('li');
     item.textContent = text;
+    list.appendChild(item);
+  }
+  if (detail.powerName) {
+    const item = document.createElement('li');
+    if (detail.powerHref) {
+      const link = document.createElement('a');
+      link.className = 'race-trait-power-open';
+      link.href = detail.powerHref;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = 'Open compendium entry in new window';
+      link.setAttribute('aria-label', `Open ${detail.powerName} in the compendium`);
+      link.textContent = `${detail.powerName} ↗`;
+      item.appendChild(link);
+    } else {
+      item.textContent = detail.powerName;
+    }
     list.appendChild(item);
   }
   box.appendChild(list);
@@ -187,10 +204,12 @@ function buildManifestationDetail(decision, options, picked, baseEntry, grantEnt
   const grant = (grantEntries ?? []).find(
     (g) => opt.powerId && String(g.id).toLowerCase() === String(opt.powerId).toLowerCase()
   );
+  const powerHref = opt.powerId ? compendiumEntryPageUrl(opt.powerId, location.pathname) : '';
   return {
     fluff: extractPowerFlavorSentence(grant?.bodyHtml ?? ''),
     bonus,
-    powerName: grant?.name ?? ''
+    powerName: grant?.name ?? '',
+    powerHref
   };
 }
 
@@ -202,7 +221,7 @@ function buildManifestationDetail(decision, options, picked, baseEntry, grantEnt
  * @param {Array<{ id: string, label: string, powerId?: string }>} options
  * @param {string} picked
  * @param {(decisionId: string, optionId: string) => void} onChange
- * @param {{ fluff?: string, bonus?: string, powerName?: string } | null} [detail]
+ * @param {{ fluff?: string, bonus?: string, powerName?: string, powerHref?: string } | null} [detail]
  */
 function renderBuildDecisionCombo(fieldset, decision, options, picked, onChange, detail = null) {
   const row = document.createElement('div');
@@ -611,6 +630,25 @@ export async function renderRaceStep(panel, ctx) {
     const raceBonusChoices = character.selections?.raceBonusChoices ?? { ability: {}, skill: {} };
     const racePowerAbilityChoices = character.selections?.racePowerAbilityChoices ?? {};
     const racePowerDamageChoices = character.selections?.racePowerDamageChoices ?? {};
+    const manifestationId = character.selections?.raceBuildChoices?.manifestation ?? '';
+    const manifestationDecision = getRaceBuildDecisions(
+      baseId ?? character.selections.raceId,
+      baseEntry?.listing_fields?.Name
+    ).find((d) => d.id === 'manifestation');
+    const manifestationOption = manifestationDecision?.options?.find((o) => o.id === manifestationId);
+    const manifestationGrant = (grantEntries ?? []).find(
+      (g) =>
+        manifestationOption?.powerId &&
+        String(g.id).toLowerCase() === String(manifestationOption.powerId).toLowerCase()
+    );
+    const manifestation = manifestationOption
+      ? buildGenasiManifestationPreview(baseEntry, manifestationOption, {
+          name: manifestationGrant?.name ?? '',
+          href: manifestationOption.powerId
+            ? compendiumEntryPageUrl(manifestationOption.powerId, location.pathname)
+            : ''
+        })
+      : null;
     const html = renderCombinedRacePreviewHtml(baseEntry, variantEntry, {
       previewTerms,
       grantEntries,
@@ -620,7 +658,8 @@ export async function renderRaceStep(panel, ctx) {
       replacements,
       monsterFlavor,
       interactiveAbilityChoices: false,
-      abilityModel: genasiAbilityBenefitModel(character, baseEntry ?? variantEntry)
+      abilityModel: genasiAbilityBenefitModel(character, baseEntry ?? variantEntry),
+      manifestation
     });
     if (linkIndex) renderLinkedEntryPreview(preview, html, linkIndex);
     else preview.innerHTML = html;

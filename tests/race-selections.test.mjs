@@ -14,6 +14,7 @@ import {
   syncRaceNotesAndGrants,
   validateRaceStep,
   applyGenasiManifestationAbilities,
+  applyRaceTraitsToSheet,
   genasiAbilityBenefitModel
 } from '../src/character/race-selections.js';
 import { syncBonusesFromSelections } from '../src/character/tutor.js';
@@ -253,4 +254,64 @@ test('the race step still blocks until a race is chosen', () => {
   assert.equal(raceSubraceComplete(character, null), false);
   const errors = validateRaceStep(character, null, null);
   assert.ok(errors.includes('Select a race from the compendium.'));
+});
+
+const genasiSheetEntry = {
+  id: 'race33',
+  listing_fields: { Name: 'Genasi', Size: 'Medium' },
+  body_html: [
+    '<b>Languages:</b> Common, Primordial<br>',
+    '<b>Elemental Manifestation</b>: Choose one manifestation.<br>',
+    '<i>Firesoul</i>: You gain +1 Reflex defense, resist 5 fire and the firepulse power. At 11th level, the resistance improves to 10 fire. At 21st level, the resistance improves to 15 fire.<br>',
+    '<i>Watersoul</i>: You can breathe underwater. You also gain a +2 racial bonus to saving throws against ongoing damage and the swiftcurrent power.<br>',
+    '<b>Elemental Origins</b>: Elemental creature.'
+  ].join('')
+};
+
+test('Watersoul writes water breathing and the save bonus, not a resistance', () => {
+  const character = genasiCharacter();
+  character.selections.raceBuildChoices.manifestation = 'watersoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  assert.equal(character.sheet.extraFields['special-senses'], 'Water breathing');
+  assert.equal(
+    character.sheet.extraFields['save-mods'],
+    '+2 racial bonus to saving throws against ongoing damage'
+  );
+  assert.equal(character.sheet.extraFields.resistances, '');
+  assert.equal(character.notes.languages, 'Common, Primordial');
+});
+
+test('Firesoul writes the scaled resistance and clears Watersoul sheet values', () => {
+  const character = genasiCharacter();
+  character.selections.raceBuildChoices.manifestation = 'watersoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  character.selections.raceBuildChoices.manifestation = 'firesoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  assert.equal(character.sheet.extraFields['special-senses'], '');
+  assert.equal(character.sheet.extraFields['save-mods'], '');
+  assert.equal(
+    character.sheet.extraFields.resistances,
+    'Resist 5 Fire (10 at 11th, 15 at 21st)'
+  );
+});
+
+test('a manual resistance stays when the manifestation resistance changes', () => {
+  const character = genasiCharacter();
+  character.selections.raceBuildChoices.manifestation = 'firesoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  character.sheet.extraFields.resistances += '\nResist 5 necrotic';
+  character.selections.raceBuildChoices.manifestation = 'watersoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  assert.equal(character.sheet.extraFields.resistances, 'Resist 5 necrotic');
+  assert.equal(character.sheet.extraFields['special-senses'], 'Water breathing');
+});
+
+test('race notes use the short manifestation line', () => {
+  const character = genasiCharacter();
+  setRaceBuildChoice(character, 'manifestation', 'watersoul', genasiSheetEntry, null);
+  assert.match(
+    character.notes.raceFeatures,
+    /Elemental Manifestation: Watersoul\. Breathe underwater\. \+2 saves vs ongoing damage\. Swiftcurrent/
+  );
+  assert.doesNotMatch(character.notes.raceFeatures, /Choose one manifestation/);
 });

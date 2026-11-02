@@ -91,12 +91,227 @@ function stripManifestationPowerClause(text) {
 }
 
 /**
- * Static benefit for each Genasi elemental manifestation, keyed by lowercase label.
- * Reads the italic lines in the race entry. Does not include the granted power.
- * @param {string} html
- * @returns {Record<string, string>}
+ * "swiftcurrent" → "Swiftcurrent", "promise of storm" → "Promise of Storm".
+ * @param {string} raw
  */
-export function parseGenasiManifestationBonuses(html) {
+function titleCasePowerName(raw) {
+  const words = String(raw ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+  if (!words.length) return '';
+  const small = new Set(['of', 'the', 'and', 'a']);
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      if (index > 0 && small.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
+/**
+ * @param {number} n
+ */
+function ordinal(n) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+/**
+ * @param {string | null | undefined} against
+ */
+function cleanSaveAgainst(against) {
+  return String(against ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.\s]+$/, '')
+    .replace(/\s+you$/i, '');
+}
+
+/**
+ * Fold wording for a saving-throw target.
+ * @param {string} against
+ */
+function shortenSaveTarget(against) {
+  let target = cleanSaveAgainst(against);
+  target = target.replace(/\s+damage that includes\s+/i, ' ');
+  target = target.replace(/^effects that\s+/i, '');
+  return target;
+}
+
+/**
+ * @param {string} what
+ */
+function shortenSkillClause(what) {
+  return String(what ?? '')
+    .replace(/\s+checks\b/gi, '')
+    .replace(/\s+made when\s+/i, ' when ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Sentences left after the structured bonuses are pulled out.
+ * @param {string} text
+ */
+function leftoverManifestationPhrase(text) {
+  let rest = String(text ?? '');
+  rest = rest.replace(/\bYou and your equipment suffer no ill effect from\b/gi, 'No harm from');
+  rest = rest.replace(/\bambient temperatures between\b/gi, 'temperatures between');
+  rest = rest.replace(/\bdegrees Fahrenheit\b/gi, '°F');
+  rest = rest.replace(/,?\s*\band you are immune to sun sickness\b/gi, '. Immune to sun sickness');
+  rest = rest.replace(/\bWhenever\b/gi, 'When');
+  rest = rest.replace(/\byour melee attacks deal\b/gi, 'melee attacks deal');
+  rest = rest.replace(
+    /\b(?:You also have|You have|You also gain|You gain|In addition)\b[,:]?\s*(?:an?\s+)?/gi,
+    ''
+  );
+  rest = rest.replace(/(?:^|\s)\.\s+/g, ' ');
+  rest = rest.replace(/\s+/g, ' ').replace(/^[.\s,;]+|[.\s,;]+$/g, '').trim();
+  if (!/[a-z0-9]/i.test(rest) || rest.length < 8) return '';
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
+/**
+ * Blank out matched spans so a later leftover pass does not repeat them.
+ * @param {string} text
+ * @param {Array<{ index: number, length: number }>} spans
+ */
+function maskMatchedSpans(text, spans) {
+  const chars = text.split('');
+  for (const span of spans) {
+    const end = Math.min(chars.length, span.index + span.length);
+    for (let i = span.index; i < end; i++) chars[i] = ' ';
+  }
+  return chars.join('');
+}
+
+/**
+ * Turn one manifestation's always-on benefit into short clauses plus the
+ * values that belong on the character sheet.
+ * Water breathing becomes a special sense. "Resist N type" becomes a
+ * resistance (later tiers stay in parentheses). A saving-throw bonus becomes
+ * a Saves line. Defense bonuses stay in the short text.
+ * Clauses keep the order they have in the rules text.
+ * @param {string} bonusText power clause already removed
+ */
+export function summarizeGenasiManifestationBenefit(bonusText) {
+  const original = String(bonusText ?? '');
+  /** @type {Array<{ index: number, length: number, short: string, sense?: string, saveMod?: string, resistance?: object }>} */
+  const found = [];
+  /** @type {Array<{ index: number, length: number, level: number, amount: number, damageType: string }>} */
+  const scales = [];
+
+  for (const match of original.matchAll(
+    /\bat\s+(\d+)(?:st|nd|rd|th)\s+level,\s+the resistance improves to\s+(\d+)\s+([a-z]+)\.?/gi
+  )) {
+    scales.push({
+      index: match.index ?? 0,
+      length: match[0].length,
+      level: Number(match[1]),
+      amount: Number(match[2]),
+      damageType: match[3].toLowerCase()
+    });
+  }
+
+  const water = original.match(/you can breathe underwater/i);
+  if (water) {
+    found.push({
+      index: water.index ?? 0,
+      length: water[0].length,
+      short: 'Breathe underwater',
+      sense: 'Water breathing'
+    });
+  }
+
+  for (const match of original.matchAll(/\bresist(?:ance)?\s+(\d+)\s+([a-z]+)/gi)) {
+    const damageType = match[2].toLowerCase();
+    const scaling = scales
+      .filter((scale) => scale.damageType === damageType)
+      .map(({ level, amount, damageType: type }) => ({ level, amount, damageType: type }));
+    const typeName = damageType.charAt(0).toUpperCase() + damageType.slice(1);
+    const scaleNote = scaling.length
+      ? ` (${scaling.map((scale) => `${scale.amount} at ${ordinal(scale.level)}`).join(', ')})`
+      : '';
+    found.push({
+      index: match.index ?? 0,
+      length: match[0].length,
+      short: `Resist ${match[1]} ${typeName}${scaleNote}`,
+      resistance: { damageType, amount: Number(match[1]), scaling }
+    });
+  }
+
+  for (const match of original.matchAll(
+    /\+\s*(\d+)\s+(?:racial\s+bonus\s+to\s+(?:your\s+)?)?(Fortitude|Reflex|Will)(?:\s+defense)?/gi
+  )) {
+    const name = match[2].charAt(0).toUpperCase() + match[2].slice(1).toLowerCase();
+    found.push({
+      index: match.index ?? 0,
+      length: match[0].length,
+      short: `+${match[1]} ${name}`
+    });
+  }
+
+  for (const match of original.matchAll(
+    /\+\s*(\d+)\s+racial bonus to saving throws(?:\s+against\s+([^.]+))?/gi
+  )) {
+    const full = cleanSaveAgainst(match[2]);
+    const target = shortenSaveTarget(match[2]);
+    found.push({
+      index: match.index ?? 0,
+      length: match[0].length,
+      short: target ? `+${match[1]} saves vs ${target}` : `+${match[1]} saves`,
+      saveMod: full
+        ? `+${match[1]} racial bonus to saving throws against ${full}`
+        : `+${match[1]} racial bonus to saving throws`
+    });
+  }
+
+  for (const match of original.matchAll(
+    /\+\s*(\d+)\s+racial bonus to\s+(?!saving throws\b)(?!(?:your\s+)?(?:Fortitude|Reflex|Will)\b)([^.]+)/gi
+  )) {
+    const clause = shortenSkillClause(match[2]);
+    if (!clause) continue;
+    found.push({
+      index: match.index ?? 0,
+      length: match[0].length,
+      short: `+${match[1]} ${clause}`
+    });
+  }
+
+  found.sort((a, b) => a.index - b.index);
+  const leftover = leftoverManifestationPhrase(maskMatchedSpans(original, [...found, ...scales]));
+  const shortParts = found.map((item) => item.short);
+  if (leftover) shortParts.push(leftover.replace(/[.\s]+$/, ''));
+
+  return {
+    shortParts,
+    shortText: shortParts.join('. '),
+    resistances: found.filter((item) => item.resistance).map((item) => item.resistance),
+    senses: found.filter((item) => item.sense).map((item) => item.sense),
+    saveMods: found.filter((item) => item.saveMod).map((item) => item.saveMod)
+  };
+}
+
+/**
+ * Each Genasi elemental manifestation, keyed by lowercase label.
+ * `bonus` is the always-on benefit with the power clause removed.
+ * @param {string} html
+ * @returns {Record<string, { label: string, bonus: string, powerName: string, shortParts: string[], shortText: string, resistances: Array<object>, senses: string[], saveMods: string[] }>}
+ */
+export function parseGenasiManifestations(html) {
   const source = String(html ?? '');
   const startIdx = source.search(/<b>\s*Elemental Manifestation\s*<\/b>/i);
   if (startIdx < 0) return {};
@@ -106,18 +321,146 @@ export function parseGenasiManifestationBonuses(html) {
 
   const re = /<i>\s*([^<]+?)\s*<\/i>\s*:/gi;
   const matches = [...block.matchAll(re)];
-  /** @type {Record<string, string>} */
-  const bonuses = {};
+  /** @type {Record<string, object>} */
+  const out = {};
   for (let i = 0; i < matches.length; i++) {
-    const label = normalizeLabel(matches[i][1]);
-    if (!label) continue;
+    const key = normalizeLabel(matches[i][1]);
+    if (!key) continue;
     const from = matches[i].index + matches[i][0].length;
     const to = i + 1 < matches.length ? matches[i + 1].index : block.length;
     const chunk = block.slice(from, to).replace(/<br\s*\/?>/gi, ' ');
-    const bonus = stripManifestationPowerClause(stripHtml(chunk));
-    if (bonus) bonuses[label] = bonus;
+    const plain = stripHtml(chunk);
+    const powerName = titleCasePowerName(
+      plain.match(/(?:and the|you have the|have the)\s+([^.<]+?)\s+power/i)?.[1] ?? ''
+    );
+    const bonus = stripManifestationPowerClause(plain);
+    const summary = summarizeGenasiManifestationBenefit(bonus);
+    if (!bonus && !powerName) continue;
+    out[key] = {
+      label: matches[i][1].replace(/\s+/g, ' ').trim(),
+      bonus,
+      powerName,
+      ...summary
+    };
+  }
+  return out;
+}
+
+/**
+ * Static benefit for each Genasi elemental manifestation, keyed by lowercase label.
+ * Reads the italic lines in the race entry. Does not include the granted power.
+ * @param {string} html
+ * @returns {Record<string, string>}
+ */
+export function parseGenasiManifestationBonuses(html) {
+  /** @type {Record<string, string>} */
+  const bonuses = {};
+  for (const [key, row] of Object.entries(parseGenasiManifestations(html))) {
+    if (row.bonus) bonuses[key] = row.bonus;
   }
   return bonuses;
+}
+
+/**
+ * Sheet values for the chosen manifestation. Empty when none is chosen.
+ * @param {object | null | undefined} entry
+ * @param {string | null | undefined} manifestationId
+ */
+export function genasiManifestationSheetExtras(entry, manifestationId) {
+  const empty = { resistances: [], senses: [], saveMods: [] };
+  const key = String(manifestationId ?? '').trim().toLowerCase();
+  if (!key) return empty;
+  const row = parseGenasiManifestations(entry?.body_html ?? '')[key];
+  if (!row) return empty;
+  return {
+    resistances: row.resistances,
+    senses: row.senses,
+    saveMods: row.saveMods
+  };
+}
+
+/**
+ * Short Racial Traits line for the chosen manifestation.
+ * The power name prefers the compendium grant; the race text is the fallback.
+ * @param {object | null | undefined} entry
+ * @param {{ id?: string, label?: string } | null | undefined} option
+ * @param {{ name?: string, href?: string }} [power]
+ */
+export function buildGenasiManifestationPreview(entry, option, power = {}) {
+  if (!option?.id && !option?.label) return null;
+  const key = String(option.id || option.label)
+    .trim()
+    .toLowerCase();
+  const row = parseGenasiManifestations(entry?.body_html ?? '')[key] ?? null;
+  const label = option.label || row?.label || '';
+  if (!label) return null;
+  return {
+    label,
+    shortText: row?.shortText ?? '',
+    powerName: power.name || row?.powerName || '',
+    powerHref: power.href || ''
+  };
+}
+
+/**
+ * Plain-text note for the chosen manifestation, including the power name.
+ * @param {object | null | undefined} entry
+ * @param {string} optionId
+ * @param {string} [optionLabel]
+ */
+export function formatGenasiManifestationNote(entry, optionId, optionLabel = '') {
+  const row = parseGenasiManifestations(entry?.body_html ?? '')[String(optionId ?? '').trim().toLowerCase()];
+  const label = optionLabel || row?.label || optionId;
+  if (!row) return String(label ?? '');
+  return joinClauses([label, row.shortText, row.powerName]);
+}
+
+/**
+ * @param {Array<string | null | undefined>} parts
+ */
+function joinClauses(parts) {
+  return parts
+    .map((part) => String(part ?? '').trim().replace(/[.\s]+$/, ''))
+    .filter(Boolean)
+    .join('. ');
+}
+
+/**
+ * @param {{ label?: string, shortText?: string, powerName?: string, powerHref?: string }} manifestation
+ */
+function renderManifestationTraitValueHtml(manifestation) {
+  const lead = joinClauses([manifestation.label, manifestation.shortText]);
+  let html = lead ? `${esc(lead)}.` : '';
+  if (!manifestation.powerName) return html;
+  const name = esc(manifestation.powerName);
+  const link = manifestation.powerHref
+    ? `<a class="race-trait-power-open" href="${esc(manifestation.powerHref)}" target="_blank" rel="noopener noreferrer" title="Open compendium entry in new window" aria-label="${esc(`Open ${manifestation.powerName} in the compendium`)}">${name} ↗</a>`
+    : name;
+  return `${html}${html ? ' ' : ''}${link}`;
+}
+
+/**
+ * Replace the "choose one manifestation" sentence with the chosen short line.
+ * @param {Array<{ rows: Array<object> }>} sections
+ * @param {{ label?: string, shortText?: string, powerName?: string, powerHref?: string } | null} manifestation
+ */
+function stampManifestationRow(sections, manifestation) {
+  if (!manifestation?.label) return;
+  let stamped = false;
+  for (const sec of sections ?? []) {
+    for (const row of sec.rows ?? []) {
+      if (normalizeLabel(row.label) !== 'elemental manifestation') continue;
+      row.valueHtml = renderManifestationTraitValueHtml(manifestation);
+      stamped = true;
+    }
+  }
+  if (stamped || !sections?.[0]) return;
+  sections[0].rows.push({
+    label: 'Elemental Manifestation',
+    value: manifestation.label,
+    displayValue: manifestation.label,
+    valueHtml: renderManifestationTraitValueHtml(manifestation)
+  });
 }
 
 /**
@@ -1028,9 +1371,11 @@ function renderBenefitSectionsBlock(sections, raceBonusChoices = {}) {
         continue;
       }
       const value = row.displayValue ?? row.value;
-      const valueHtml = row.grantId
-        ? `<span class="race-benefit-grant-ref">${esc(value)}</span>`
-        : esc(value);
+      const valueHtml = row.valueHtml
+        ? row.valueHtml
+        : row.grantId
+          ? `<span class="race-benefit-grant-ref">${esc(value)}</span>`
+          : esc(value);
       parts.push(
         `<li class="race-benefit-item"><span class="race-benefit-label">${esc(row.label)}:</span> ${valueHtml}</li>`
       );
@@ -1309,9 +1654,13 @@ export function buildRaceNotesText(baseEntry, variantEntry, opts = {}) {
     lines.push(...opts.buildSummary);
   }
 
+  const summarySet = new Set(opts.buildSummary ?? []);
+  const summaryLabels = new Set([...summarySet].map((line) => compactLineLabel(line)));
+
   const merged = [];
   const seen = new Set();
   for (const line of lines) {
+    if (summaryLabels.has(compactLineLabel(line)) && !summarySet.has(line)) continue;
     const key = line.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -1350,6 +1699,7 @@ export function renderRacePreviewHtml(entry, opts = {}) {
     raceBonusChoices,
     applyAbilityModel: true
   });
+  stampManifestationRow(benefitSections, opts.manifestation ?? null);
   const flavorFolds = extractFlavorFolds(html, previewTerms);
   const grants = buildGrantEntries(opts.grantEntries ?? [], grantNameMap);
 
@@ -1446,6 +1796,7 @@ export function renderCombinedRacePreviewHtml(baseEntry, variantEntry, opts = {}
       }
     }
   }
+  stampManifestationRow(benefitSections, opts.manifestation ?? null);
   const interactiveAbility = opts.interactiveAbilityChoices !== false;
   return `<div class="race-preview race-preview--combined"><h2 class="race-preview-title">${esc(title)}</h2>${renderRaceTraitsBlock(benefitSections, raceBonusChoices, interactiveAbility)}${renderGrantFoldsBlock(grants, racePowerAbilityChoices, replaced, racePowerDamageChoices)}${renderFlavorFoldsBlock(flavorFolds)}</div>`;
 }
@@ -1507,7 +1858,13 @@ export function parseRaceLanguages(source) {
 export function parseRaceResistances(source) {
   const entry = typeof source === 'object' && source ? source : { body_html: String(source ?? '') };
   const { headHtml } = parseRaceMechanics(entry);
-  const text = stripHtml(headHtml || entry.body_html || '');
+  // Manifestation resistances apply only after that choice. Leaving them in
+  // the race-wide scan would give a Genasi every soul's resistance at once.
+  const html = String(headHtml || entry.body_html || '').replace(
+    /<b>\s*Elemental Manifestation\s*<\/b>[\s\S]*?(?=<b>\s*Elemental Origins\s*<\/b>|<h1\b|<h3\b|$)/i,
+    ''
+  );
+  const text = stripHtml(html);
   /** @type {Map<string, { damageType: string, amount: number | null, scaling: string | null }>} */
   const byType = new Map();
 
@@ -1718,12 +2075,17 @@ export function formatRaceLanguagesText(languages) {
   return parts.join(', ');
 }
 
-/** @param {Array<{ damageType: string, amount: number | null }>} resistances */
+/**
+ * @param {Array<{ damageType: string, amount: number | null, scaling?: Array<{ level: number, amount: number }> }>} resistances
+ */
 export function formatRaceResistancesText(resistances) {
   return (resistances ?? [])
     .map((r) => {
       const type = r.damageType ? r.damageType.charAt(0).toUpperCase() + r.damageType.slice(1) : '';
-      return r.amount != null ? `Resist ${r.amount} ${type}`.trim() : `Resist ${type}`.trim();
+      const base = r.amount != null ? `Resist ${r.amount} ${type}`.trim() : `Resist ${type}`.trim();
+      if (!r.scaling?.length) return base;
+      const scale = r.scaling.map((s) => `${s.amount} at ${ordinal(s.level)}`).join(', ');
+      return `${base} (${scale})`;
     })
     .filter(Boolean)
     .join(', ');
