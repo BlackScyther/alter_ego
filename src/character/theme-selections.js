@@ -7,6 +7,10 @@ import { detectStaticFeatureBonuses } from './class-effects.js';
 import { ensureGrantSlots, writeGrantGroup } from './grant-slots.js';
 import { ensureDerivedBonuses, recomposeDerivedInitiative } from './hp.js';
 import {
+  themeEligibilityContextFromCharacter,
+  themePassesEligibility
+} from '../editor/theme-prerequisite.js';
+import {
   activeThemeFeatures,
   buildThemeNotesText,
   grantedPowerNamesAtLevel,
@@ -14,11 +18,24 @@ import {
 } from './theme-parse.js';
 
 /**
+ * Warn when the saved theme no longer matches race, class, or alignment.
+ * The selection is left in place.
  * @param {object} character
+ * @param {object | null | undefined} [entry]
+ * @param {import('../editor/theme-prerequisite.js').ThemeEligibilityContext} [ctx]
+ * @returns {string[]}
  */
-export function validateThemeStep(character) {
+export function validateThemeStep(character, entry, ctx) {
   if (!character?.selections?.themeId) return [];
-  return [];
+  const fromEntry = entry ? parseThemeEntry(entry).prerequisite : '';
+  const prereq = fromEntry || character.selections?.themePrerequisite || '';
+  if (!prereq) return [];
+  const context = ctx ?? themeEligibilityContextFromCharacter(character);
+  if (themePassesEligibility(prereq, context)) return [];
+  const name = character.identity?.theme || 'This theme';
+  return [
+    `${name} does not meet its prerequisite (${prereq}). The selection is unchanged.`
+  ];
 }
 
 /**
@@ -127,6 +144,7 @@ export async function syncThemeSelection(character, entry, compendium) {
   if (!entry) {
     if (!character.selections?.themeId) {
       character.identity.theme = '';
+      character.selections.themePrerequisite = '';
       character.notes.themeFeatures = '';
       writeGrantGroup(character, 'themePowers', []);
     }
@@ -136,6 +154,7 @@ export async function syncThemeSelection(character, entry, compendium) {
   const parsed = parseThemeEntry(entry);
   const level = Number(character.identity.level) || 1;
   character.selections.themeId = character.selections.themeId ?? entry.id;
+  character.selections.themePrerequisite = parsed.prerequisite || '';
   character.identity.theme = parsed.name;
   character.notes.themeFeatures = buildThemeNotesText(parsed, level);
 

@@ -262,11 +262,18 @@ but is not in the `docker` group, so run Docker as `sudo -n docker ...`. Note th
 **server clock is UTC** (Coolify timestamps read ~2h behind Central European
 time).
 
-**Redeploy a new version.** Push to `main`, then open the app in Coolify and
-click **Deploy**. Coolify clones `main`, rebuilds the image, starts the new
-container, waits for it to become healthy, and only then swaps it in (otherwise
-it rolls back to the previous container). There is no auto-deploy unless you add
-a Git webhook.
+**Redeploy a new version.** Push to `main`, then deploy only the Coolify app
+`alter_ego`. The user does that deploy by hand from the Server Management
+project. An agent in this repo must not open that project or switch
+workspaces. The manual deploy queues one redeploy of
+`alter_ego` from `main` and leaves every other app and host setting alone.
+Coolify clones `main`, rebuilds the image, starts the new container, waits for
+it to become healthy, and only then swaps it in (otherwise it rolls back to the
+previous container). A git push does not deploy by itself. There is no
+auto-deploy unless you add a Git webhook.
+
+**Agent browser checks.** Use `https://alter-ego.apps.masche.at` after that
+redeploy is healthy. A local dev server is not a valid check in this workspace.
 
 **Check status.**
 

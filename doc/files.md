@@ -27,6 +27,12 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `bugs.md` | Bug and limitation tracker |
 | `tests.md` | Test strategy and manual checklist |
 
+## `.cursor/rules/`
+
+| File | Role |
+|------|------|
+| `verify-on-live.mdc` | Browser and compendium checks use the live app: commit, merge to `main`, push, then wait for a manual Alter Ego deploy. Do not switch to the Server Management workspace |
+
 ## `rules/`
 
 | File | Role |
@@ -283,8 +289,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `feat-parse.js` | Parse feat listing, prerequisite atoms, skill/ability bonuses, grants (Ritual Caster), benefit text |
 | `ritual-parse.js` | Ritual listing; `extractRitualIdsFromHtml` for class ritual grants |
 | `path-parse.js` | Paragon path, epic destiny, and theme listing passthrough (name, prerequisite, source book) |
-| `theme-parse.js` | Theme body HTML: level 1/5/10 features, embedded powers, flavor fold, preview |
-| `theme-selections.js` | Theme validation, unlocked skill and initiative bonuses, starting-power grant (`grantSlots.themePowers`) |
+| `theme-parse.js` | Theme body HTML: level 1/5/10 features, embedded powers, flavor fold, preview; picker row benefit (`formatThemePickerMeta`: skills, initiative, level 1 attack/utility/feature) |
+| `theme-selections.js` | Theme validation (warns when a saved theme fails a known prerequisite and does not clear it), unlocked skill and initiative bonuses, starting-power grant (`grantSlots.themePowers`), stored `selections.themePrerequisite` |
 | `reference-parse.js` | Trap/companion/deity/disease/poison/glossary listing + `extractCompendiumLinks` for `entry_links` |
 | `party-loader.js` | Loads party JSON for GM console |
 
@@ -311,7 +317,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `steps/race-step.js` | 3-phase race picker, bonus/build choices (no source filter on build choices), grants, linked preview; build choices and the racial ability-score choice sit above the race preview, immediately after the race is confirmed; the subrace list shows a "None (play the base race)" option first so subrace-bearing races can be played without one (subraces are optional); build decisions with >6 options render as a compact combo `<select>`; the Genasi manifestation combo has no compendium link — after a choice, a read-only bulleted list shows the power flavor, the static benefit, and the power name followed by the word Power; Dragonborn radios keep one ↗ per option; for monster races with no own flavor, pulls lore-only folds from the matching Monster entry (exact name match + `metadata/race-monster-fluff.json` overrides) |
 | `steps/class-step.js` | Class picker with structured preview, build/trained-skill choices, granted class-feature list with hover cards, notes/sheet sync; **Hybrid class** checkbox hides hybrids by default, lists only hybrids when on, and reveals a second full-width picker (shared source filter) so two hybrid classes can be stored (`selections.classHybrid`, `selections.hybridClassIds`); second-class rule merging deferred |
 | `steps/background-step.js` | Background picker with structured preview, skill bonus choices, notes sync |
-| `steps/theme-step.js` | Theme picker after Background: source combo, search, sectioned preview (features, powers, description) |
+| `theme-prerequisite.js` | Eligible vs All, setting groups, and the race / fey origin / class / alignment / skill / spellbook checks |
+| `steps/theme-step.js` | Theme picker after Background: prerequisite filter, setting group, source combo, search, benefit on each row, sectioned preview (features, powers, description) |
 | `steps/power-step.js` | Class power slots + shared combobox (clear-on-focus search); the list is the slot's level and lower (same type), not higher levels; each type heading (At-Will, Encounter, Daily, Utility) shows filled vs available slots, e.g. At-Will (2 of 2), and slot labels stay level + type only; compendium open link (↗) on filled slots; type badge on list rows; **Recommended powers for this class** button; source combo filter above picker. Below the picker, read-only **Race** powers, **Theme** powers (the starting power), and **Equipment** powers (only when an equipped item links a power; item link, then the power link under it; body slot shown, not editable) |
 | `feat-prerequisite.js` | Feat eligibility, including the class-name checkbox filter (`requireClass` / `featRequiresClass`) |
 | `steps/feat-step.js` | Feat slots grouped by tier. Source filter, then a class-name checkbox that keeps feats naming that class. Feat picker search shows only when more than five feats remain. Name list beside the compendium entry; choosing a row fills the active slot. Feats above the character's level are hidden. **Recommended feats for this class** button. Compendium open link (↗) on filled slots. Read-only **Race** and **Class** feat sections sit under the slots and are omitted from the picker |

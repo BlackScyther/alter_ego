@@ -103,12 +103,13 @@
     },
     "theme": {
       "title": "Theme",
-      "subtitle": "Optional theme. Starting feature at level 1; more features at levels 5 and 10.",
+      "subtitle": "Optional theme. Eligible hides themes whose race, class, or alignment prerequisite is not met. Setting narrows by campaign. Each row shows the skill and whether level 1 grants an attack or a utility.",
       "compendiumCategory": "theme",
       "selectionCardinality": 1,
       "optional": true,
       "writesTo": [
         "selections.themeId",
+        "selections.themePrerequisite",
         "selections.grantSlots.themePowers",
         "identity.theme",
         "notes.themeFeatures"

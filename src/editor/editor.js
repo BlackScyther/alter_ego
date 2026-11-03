@@ -73,6 +73,7 @@ import { resetBackgroundBonusChoices } from '../character/background-selections.
 import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
 import { parseThemeEntry, buildThemeNotesText } from '../character/theme-parse.js';
 import { syncThemeSelection } from '../character/theme-selections.js';
+import { buildThemeEligibilityContext } from './theme-prerequisite.js';
 import { getHpSubstituteTutorHint } from '../character/hp.js';
 import { buildCompendiumLinkIndex } from '../data/compendium-link-index.js';
 import { attachCompendiumHoverDelegates } from '../ui/compendium-hover-card.js';
@@ -1559,7 +1560,9 @@ function esc(s) {
 
 async function nextStep() {
   const stepId = currentStepId();
-  const errors = validateStep(stepId, character, editorMeta);
+  const themeContext =
+    stepId === 'theme' ? await buildThemeEligibilityContext(character, compendium) : undefined;
+  const errors = validateStep(stepId, character, editorMeta, themeContext);
   if (errors.length) {
     showErrors(errors);
     if (stepId === 'race' || stepId === 'class') {

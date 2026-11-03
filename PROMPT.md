@@ -21,9 +21,10 @@ Spec alignment: [PROJECT.md](PROJECT.md) and `metadata/*.json`.
 
 ## Conventions
 
-- **Stack**: Static HTML/CSS/ES modules; **Tailwind** on app screens (`rules/ui.md`); `npm start` serves the repo root on port 5173 (hub at `/src/`).
+- **Stack**: Static HTML/CSS/ES modules; **Tailwind** on app screens (`rules/ui.md`).
+- **Live verification**: Browser and compendium checks use `https://alter-ego.apps.masche.at`. Do not start `npm start`, `npm run dev`, `dev:all`, `dev:src`, or Vite. See `.cursor/rules/verify-on-live.mdc`.
 - **Minimize scope**: Match existing style; avoid unrelated refactors.
-- **No commits** unless the user explicitly asks.
+- **No commits** unless the user explicitly asks, except the live-verification path: commit the change, merge it into `main`, and push `main`, then stop for a manual Alter Ego deploy. Do not switch workspaces.
 - **Auto version bump**: the tracked `.githooks/pre-commit` hook increments the `package.json` patch version and stages it on every commit (`git config core.hooksPath .githooks`). Skip once with `ALTER_EGO_SKIP_BUMP=1`.
 
 ## Key paths
@@ -58,10 +59,12 @@ Do not skip doc updates for “small” changes if behavior or file layout chang
 ```bash
 npm install
 npx playwright install chromium
-npm start
+npm test
 npm run pdf
 npm run party:index
 ```
+
+Browser checks run on `https://alter-ego.apps.masche.at` after a deploy of `main`. Do not use `npm start` to view the app.
 
 ## Current phase notes
 

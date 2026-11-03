@@ -252,7 +252,7 @@ export function autoPointBuy(priority = ['str', 'con'], budget = 22) {
   return scores;
 }
 
-export function validateStep(stepId, character, editorMeta) {
+export function validateStep(stepId, character, editorMeta, themeContext) {
   const errors = [];
   const lvl = character.identity.level;
 
@@ -273,7 +273,7 @@ export function validateStep(stepId, character, editorMeta) {
       errors.push(...validateBackgroundStep(character, null));
       break;
     case 'theme':
-      errors.push(...validateThemeStep(character));
+      errors.push(...validateThemeStep(character, null, themeContext));
       break;
     case 'abilities': {
       const level = Number(character.identity?.level) || 1;

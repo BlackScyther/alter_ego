@@ -1,0 +1,30 @@
+---
+description: Verify UI and compendium behavior on the live Alter Ego site, not a local dev server
+alwaysApply: true
+---
+
+# Verify on the live site
+
+Browser and compendium checks use the live app at
+`https://alter-ego.apps.masche.at`. This workspace has no full compendium
+database, and a local app server does not stay up. `npm start`, `npm run dev`,
+`dev:all`, `dev:src`, and Vite are not a valid check.
+
+Node scripts and static checks that do not serve the app stay allowed
+(`npm test`, one-off scripts, `npm run build:app`).
+
+## When a change needs the live database or a browser pass
+
+1. Commit the relevant files. Leave out secrets and scratch files such as
+   `tmp-verify-*.mjs`.
+2. Merge that branch into `main` and push `main`. This standing instruction is
+   the explicit go-ahead for that verification deploy. If the merge is not
+   clean, stop and report it. Never force-push.
+3. Stop. Tell the user that `main` is pushed and that they deploy Alter Ego
+   by hand from the Server Management project. Do not open
+   `D:\Projects\ServerManagement`. Do not switch the Cursor workspace. A
+   workspace switch aborts the handoff. Pushing does not deploy by itself.
+   Coolify builds `main` only when that app is deployed.
+4. After the user says that deploy is healthy, stay in this project and
+   exercise the changed flow on `https://alter-ego.apps.masche.at`.
+   `/api/health` should report `"compendium":"sqlite"`.

@@ -8,6 +8,8 @@
  * whose level line ends in "Feature".
  */
 
+import { formatSkillLabel } from './class-parse.js';
+import { detectStaticFeatureBonuses } from './class-effects.js';
 import { escapeHtml as esc } from '../shared/escape-html.js';
 
 const FEATURE_RE =
@@ -312,6 +314,46 @@ export function formatThemeListingMeta(fields) {
   const prereq = String(fields?.Prerequisite ?? '').trim();
   const book = String(fields?.SourceBook ?? '').trim();
   return [prereq && prereq !== '—' ? prereq : '', book].filter(Boolean).join(' · ');
+}
+
+const POWER_KIND_LABEL = { attack: 'Attack', utility: 'Utility', feature: 'Feature' };
+
+/**
+ * Skills the theme grants, plus Attack, Utility, or Feature when a level 1
+ * power is granted. Initiative is included when a feature grants it.
+ * @param {ReturnType<typeof parseThemeEntry>} parsed
+ */
+export function themeBenefitLabel(parsed) {
+  /** @type {Set<string>} */
+  const skills = new Set();
+  let initiative = false;
+  for (const feature of parsed?.features ?? []) {
+    for (const effect of detectStaticFeatureBonuses(feature.text, '', feature.title, 'theme')) {
+      if (effect.type === 'skill-bonus' && effect.skill) skills.add(formatSkillLabel(effect.skill));
+      if (effect.type === 'initiative-misc') initiative = true;
+    }
+  }
+  /** @type {string[]} */
+  const kinds = [];
+  for (const kind of ['attack', 'utility', 'feature']) {
+    const granted = (parsed?.powers ?? []).some(
+      (power) => power.granted && power.minLevel <= 1 && power.kind === kind
+    );
+    if (granted) kinds.push(POWER_KIND_LABEL[kind]);
+  }
+  return [...[...skills].sort((a, b) => a.localeCompare(b)), initiative ? 'Initiative' : '', ...kinds]
+    .filter(Boolean)
+    .join(', ');
+}
+
+/**
+ * Picker row: prerequisite, benefit, source book.
+ * @param {object | null | undefined} entry
+ */
+export function formatThemePickerMeta(entry) {
+  const parsed = parseThemeEntry(entry);
+  const book = String(parsed.sourceBook ?? '').trim();
+  return [parsed.prerequisite, themeBenefitLabel(parsed), book].filter(Boolean).join(' · ');
 }
 
 /**

@@ -44,7 +44,8 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering; ability score increases and point-buy bases apply only after confirm |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
-| `tests/theme-parse.test.mjs` | Theme level 1/5/10 features, Dark Sun feature heading, level-gated skill bonuses, conditional sentence skipped, starting-power source match |
+| `tests/theme-parse.test.mjs` | Theme level 1/5/10 features, Dark Sun feature heading, level-gated skill bonuses, conditional sentence skipped, starting-power source match, picker row benefit |
+| `tests/theme-prerequisite.test.mjs` | Theme eligibility (race, fey origin, class, alignment, Diplomacy, spellbook), setting groups, warning that keeps the selection |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
 | `tests/class-effects.test.mjs` | Class-feature static initiative (Tactical Warlord Combat Leader +2; action-point sentence ignored; Canny Leader replaces it), Improved Initiative +4 stacking to 6 without double-counting Misc, additive class+background composition |
 | `tests/skills-table.test.mjs` | Skills table markup and field maps: every number cell except Misc is read-only; Trained stays a checkbox |
@@ -68,9 +69,17 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/hybrid-merge.test.mjs` | PH3 hybrid merge: HP/surge math, skills (any three), armor/shield intersection + weapon/implement union, `hybridPairAllowed`, `hybridPowerCoverage` |
 | `tests/subrace-hydrate.test.mjs` | `race-subraces.js` static default plus DB hydration via `setSubraceMap`/`hydrateSubracesFromProvider` |
 
+## Browser checks
+
+Manual browser checks run on the live app at `https://alter-ego.apps.masche.at`
+after the change is on `main` and the user has redeployed Alter Ego by hand.
+This project does not switch to the Server Management workspace. Confirm
+`/api/health` reports `"compendium":"sqlite"`. Node tests (`npm test`) stay
+local and do not need that deploy.
+
 ## Manual test checklist — background step (editor)
 
-Requires `npm run dev:src` or `npm run dev:all` and imported compendium (`data/alter_ego.db`).
+On the live character generator, with the full compendium.
 
 - [ ] Pick **Cult Survivor** — preview shows narrative fold, Associated Skills (Arcana, Athletics, Religion), and +2/+1 skill picker
 - [ ] Choose **+2 to one skill** and pick a skill — status line and **Background Features** sheet mirror field update
@@ -79,7 +88,7 @@ Requires `npm run dev:src` or `npm run dev:all` and imported compendium (`data/a
 
 ## Manual test checklist — race step (editor)
 
-Requires `npm run dev:src` or `npm run dev:all`.
+On the live character generator.
 
 - [ ] Race list excludes subraces (Gold Dwarf, Bozak Draconian not in base list)
 - [ ] Pick **Dwarf** → subrace picker appears; choose **Gold Dwarf**
@@ -99,7 +108,7 @@ npm run test:api      # quick smoke (existing script)
 
 ## Manual test checklist — game editor
 
-Requires GM campaign session (`npm run dev:all`).
+On the live GM campaign session.
 
 - [ ] GM console → **Game editor** → create encounter
 - [ ] **Add monster** → goblin appears; add again → second instance (different name suffix)
@@ -110,7 +119,7 @@ Requires GM campaign session (`npm run dev:all`).
 
 ## Manual test checklist — online campaign
 
-Requires `npm run dev:all` or `dev:api` + `dev`.
+On the live site.
 
 - [ ] GM console shows campaign stats (created / active) and **Manage campaigns** link
 - [ ] **Campaigns** page (`/src/gm/campaigns/`): create several; names persist; active row shows invite + **Copy link**
@@ -153,7 +162,7 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 - [ ] `npm run tauri:build` produces installer under `src-tauri/target/release/bundle/` (local OS only)
 - [ ] GitHub Actions **Build desktop app** → artifacts: `alter-ego-macos-intel-x64`, `alter-ego-macos-apple-silicon`, `alter-ego-windows-x64`
 
-## Manual test checklist — browser dev (`npm run dev`)
+## Manual test checklist — live site
 
 ### Role launcher (`/src/launcher/`)
 

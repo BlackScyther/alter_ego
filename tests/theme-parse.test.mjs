@@ -4,6 +4,7 @@ import { createCharacter } from '../src/character/model.js';
 import { syncBonusesFromSelections } from '../src/character/tutor.js';
 import {
   buildThemeNotesText,
+  formatThemePickerMeta,
   grantedPowerNamesAtLevel,
   parseThemeEntry,
   renderThemePreviewHtml
@@ -108,6 +109,13 @@ test('renderThemePreviewHtml marks locked features and the granted power', () =>
   assert.doesNotMatch(buildThemeNotesText(parseThemeEntry(sampleTheme), 4), /Level 5 Feature/);
 });
 
+test('picker row names the skill and the level 1 grant', () => {
+  assert.match(formatThemePickerMeta(sampleTheme), /Wizard/);
+  assert.match(formatThemePickerMeta(sampleTheme), /Athletics, Insight, Initiative, Attack/);
+  assert.doesNotMatch(formatThemePickerMeta(sampleTheme), /Stealth/);
+  assert.match(formatThemePickerMeta(sunTrader), /Feature/);
+});
+
 test('empty themeId passes validation', () => {
   assert.deepEqual(validateThemeStep(createCharacter()), []);
 });
@@ -138,6 +146,7 @@ test('syncThemeSelection stores the matching starting power', async () => {
   assert.match(character.notes.themeFeatures, /Starting Feature/);
   assert.equal(character.selections.grantSlots.themePowers.length, 1);
   assert.equal(character.selections.grantSlots.themePowers[0].id, 'power-b');
+  assert.equal(character.selections.themePrerequisite, 'Wizard');
   assert.equal(character.selections.grantSlots.themePowers[0].category, 'theme-power');
   assert.match(character.notes.themePowers, /Sample Strike/);
 });

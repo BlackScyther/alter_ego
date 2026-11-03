@@ -1209,20 +1209,23 @@ body.player-editor #gate-lead {
   display: none;
 }
 
-.picker-race-filter {
+.picker-race-filter,
+.picker-theme-filter {
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 100%;
 }
 
-.picker-race-filter-label {
+.picker-race-filter-label,
+.picker-theme-filter-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--editor-text);
 }
 
-.picker-race-filter select {
+.picker-race-filter select,
+.picker-theme-filter select {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--editor-border);
@@ -1230,6 +1233,13 @@ body.player-editor #gate-lead {
   background: var(--editor-bg);
   color: var(--editor-text);
   font: inherit;
+}
+
+.theme-prereq-warning {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--editor-danger);
+  font-size: 13px;
 }
 
 .picker-combobox {

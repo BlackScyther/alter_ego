@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-03 — Feats step: class-name checkbox, search only when more than five feats remain, and a name list beside the compendium entry.
+**Last agent sync:** 2026-11-03 — Theme step: Eligible/All and setting filters, picker-row benefits, and a warning when a saved theme no longer meets its prerequisite. Live checks stay on the deployed app.
