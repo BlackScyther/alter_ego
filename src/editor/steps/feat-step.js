@@ -17,18 +17,10 @@ import { writeGrantGroup } from '../../character/grant-slots.js';
 import { RITUAL_CASTER_FEAT_ID } from '../../character/ritual-selections.js';
 import {
   buildFeatEligibilityContext,
-  filterFeatEntries,
-  formatFeatListingMeta
+  filterFeatEntries
 } from '../feat-prerequisite.js';
-import {
-  renderComboboxHtml,
-  attachComboboxBehavior,
-  renderPickerOptions,
-  setComboboxInputFromEntry,
-  showIdleHint,
-  showEmptyHint,
-  COMPENDIUM_SEARCH_MIN
-} from '../picker/combobox-picker.js';
+import { COMPENDIUM_SEARCH_MIN } from '../picker/combobox-picker.js';
+import { renderLinkedEntryPreview } from '../../ui/compendium-links.js';
 import {
   renderSourceComboHtml,
   attachSourceCombo,
@@ -42,6 +34,7 @@ import { renderGrantSectionHtml } from './grant-section-html.js';
 const PICKER_KEY = 'feats';
 
 const LIST_CAP = 100;
+const SEARCH_LIST_THRESHOLD = 5;
 const ELIGIBLE_FETCH_LIMIT = 500;
 const SHOW_ALL_LIMIT = 3500;
 
@@ -53,8 +46,16 @@ const showAllCache = new Map();
  * @param {object} ctx
  */
 export async function renderFeatStep(panel, ctx) {
-  const { character, compendium, onPersist, refreshBonuses, onCollectionRefresh, onActiveSlotChange, renderTutorHint } =
-    ctx;
+  const {
+    character,
+    compendium,
+    onPersist,
+    refreshBonuses,
+    onCollectionRefresh,
+    onActiveSlotChange,
+    renderTutorHint,
+    linkIndex
+  } = ctx;
 
   ensureFeatSelectionsShape(character);
   migrateFeatIdsToSelections(character);
@@ -76,6 +77,7 @@ export async function renderFeatStep(panel, ctx) {
     return;
   }
 
+  const className = classEntry?.listing_fields?.Name || character.identity?.class || 'Class';
   const level = character.identity?.level ?? 1;
   const slots = getFeatSlotsForLevel(level);
   const grouped = groupFeatSlotsByTier(slots);
@@ -155,7 +157,8 @@ export async function renderFeatStep(panel, ctx) {
       <p class="feat-step-hint">
         You can replace any feat by selecting its slot and picking a different one
         (this level and lower, tier and prerequisites must match). Use the
-        <strong>×</strong> beside a filled slot to clear it. Type at least ${COMPENDIUM_SEARCH_MIN} letters to search.
+        <strong>×</strong> beside a filled slot to clear it. The list shows feat names.
+        When more than five feats match, type at least ${COMPENDIUM_SEARCH_MIN} letters to narrow it.
       </p>
       <div class="feat-step-toolbar">
         <label class="feat-show-all">
@@ -184,14 +187,49 @@ export async function renderFeatStep(panel, ctx) {
             <div class="picker-toolbar-row">
               ${renderSourceComboHtml({ pickerKey: PICKER_KEY, sourceBooks, groupLabel: 'Feat source' })}
             </div>
+            <label class="feat-class-filter">
+              <input
+                type="checkbox"
+                id="feat-require-class"
+                aria-label="${esc(`Filter feats that require ${className}`)}"
+              />
+              <span>${esc(className)}</span>
+            </label>
           </div>
-          <div id="feat-shared-picker" class="power-shared-picker"></div>
+          <div id="feat-shared-picker" class="power-shared-picker">
+            <div id="feat-search-wrap" class="picker-combobox" hidden>
+              <label class="picker-combobox-label" for="picker-feat-shared">Feat picker</label>
+              <input
+                type="search"
+                id="picker-feat-shared"
+                class="picker-combobox-input feat-picker-search"
+                placeholder="Select a feat for the active slot"
+                autocomplete="off"
+                aria-controls="feat-name-list"
+              />
+            </div>
+            <div class="feat-browse">
+              <div
+                id="feat-name-list"
+                class="feat-name-list"
+                role="listbox"
+                aria-label="Feats"
+                tabindex="0"
+              ></div>
+              <div
+                id="feat-entry-preview"
+                class="feat-entry-preview"
+                role="region"
+                aria-live="polite"
+                aria-label="Compendium entry"
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="feat-granted-sections" class="power-granted-sections"></div>
     </section>`;
 
-  const pickerCol = panel.querySelector('#feat-shared-picker');
   const enforceCheckbox = panel.querySelector('#feat-enforce-prereq');
   const showAllCheckbox = panel.querySelector('#feat-show-all');
   const showAllHint = panel.querySelector('#feat-show-all-hint');
@@ -219,24 +257,36 @@ export async function renderFeatStep(panel, ctx) {
     updateQuota();
     updateSlotListUi();
     await refreshSlotLabels();
-    await syncPickerFromSlot();
     await refreshPicker('');
     await onCollectionRefresh?.();
   }
 
   recommendBtn?.addEventListener('click', () => applyRecommendedFeats());
 
-  const inputId = 'picker-feat-shared';
-  const listboxId = 'picker-listbox-feat-shared';
-  pickerCol.innerHTML = renderComboboxHtml({
-    inputId,
-    listboxId,
-    placeholder: 'Select a feat for the active slot',
-    visibleLabel: 'Feat picker'
-  });
+  const input = panel.querySelector('#picker-feat-shared');
+  const searchWrap = panel.querySelector('#feat-search-wrap');
+  const nameList = panel.querySelector('#feat-name-list');
+  const previewEl = panel.querySelector('#feat-entry-preview');
+  const classCheckbox = panel.querySelector('#feat-require-class');
 
-  const input = pickerCol.querySelector(`#${inputId}`);
-  const listbox = pickerCol.querySelector(`#${listboxId}`);
+  let requireClass = false;
+  let highlightedId = null;
+  let refreshSeq = 0;
+  let ignoreNameListScroll = false;
+  let nameListScrollTimer = 0;
+
+  nameList?.addEventListener(
+    'scroll',
+    () => {
+      if (ignoreNameListScroll || !nameList) return;
+      nameList.classList.add('is-scrolling');
+      window.clearTimeout(nameListScrollTimer);
+      nameListScrollTimer = window.setTimeout(() => {
+        nameList.classList.remove('is-scrolling');
+      }, 700);
+    },
+    { passive: true }
+  );
 
   function getActiveSlot() {
     return slots.find((s) => s.id === activeSlotId) ?? null;
@@ -358,20 +408,113 @@ export async function renderFeatStep(panel, ctx) {
     return entries;
   }
 
-  async function syncPickerFromSlot() {
-    const slot = getActiveSlot();
-    if (!slot || !input) return;
-    const fid = character.selections.featSelections?.[slot.id];
-    if (fid) {
-      await setComboboxInputFromEntry(input, compendium, fid);
+  async function showFeatPreview(featId) {
+    if (!previewEl) return;
+    if (!featId) {
+      previewEl.innerHTML = '';
+      return;
+    }
+    const entry = await compendium.getEntry(featId);
+    const html = entry?.body_html?.trim() ? entry.body_html : '<p>No description available.</p>';
+    if (linkIndex?.terms?.length) renderLinkedEntryPreview(previewEl, html, linkIndex);
+    else previewEl.innerHTML = html;
+  }
+
+  function scrollOptionIntoList(btn) {
+    if (!nameList || !btn) return;
+    const top = btn.offsetTop;
+    const bottom = top + btn.offsetHeight;
+    let next = nameList.scrollTop;
+    if (top < nameList.scrollTop) next = top;
+    else if (bottom > nameList.scrollTop + nameList.clientHeight) {
+      next = bottom - nameList.clientHeight;
+    }
+    if (next === nameList.scrollTop) return;
+    ignoreNameListScroll = true;
+    nameList.scrollTop = next;
+    ignoreNameListScroll = false;
+  }
+
+  function markHighlighted(featId) {
+    highlightedId = featId;
+    if (!nameList) return;
+    let selectedBtn = null;
+    nameList.querySelectorAll('.feat-name-option').forEach((btn) => {
+      const on = btn.dataset.id === featId;
+      btn.classList.toggle('is-selected', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on) selectedBtn = btn;
+    });
+    if (selectedBtn) {
+      nameList.setAttribute('aria-activedescendant', selectedBtn.id);
+      scrollOptionIntoList(selectedBtn);
     } else {
-      input.value = '';
+      nameList.removeAttribute('aria-activedescendant');
     }
   }
 
-  async function refreshPicker(query = '') {
+  function renderNameList(entries, featId) {
+    if (!nameList) return;
+    if (!entries.length) {
+      nameList.innerHTML = `<p class="feat-name-empty">${esc(
+        showAllFeats
+          ? 'No matching feats.'
+          : 'No eligible feats for this slot. Try Show all feats or adjust filters.'
+      )}</p>`;
+      nameList.removeAttribute('aria-activedescendant');
+      highlightedId = null;
+      return;
+    }
+    nameList.innerHTML = entries
+      .map((entry, index) => {
+        const name = entry.listing_fields?.Name ?? entry.id;
+        const on = entry.id === featId;
+        return `<div role="option" class="feat-name-option${on ? ' is-selected' : ''}" id="feat-name-opt-${index}" data-id="${esc(entry.id)}" aria-selected="${on ? 'true' : 'false'}">${esc(name)}</div>`;
+      })
+      .join('');
+    highlightedId = featId;
+    const selectedBtn = nameList.querySelector('.feat-name-option.is-selected');
+    if (selectedBtn) {
+      nameList.setAttribute('aria-activedescendant', selectedBtn.id);
+      scrollOptionIntoList(selectedBtn);
+    }
+  }
+
+  async function assignFeat(featId) {
     const slot = getActiveSlot();
-    if (!slot || !listbox) return;
+    if (!slot || !featId) return;
+    const entry = await compendium.getEntry(featId);
+    if (!entry) return;
+
+    setFeatForSlot(character, slot.id, featId);
+    syncFeatNotesFromSelections(character, { [featId]: entry.listing_fields?.Name ?? featId });
+    if (refreshBonuses) await refreshBonuses();
+    await onPersist();
+
+    updateQuota();
+    updateSlotListUi();
+    await refreshSlotLabels();
+    onActiveSlotChange?.(slot.id);
+    await onCollectionRefresh?.();
+    await refreshPicker(input?.value ?? '');
+  }
+
+  function moveHighlight(delta) {
+    if (!nameList) return;
+    const options = [...nameList.querySelectorAll('.feat-name-option')];
+    if (!options.length) return;
+    const current = options.findIndex((btn) => btn.dataset.id === highlightedId);
+    const start = current < 0 ? 0 : current;
+    const next = Math.min(options.length - 1, Math.max(0, start + delta));
+    const btn = options[next];
+    markHighlighted(btn.dataset.id);
+    showFeatPreview(btn.dataset.id);
+  }
+
+  async function refreshPicker(query = '') {
+    const seq = ++refreshSeq;
+    const slot = getActiveSlot();
+    if (!slot || !nameList) return;
 
     const selectedId = character.selections.featSelections?.[slot.id] ?? null;
     const excludeIds = new Set();
@@ -387,69 +530,45 @@ export async function renderFeatStep(panel, ctx) {
     }
 
     const ctxElig = await buildFeatEligibilityContext(character, compendium, slot);
-    const pool = await loadFeatPool(query);
-    const filtered = filterFeatEntries(pool, ctxElig, slot, {
+    if (seq !== refreshSeq) return;
+    const basePool = await loadFeatPool('');
+    if (seq !== refreshSeq) return;
+
+    const filterBase = {
       showAll: showAllFeats,
       enforcePrerequisites,
+      requireClass,
       retrain: isRetrain(slot),
-      excludeIds,
-      query
-    });
+      excludeIds
+    };
+    const baseFiltered = filterFeatEntries(basePool, ctxElig, slot, { ...filterBase, query: '' });
+    const showSearch = baseFiltered.length > SEARCH_LIST_THRESHOLD;
+    if (searchWrap) searchWrap.hidden = !showSearch;
 
+    let typed = showSearch ? String(query ?? '') : '';
+    if (!showSearch && input?.value) input.value = '';
+
+    let pool = basePool;
+    if (typed.trim().length >= COMPENDIUM_SEARCH_MIN) {
+      pool = await loadFeatPool(typed);
+      if (seq !== refreshSeq) return;
+    }
+
+    const filtered = filterFeatEntries(pool, ctxElig, slot, { ...filterBase, query: typed });
     const shown = filtered.slice(0, LIST_CAP);
     updateFilterStatus(filtered.length);
 
-    if (!shown.length) {
-      if (query.length > 0 && query.length < COMPENDIUM_SEARCH_MIN) {
-        showIdleHint(listbox, 'feat');
-      } else {
-        showEmptyHint(
-          listbox,
-          showAllFeats
-            ? 'No matching feats.'
-            : 'No eligible feats for this slot. Try Show all feats or adjust filters.'
-        );
-      }
-      return;
-    }
-
-    renderPickerOptions(
-      listbox,
-      shown,
-      selectedId,
-      async (id, btn) => {
-        const entry = await compendium.getEntry(id);
-        if (!entry) return;
-
-        setFeatForSlot(character, slot.id, id);
-        const names = { [id]: entry.listing_fields?.Name ?? id };
-        syncFeatNotesFromSelections(character, names);
-        if (refreshBonuses) await refreshBonuses();
-        await onPersist();
-
-        combobox.commitSelection();
-        input.value = entry.listing_fields?.Name ?? id;
-        combobox.closeDropdown();
-        btn.classList.add('picker-option--selected');
-        btn.setAttribute('aria-selected', 'true');
-        updateQuota();
-        updateSlotListUi();
-        await refreshSlotLabels();
-        onActiveSlotChange?.(slot.id);
-        await onCollectionRefresh?.();
-      },
-      (e) => formatFeatListingMeta(e.listing_fields)
-    );
+    const highlight =
+      selectedId && shown.some((entry) => entry.id === selectedId) ? selectedId : (shown[0]?.id ?? null);
+    renderNameList(shown, highlight);
+    await showFeatPreview(highlight);
   }
-
-  const combobox = attachComboboxBehavior(input, listbox, (q) => refreshPicker(q), { clearOnFocus: true });
 
   panel.querySelectorAll('.power-slot-row').forEach((row) => {
     row.addEventListener('click', async () => {
       activeSlotId = row.dataset.slotId;
       onActiveSlotChange?.(activeSlotId);
       updateSlotListUi();
-      await syncPickerFromSlot();
       await refreshPicker(input?.value ?? '');
       await onCollectionRefresh?.();
     });
@@ -486,6 +605,41 @@ export async function renderFeatStep(panel, ctx) {
     showAllHint.hidden = !showAllFeats;
     warnIcon.hidden = !showAllFeats;
     showAllCache.clear();
+    refreshPicker(input?.value ?? '');
+  });
+
+  input?.addEventListener('input', () => {
+    refreshPicker(input.value);
+  });
+
+  nameList?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.feat-name-option');
+    if (!btn?.dataset.id) return;
+    nameList.focus();
+    assignFeat(btn.dataset.id);
+  });
+
+  nameList?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveHighlight(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveHighlight(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      moveHighlight(-100000);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      moveHighlight(100000);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedId) assignFeat(highlightedId);
+    }
+  });
+
+  classCheckbox?.addEventListener('change', () => {
+    requireClass = classCheckbox.checked;
     refreshPicker(input?.value ?? '');
   });
 
@@ -594,7 +748,6 @@ export async function renderFeatStep(panel, ctx) {
 
   updateSlotListUi();
   await refreshSlotLabels();
-  await syncPickerFromSlot();
   const classGrantFeats = await syncClassGrantFeats();
   await renderGrantedFeatSections(classGrantFeats);
   await refreshPicker('');

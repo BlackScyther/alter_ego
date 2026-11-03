@@ -622,7 +622,8 @@ async function renderStepPanel() {
         onActiveSlotChange: (slotId) => {
           activeFeatSlotId = slotId;
         },
-        renderTutorHint: (p) => renderSelectionTutorHint(p, 'feats')
+        renderTutorHint: (p) => renderSelectionTutorHint(p, 'feats'),
+        linkIndex
       });
       break;
     case 'powers':

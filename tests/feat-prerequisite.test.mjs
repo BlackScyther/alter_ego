@@ -11,7 +11,9 @@ import {
   featPassesDefaultFilter,
   featPassesTierFilter,
   filterFeatEntries,
-  entryLevelAtMost
+  entryLevelAtMost,
+  featRequiresClass,
+  classNameTokens
 } from '../src/editor/feat-prerequisite.js';
 
 const fighterFeat = {
@@ -199,5 +201,106 @@ describe('feat-prerequisite', () => {
     const slot = { id: 'feat-1', slotLevel: 1, tier: 'Heroic' };
     const list = filterFeatEntries([high, low], ctx, slot, { enforcePrerequisites: false });
     assert.deepEqual(list.map((e) => e.id), ['feat-heroic']);
+  });
+
+  it('requireClass keeps feats that name the class and drops role or power source', () => {
+    const warlordFeat = {
+      id: 'feat_warlord',
+      listing_fields: {
+        Name: 'Tactical Insight',
+        Tier: 'Heroic',
+        Prerequisite: 'Warlord',
+        SourceBook: 'PHB'
+      }
+    };
+    const eitherFeat = {
+      id: 'feat_either',
+      listing_fields: {
+        Name: 'Battle Awareness',
+        Tier: 'Heroic',
+        Prerequisite: 'Warlord or Fighter',
+        SourceBook: 'PHB'
+      }
+    };
+    const leaderFeat = {
+      id: 'feat_leader',
+      listing_fields: {
+        Name: 'Inspiring Shot',
+        Tier: 'Heroic',
+        Prerequisite: 'Leader',
+        SourceBook: 'PHB'
+      }
+    };
+    const martialFeat = {
+      id: 'feat_martial',
+      listing_fields: {
+        Name: 'Martial Training',
+        Tier: 'Heroic',
+        Prerequisite: 'Any martial class',
+        SourceBook: 'PHB'
+      }
+    };
+    const ctx = {
+      level: 1,
+      raceTerms: [],
+      classInfo: { className: 'Warlord', role: 'Leader', powerSource: 'Martial' },
+      backgroundName: '',
+      abilityScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      trainedSkills: new Set(),
+      hasTrainingData: false,
+      ownedFeatNames: new Set(),
+      ownedFeatIds: new Set()
+    };
+    const slot = { id: 'feat-1', slotLevel: 1, tier: 'Heroic' };
+    const entries = [genericFeat, fighterFeat, warlordFeat, eitherFeat, leaderFeat, martialFeat];
+    const open = filterFeatEntries(entries, ctx, slot, {
+      enforcePrerequisites: false,
+      requireClass: false
+    });
+    const limited = filterFeatEntries(entries, ctx, slot, {
+      enforcePrerequisites: false,
+      requireClass: true
+    });
+    assert.equal(open.length, entries.length);
+    assert.deepEqual(
+      limited.map((e) => e.id),
+      ['feat_either', 'feat_warlord']
+    );
+    assert.deepEqual(classNameTokens('Hybrid Warlord'), ['warlord']);
+    assert.equal(featRequiresClass(warlordFeat, 'Hybrid Warlord'), true);
+    assert.equal(featRequiresClass(leaderFeat, 'Warlord'), false);
+    assert.equal(featRequiresClass(genericFeat, 'Warlord'), false);
+  });
+
+  it('requireClass matches a structured class atom', () => {
+    const atomFeat = {
+      id: 'feat_atom',
+      listing_fields: { Name: 'Atom Feat', Tier: 'Heroic', Prerequisite: '—', SourceBook: 'PHB' }
+    };
+    const ctx = {
+      level: 1,
+      raceTerms: [],
+      classInfo: { className: 'Warlord', role: 'Leader', powerSource: 'Martial' },
+      backgroundName: '',
+      abilityScores: { str: 10, con: 10, dex: 10, int: 10, wis: 10, cha: 10 },
+      trainedSkills: new Set(),
+      hasTrainingData: false,
+      ownedFeatNames: new Set(),
+      ownedFeatIds: new Set(),
+      featPrereqMap: new Map([['feat_atom', [{ kind: 'class', target: 'warlord' }]]])
+    };
+    const slot = { id: 'feat-1', slotLevel: 1, tier: 'Heroic' };
+    const matched = filterFeatEntries([atomFeat, genericFeat], ctx, slot, {
+      enforcePrerequisites: false,
+      requireClass: true
+    });
+    assert.deepEqual(matched.map((e) => e.id), ['feat_atom']);
+
+    ctx.featPrereqMap = new Map([['feat_atom', [{ kind: 'class', target: 'fighter' }]]]);
+    const missed = filterFeatEntries([atomFeat], ctx, slot, {
+      enforcePrerequisites: false,
+      requireClass: true
+    });
+    assert.equal(missed.length, 0);
   });
 });

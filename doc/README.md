@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-02 — Chosen Genasi manifestation is a short Racial Traits line with a compendium link, and its water breathing, resistance, and saving-throw bonus are written on the sheet.
+**Last agent sync:** 2026-11-03 — Feats step: class-name checkbox, search only when more than five feats remain, and a name list beside the compendium entry.

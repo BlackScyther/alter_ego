@@ -28,6 +28,72 @@ const MARTIAL_KEYWORDS = ['martial', 'weapon'];
 const DIVINE_KEYWORDS = ['divine', 'cleric', 'paladin'];
 const ARCANE_KEYWORDS = ['arcane', 'wizard', 'sorcerer', 'warlock'];
 
+const CLASS_NAME_TOKENS = [
+  'fighter',
+  'cleric',
+  'wizard',
+  'ranger',
+  'rogue',
+  'warlock',
+  'warlord',
+  'paladin',
+  'barbarian',
+  'bard',
+  'druid',
+  'invoker',
+  'sorcerer',
+  'warden',
+  'artificer',
+  'assassin',
+  'avenger',
+  'battlemind',
+  'monk',
+  'runepriest',
+  'seeker',
+  'shaman',
+  'swordmage',
+  'vampire'
+];
+
+/**
+ * Known class tokens that appear in a class name.
+ * A name outside that list is kept as one token.
+ * @param {string} className
+ * @returns {string[]}
+ */
+export function classNameTokens(className) {
+  const cn = String(className ?? '').trim().toLowerCase();
+  if (!cn) return [];
+  const known = CLASS_NAME_TOKENS.filter((token) => cn.includes(token));
+  return known.length ? known : [cn];
+}
+
+/**
+ * True when this feat lists the class as a prerequisite.
+ * An empty prerequisite, a role, or a power source does not count.
+ * @param {{ listing_fields?: Record<string, string> }} entry
+ * @param {string} className
+ * @param {Array<{ kind?: string, target?: string | null }> | null | undefined} atoms
+ */
+export function featRequiresClass(entry, className, atoms) {
+  const tokens = classNameTokens(className);
+  if (!tokens.length) return false;
+
+  if (Array.isArray(atoms)) {
+    for (const atom of atoms) {
+      if (atom?.kind !== 'class') continue;
+      const target = String(atom.target ?? '').trim().toLowerCase();
+      if (!target) continue;
+      if (tokens.some((token) => target === token || target.includes(token))) return true;
+    }
+  }
+
+  const prereq = normalizePrerequisiteText(entry?.listing_fields?.Prerequisite ?? '');
+  if (isEmptyPrerequisite(prereq)) return false;
+  const text = prereq.toLowerCase();
+  return tokens.some((token) => text.includes(token));
+}
+
 /**
  * @param {Array<{ kind: string, target?: string | null, min_value?: number | null, logic_group?: number }>} atoms
  */
@@ -226,35 +292,7 @@ export function prereqPassesClass(prereq, classInfo) {
   const role = (classInfo.role ?? '').toLowerCase();
   const ps = (classInfo.powerSource ?? '').toLowerCase();
 
-  const classNames = [
-    'fighter',
-    'cleric',
-    'wizard',
-    'ranger',
-    'rogue',
-    'warlock',
-    'warlord',
-    'paladin',
-    'barbarian',
-    'bard',
-    'druid',
-    'invoker',
-    'sorcerer',
-    'warden',
-    'artificer',
-    'assassin',
-    'avenger',
-    'barbarian',
-    'battlemind',
-    'monk',
-    'runepriest',
-    'seeker',
-    'shaman',
-    'swordmage',
-    'vampire'
-  ];
-
-  const mentioned = classNames.filter((c) => p.includes(c));
+  const mentioned = CLASS_NAME_TOKENS.filter((c) => p.includes(c));
   if (mentioned.length) {
     if (mentioned.some((c) => cn.includes(c))) return true;
     return false;
@@ -497,12 +535,13 @@ export async function buildFeatEligibilityContext(character, compendium, current
  * @param {Array<{ id: string, listing_fields?: Record<string, string> }>} entries
  * @param {object} ctx
  * @param {{ id: string, slotLevel: number, tier: string }} slot
- * @param {{ showAll?: boolean, enforcePrerequisites?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
+ * @param {{ showAll?: boolean, enforcePrerequisites?: boolean, requireClass?: boolean, excludeIds?: Set<string> | string[], query?: string }} opts
  */
 export function filterFeatEntries(entries, ctx, slot, opts = {}) {
   const showAll = !!opts.showAll;
   const retrain = !!opts.retrain;
   const enforcePrerequisites = opts.enforcePrerequisites !== false && !showAll;
+  const requireClass = !!opts.requireClass;
   const exclude = opts.excludeIds instanceof Set ? opts.excludeIds : new Set(opts.excludeIds ?? []);
   const q = (opts.query ?? '').trim();
 
@@ -518,6 +557,13 @@ export function filterFeatEntries(entries, ctx, slot, opts = {}) {
     }
     return featPassesTierFilter(e, ctx, slot, { retrain });
   });
+
+  if (requireClass) {
+    const className = ctx?.classInfo?.className ?? '';
+    list = list.filter((entry) =>
+      featRequiresClass(entry, className, ctx?.featPrereqMap?.get?.(entry.id))
+    );
+  }
 
   if (q.length > 0 && q.length < COMPENDIUM_SEARCH_MIN) {
     list = filterEntriesBySearch(list, q);
