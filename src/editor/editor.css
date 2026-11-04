@@ -2963,6 +2963,44 @@ button.comp-link.class-feature-link {
   margin-bottom: 4px;
 }
 
+.theme-power-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+}
+
+.theme-entry-link {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+  gap: 0.3em;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--editor-accent) 45%, var(--editor-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--editor-accent) 18%, var(--editor-surface));
+  color: var(--editor-accent);
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+.theme-entry-link__arrow {
+  flex: 0 0 auto;
+  font-weight: 500;
+}
+
+.theme-entry-link:hover {
+  background: color-mix(in srgb, var(--editor-accent) 28%, var(--editor-surface));
+  border-color: color-mix(in srgb, var(--editor-accent) 65%, var(--editor-border));
+}
+
 .theme-power-status {
   color: var(--editor-muted);
 }
