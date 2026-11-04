@@ -914,6 +914,64 @@ export class CompendiumProvider {
   }
 
   /**
+   * Alchemical items at or under a level. Matches type or category text that
+   * contains "alchemical". Without the item table, filters a normal item list.
+   * @param {{ maxLevel?: number | null, search?: string, limit?: number }} [opts]
+   */
+  async listAlchemicalItems(opts = {}) {
+    await this.ready();
+    const maxLevel = opts.maxLevel != null ? Number(opts.maxLevel) : null;
+    const search = String(opts.search ?? '').trim().toLowerCase();
+    const limit = opts.limit ?? 100;
+    const levelOk = (level) => {
+      if (maxLevel == null || Number.isNaN(maxLevel)) return true;
+      if (level == null || level === '') return true;
+      const n = parseInt(String(level), 10);
+      return Number.isNaN(n) || n <= maxLevel;
+    };
+    const nameOk = (name) => !search || search.length < 3 || String(name ?? '').toLowerCase().includes(search);
+
+    if (this._usesSqlite() && this._hasTable('item')) {
+      const params = [];
+      let sql = `SELECT id, name, level, type, category, source_book FROM item
+        WHERE (lower(ifnull(type, '')) LIKE '%alchemical%' OR lower(ifnull(category, '')) LIKE '%alchemical%')`;
+      if (maxLevel != null && !Number.isNaN(maxLevel)) {
+        sql += ` AND (level IS NULL OR level = '' OR CAST(level AS INTEGER) <= ?)`;
+        params.push(maxLevel);
+      }
+      if (search.length >= 3) {
+        sql += ` AND lower(name) LIKE ?`;
+        params.push(`%${search}%`);
+      }
+      sql += ` ORDER BY name LIMIT ?`;
+      params.push(limit);
+      return this._queryAll(sql, params).map((row) => ({
+        id: row.id,
+        category_slug: 'item',
+        listing_fields: {
+          Name: row.name ?? row.id,
+          Level: row.level != null ? String(row.level) : '',
+          Type: row.type ?? '',
+          Category: row.category ?? '',
+          SourceBook: row.source_book ?? ''
+        }
+      }));
+    }
+
+    const entries = await this.listEntries('item', {
+      search: search.length >= 3 ? search : '',
+      limit: Math.max(limit, 200)
+    });
+    return entries
+      .filter((entry) => {
+        const fields = entry?.listing_fields ?? {};
+        const hay = `${fields.Type ?? ''} ${fields.Category ?? ''}`.toLowerCase();
+        return hay.includes('alchemical') && levelOk(fields.Level) && nameOk(fields.Name);
+      })
+      .slice(0, limit);
+  }
+
+  /**
    * @param {string} classId
    */
   async getClassRitualGrants(classId) {

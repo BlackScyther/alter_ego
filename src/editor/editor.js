@@ -72,7 +72,12 @@ import { ensureRaceSelectionsShape, applyGenasiManifestationAbilities } from '..
 import { resetBackgroundBonusChoices } from '../character/background-selections.js';
 import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
 import { parseThemeEntry, buildThemeNotesText } from '../character/theme-parse.js';
-import { syncThemeSelection } from '../character/theme-selections.js';
+import {
+  setThemeChoiceForSlot,
+  syncThemeSelection,
+  themeChoiceMaxLevel,
+  themeChoiceSlot
+} from '../character/theme-selections.js';
 import { buildThemeEligibilityContext } from './theme-prerequisite.js';
 import { getHpSubstituteTutorHint } from '../character/hp.js';
 import { buildCompendiumLinkIndex } from '../data/compendium-link-index.js';
@@ -324,8 +329,72 @@ async function refreshRitualPicker(slotId, query = '') {
 
   const level = character.identity?.level ?? 1;
   const q = query.trim();
+  const choice = themeChoiceSlot(character, slotId);
+  const search = q.length >= COMPENDIUM_SEARCH_MIN ? q : '';
+  const metaLine = (entry) => {
+    const fields = entry.listing_fields ?? {};
+    return [fields.Level ? `Level ${fields.Level}` : '', fields.SourceBook].filter(Boolean).join(' · ');
+  };
+
+  if (choice?.kind === 'formula') {
+    input.placeholder = 'Select a formula';
+    const maxLevel = themeChoiceMaxLevel(choice, level);
+    const entries = compendium.listAlchemicalItems
+      ? await compendium.listAlchemicalItems({ maxLevel, search, limit: 100 })
+      : [];
+    const exclude = new Set(Object.values(character.selections.themeFormulaSelections ?? {}));
+    const filtered = entries.filter((entry) => !exclude.has(entry.id));
+    const selectedId = character.selections.themeFormulaSelections?.[slotId] ?? null;
+    if (!filtered.length) {
+      showEmptyHint(listbox, 'No matching formulas.');
+      return;
+    }
+    renderPickerOptions(listbox, filtered.slice(0, 100), selectedId, async (id) => {
+      const entry = await compendium.getEntry(id);
+      if (!entry) return;
+      setThemeChoiceForSlot(character, slotId, id);
+      await syncCollectionNotes(character, compendium);
+      await persist();
+      input.value = entry.listing_fields?.Name ?? id;
+      ritualCombobox?.closeDropdown();
+      await refreshCharacterCollection();
+      await refreshBonusesFromSelections();
+    }, metaLine);
+    return;
+  }
+
+  if (choice?.kind === 'ritual') {
+    input.placeholder = 'Select a ritual';
+    const maxLevel = themeChoiceMaxLevel(choice, level);
+    const entries = await compendium.listEntries('ritual', { search, limit: 100, maxLevel });
+    const exclude = new Set(Object.values(character.selections.themeRitualSelections ?? {}));
+    const filtered = entries.filter((entry) => {
+      const ritualLevel = parseInt(String(entry.listing_fields?.Level ?? ''), 10);
+      if (!Number.isNaN(ritualLevel) && ritualLevel > maxLevel) return false;
+      return !exclude.has(entry.id);
+    });
+    const selectedId = character.selections.themeRitualSelections?.[slotId] ?? null;
+    if (!filtered.length) {
+      showEmptyHint(listbox, 'No matching rituals.');
+      return;
+    }
+    renderPickerOptions(listbox, filtered.slice(0, 100), selectedId, async (id) => {
+      const entry = await compendium.getEntry(id);
+      if (!entry) return;
+      setThemeChoiceForSlot(character, slotId, id);
+      await syncCollectionNotes(character, compendium);
+      await persist();
+      input.value = entry.listing_fields?.Name ?? id;
+      ritualCombobox?.closeDropdown();
+      await refreshCharacterCollection();
+      await refreshBonusesFromSelections();
+    }, metaLine);
+    return;
+  }
+
+  input.placeholder = 'Select a ritual';
   const entries = await compendium.listEntries('ritual', {
-    search: q.length >= COMPENDIUM_SEARCH_MIN ? q : '',
+    search,
     limit: 100,
     maxLevel: level
   });
@@ -352,10 +421,7 @@ async function refreshRitualPicker(slotId, query = '') {
     ritualCombobox?.closeDropdown();
     await refreshCharacterCollection();
     await refreshBonusesFromSelections();
-  }, (e) => {
-    const parts = [e.listing_fields?.Level ? `Level ${e.listing_fields.Level}` : '', e.listing_fields?.SourceBook].filter(Boolean);
-    return parts.join(' · ');
-  });
+  }, metaLine);
 }
 
 function updatePostLoadHeader() {

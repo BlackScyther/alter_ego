@@ -14,7 +14,14 @@ import { detectBackgroundEffects, applyBackgroundEffects } from './background-ef
 import { ensureDerivedBonuses, recomposeDerivedInitiative } from './hp.js';
 import { syncClassTraitsToSheet } from './class-selections.js';
 import { applyFeatInitiative, classFeatureSkillBonusRows, featInitiativeTotal } from './class-effects.js';
-import { applyThemeInitiative, themeInitiativeTotal, themeSkillBonusRows } from './theme-selections.js';
+import {
+  applyThemeInitiative,
+  applyThemeSaveMods,
+  themeAbilityBonusRows,
+  themeInitiativeTotal,
+  themeSaveLines,
+  themeSkillBonusRows
+} from './theme-selections.js';
 
 export const ABILITY_KEYS = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
 export const SKILL_IDS = SKILLS.map((s) => s.id);
@@ -347,6 +354,12 @@ export function syncBonusesFromSelections(character, entriesBySource, featEntrie
     for (const raw of themeSkillBonusRows(character, entriesBySource.theme)) {
       derivedSkill.push(toSkillRow(raw, character));
     }
+    for (const raw of themeAbilityBonusRows(character, entriesBySource.theme)) {
+      derivedAbility.push(toAbilityRow(raw, character));
+    }
+    applyThemeSaveMods(character, themeSaveLines(character, entriesBySource.theme));
+  } else {
+    applyThemeSaveMods(character, []);
   }
 
   const abilityMerged = [...derivedAbility, ...manualAbility];

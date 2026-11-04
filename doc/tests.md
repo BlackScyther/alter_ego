@@ -44,7 +44,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/tutor-bonus-table.test.mjs` | Tutor bonus table rendering; ability score increases and point-buy bases apply only after confirm |
 | `tests/compendium-entry-url.test.mjs` | Compendium entry URL building/parsing |
 | `tests/background-parse.test.mjs` | Background iws.mx HTML parsing, skill +2/+1 picker preview, Cult Survivor fixture |
-| `tests/theme-parse.test.mjs` | Theme level 1/5/10 features, Dark Sun feature heading, level-gated skill bonuses, conditional sentence skipped, starting-power source match, picker row benefit |
+| `tests/theme-parse.test.mjs` | Theme level 1/5/10 features, Dark Sun feature heading, level-gated skill bonuses, conditional sentence skipped, starting-power source match, picker row benefit. Alchemist feat and formula slots by level, Callidyrr Dragoon feat and skills, Werebear save line (power-body text ignored, racial save kept), Sorcere Adept feat or two ritual slots, theme ability score, preview ↗ link |
 | `tests/theme-prerequisite.test.mjs` | Theme eligibility (race, fey origin, class, alignment, Diplomacy, spellbook), setting groups, warning that keeps the selection |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
 | `tests/class-effects.test.mjs` | Class-feature static initiative (Tactical Warlord Combat Leader +2; action-point sentence ignored; Canny Leader replaces it), Improved Initiative +4 stacking to 6 without double-counting Misc, additive class+background composition |

@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-03 — Theme step: Eligible/All and setting filters, picker-row benefits, and a warning when a saved theme no longer meets its prerequisite. Live checks stay on the deployed app.
+**Last agent sync:** 2026-11-04 — Theme grants: feats, formulas, saving throws, and ability bonuses from feature text, with locked theme slots and formula choices under Rituals. Live checks stay on the deployed app.

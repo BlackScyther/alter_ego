@@ -4,7 +4,7 @@
  * add or remove them.
  */
 
-/** @typedef {'racePowers' | 'raceFeats' | 'classPowers' | 'classFeats' | 'themePowers'} GrantSlotKey */
+/** @typedef {'racePowers' | 'raceFeats' | 'classPowers' | 'classFeats' | 'themePowers' | 'themeFeats'} GrantSlotKey */
 
 /**
  * @typedef {object} GrantSlot
@@ -43,6 +43,12 @@ export const GRANT_GROUPS = [
     category: 'theme-power',
     label: 'Theme Powers',
     note: 'Read-only. Added or removed on the Theme step.'
+  },
+  {
+    key: 'themeFeats',
+    category: 'theme-feat',
+    label: 'Theme Feats',
+    note: 'Read-only. Added or removed on the Theme step.'
   }
 ];
 
@@ -51,7 +57,8 @@ const NOTE_KEY = {
   raceFeats: 'raceFeats',
   classPowers: 'classPowers',
   classFeats: 'classFeats',
-  themePowers: 'themePowers'
+  themePowers: 'themePowers',
+  themeFeats: 'themeFeats'
 };
 
 /**
@@ -63,7 +70,8 @@ export function emptyGrantSlots() {
     raceFeats: [],
     classPowers: [],
     classFeats: [],
-    themePowers: []
+    themePowers: [],
+    themeFeats: []
   };
 }
 
@@ -86,6 +94,7 @@ export function ensureGrantSlots(character) {
   if (typeof character.notes.classPowers !== 'string') character.notes.classPowers = '';
   if (typeof character.notes.classFeats !== 'string') character.notes.classFeats = '';
   if (typeof character.notes.themePowers !== 'string') character.notes.themePowers = '';
+  if (typeof character.notes.themeFeats !== 'string') character.notes.themeFeats = '';
   return slots;
 }
 

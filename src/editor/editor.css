@@ -2992,6 +2992,20 @@ button.comp-link.class-feature-link {
   font-size: 0.9rem;
 }
 
+.theme-grant {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--editor-accent) 22%, transparent);
+  border-radius: 2px;
+}
+
+.character-collection-card-detail {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--editor-muted);
+}
+
 .race-preview-variant {
   margin-top: 16px;
   padding-top: 12px;

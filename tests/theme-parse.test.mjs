@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter } from '../src/character/model.js';
-import { syncBonusesFromSelections } from '../src/character/tutor.js';
+import { getFinalScores, syncBonusesFromSelections } from '../src/character/tutor.js';
+import { collectRitualItems } from '../src/character/character-collection.js';
 import {
   buildThemeNotesText,
   formatThemePickerMeta,
@@ -149,4 +150,166 @@ test('syncThemeSelection stores the matching starting power', async () => {
   assert.equal(character.selections.themePrerequisite, 'Wizard');
   assert.equal(character.selections.grantSlots.themePowers[0].category, 'theme-power');
   assert.match(character.notes.themePowers, /Sample Strike/);
+});
+
+const alchemist = {
+  id: 'theme849',
+  listing_fields: { Name: 'Alchemist', Prerequisite: '', SourceBook: 'Dra399' },
+  body_html:
+    '<h1 class=player>Alchemist</h1>' +
+    '<p>Flavor before the features.</p>' +
+    '<b>Alchemist Starting Feature (1st level)</b>: You gain the Alchemist feat as a bonus feat. ' +
+    'You know the formula for a particular 1st-level alchemical item (such as alchemist\'s fire). ' +
+    '<b>Alchemist Level 5 Feature (5th level)</b>: You learn one alchemical formula of your level or lower. ' +
+    '<b>Alchemist Level 10 Feature (10th level)</b>: You gain a +2 bonus to attack rolls with alchemical items you create. ' +
+    'Also, you learn one new alchemical formula of your level or lower.' +
+    '<h1 class=encounterpower>Aqua Regia<span class=level>Alchemist Utility 2</span></h1>'
+};
+
+const dragoon = {
+  id: 'theme940',
+  listing_fields: { Name: 'Callidyrr Dragoon', Prerequisite: '', SourceBook: 'Dra' },
+  body_html:
+    '<b>Callidyrr Dragoon Starting Feature (1st level)</b>: You gain the Mounted Combat feat. ' +
+    '<b>Callidyrr Dragoon Level 5 Feature (5th level)</b>: You gain a +2 power bonus to Diplomacy checks and Intimidate checks.'
+};
+
+const werebear = {
+  id: 'theme992',
+  listing_fields: { Name: 'Werebear', Prerequisite: '', SourceBook: 'Dra' },
+  body_html:
+    '<b>Werebear Starting Feature (1st level)</b>: You gain a +2 bonus to saving throws against disease. ' +
+    'While adjacent to you, allies gain a +1 power bonus to saving throws. ' +
+    '<h1 class=encounterpower>Bear Form<span class=level>Werebear Utility 2</span></h1>' +
+    '<p>Effect: The target can make a saving throw.</p>'
+};
+
+const sorcere = {
+  id: 'theme1003',
+  listing_fields: { Name: 'Sorcere Adept', Prerequisite: '', SourceBook: 'Dra' },
+  body_html:
+    '<b>Sorcere Adept Level 5 Feature (5th level)</b>: You gain the Ritual Caster feat. ' +
+    'If you already have this feat, you can instead add two rituals of your level or lower to your spellbook at no cost.'
+};
+
+const strongTheme = {
+  id: 'theme-strong',
+  listing_fields: { Name: 'Strong Theme', Prerequisite: '', SourceBook: 'Dra' },
+  body_html:
+    '<b>Strong Theme Starting Feature (1st level)</b>: You gain a +2 bonus to Strength.'
+};
+
+function grantCompendium() {
+  const rows = [
+    { id: 'feat652', category: 'feat', listing_fields: { Name: 'Alchemist', SourceBook: 'Dra399' } },
+    { id: 'feat-mount', category: 'feat', listing_fields: { Name: 'Mounted Combat', SourceBook: 'PHB' } },
+    { id: 'feat159', category: 'feat', listing_fields: { Name: 'Ritual Caster', SourceBook: 'PHB' } }
+  ];
+  return {
+    async listEntries(category) {
+      return rows.filter((row) => row.category === category);
+    },
+    async getEntry() {
+      return null;
+    }
+  };
+}
+
+test('Alchemist grants the feat and one formula per unlocked feature', async () => {
+  const character = createCharacter();
+  character.identity.level = 1;
+  character.selections.themeId = alchemist.id;
+  const compendium = grantCompendium();
+  await syncThemeSelection(character, alchemist, compendium);
+  assert.equal(character.selections.grantSlots.themeFeats.length, 1);
+  assert.equal(character.selections.grantSlots.themeFeats[0].id, 'feat652');
+  assert.equal(character.selections.grantSlots.themeFeats[0].name, 'Alchemist');
+  assert.equal(character.selections.themeFormulaSlots.length, 1);
+  assert.equal(character.selections.themeFormulaSlots[0].maxLevel, 1);
+  assert.equal(character.selections.themeFormulaSlots[0].id, 'theme-formula-1-1');
+
+  character.identity.level = 10;
+  await syncThemeSelection(character, alchemist, compendium);
+  assert.equal(character.selections.themeFormulaSlots.length, 3);
+  assert.equal(character.selections.themeFormulaSlots[2].maxLevel, null);
+  const rituals = await collectRitualItems(character, compendium);
+  assert.equal(rituals.length, 3);
+  assert.equal(rituals.every((item) => item.chooser && item.detail === 'Alchemist'), true);
+
+  character.selections.themeFormulaSelections['theme-formula-1-1'] = 'item9';
+  const other = {
+    ...alchemist,
+    id: 'theme-other',
+    listing_fields: { ...alchemist.listing_fields, Name: 'Other Alchemist' }
+  };
+  await syncThemeSelection(character, other, compendium);
+  assert.equal(character.selections.themeFormulaSelections['theme-formula-1-1'], undefined);
+});
+
+test('Callidyrr Dragoon grants Mounted Combat and the level 5 skill bonuses', async () => {
+  const character = createCharacter();
+  character.identity.level = 5;
+  character.selections.themeId = dragoon.id;
+  await syncThemeSelection(character, dragoon, grantCompendium());
+  assert.equal(character.selections.grantSlots.themeFeats[0].name, 'Mounted Combat');
+  syncBonusesFromSelections(character, { theme: dragoon });
+  const skills = (character.skillBonuses ?? [])
+    .filter((row) => row.source === 'theme')
+    .map((row) => row.skill)
+    .sort();
+  assert.deepEqual(skills, ['diplomacy', 'intimidate']);
+});
+
+test('Werebear saving throw is on the sheet and a power-body save is not', async () => {
+  const character = createCharacter();
+  character.identity.level = 1;
+  character.selections.themeId = werebear.id;
+  character.sheet.extraFields = { 'save-mods': '+2 racial bonus to saving throws' };
+  character.sheet.derived = { race: { saveMods: '+2 racial bonus to saving throws' } };
+  await syncThemeSelection(character, werebear, grantCompendium());
+  const saves = character.sheet.extraFields['save-mods'];
+  assert.match(saves, /\+2 bonus to saving throws against disease/);
+  assert.match(saves, /racial bonus/);
+  assert.doesNotMatch(saves, /make a saving throw/);
+  assert.doesNotMatch(saves, /allies gain/);
+});
+
+test('Sorcere Adept grants Ritual Caster, or two ritual slots when that feat is already owned', async () => {
+  const compendium = grantCompendium();
+  const fresh = createCharacter();
+  fresh.identity.level = 5;
+  fresh.selections.themeId = sorcere.id;
+  await syncThemeSelection(fresh, sorcere, compendium);
+  assert.equal(fresh.selections.grantSlots.themeFeats[0].id, 'feat159');
+  assert.equal(fresh.selections.themeRitualSlots.length, 0);
+
+  const wizard = createCharacter();
+  wizard.identity.level = 5;
+  wizard.selections.themeId = sorcere.id;
+  wizard.selections.classFeatIds = ['feat159'];
+  await syncThemeSelection(wizard, sorcere, compendium);
+  assert.equal(wizard.selections.grantSlots.themeFeats.length, 0);
+  assert.equal(wizard.selections.themeRitualSlots.length, 2);
+  assert.equal(wizard.selections.themeRitualSlots[0].kind, 'ritual');
+});
+
+test('a theme ability bonus is added to the mirror score', () => {
+  const character = createCharacter();
+  character.identity.level = 1;
+  character.selections.themeId = strongTheme.id;
+  syncBonusesFromSelections(character, { theme: strongTheme });
+  assert.equal(getFinalScores(character).str, 12);
+});
+
+test('theme preview links a feat and highlights a skill bonus', () => {
+  const html = renderThemePreviewHtml(alchemist, {
+    level: 1,
+    links: { feats: { alchemist: '/compendium/entry.html?id=feat652' }, powers: {} }
+  });
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /↗/);
+  assert.match(html, /theme-grant|character-collection-open/);
+  const skills = renderThemePreviewHtml(dragoon, { level: 5 });
+  assert.match(skills, /class="theme-grant"/);
+  assert.match(skills, /Diplomacy checks and Intimidate checks/);
 });

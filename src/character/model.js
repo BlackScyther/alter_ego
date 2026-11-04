@@ -72,7 +72,8 @@ export function createCharacter(partial = {}) {
         raceFeats: [],
         classPowers: [],
         classFeats: [],
-        themePowers: []
+        themePowers: [],
+        themeFeats: []
       },
       classId: null,
       classBuildChoices: {},
@@ -85,6 +86,10 @@ export function createCharacter(partial = {}) {
       backgroundEffectChoices: { hpSubstituteAbility: null },
       backgroundSkillBonusKind: 'none',
       themeId: null,
+      themeFormulaSlots: [],
+      themeFormulaSelections: {},
+      themeRitualSlots: [],
+      themeRitualSelections: {},
       paragonPathId: null,
       epicDestinyId: null,
       featIds: [],
@@ -138,6 +143,7 @@ export function createCharacter(partial = {}) {
       backgroundFeatures: '',
       themeFeatures: '',
       themePowers: '',
+      themeFeats: '',
       feats: '',
       powers: '',
       rituals: '',

@@ -713,6 +713,23 @@ export async function renderFeatStep(panel, ctx) {
         ]
       });
     }
+    const themeName = character.identity?.theme || 'Theme';
+    const themeRows = [];
+    for (const slot of character.selections?.grantSlots?.themeFeats ?? []) {
+      const id = String(slot.id).toLowerCase();
+      const entry = await compendium.getEntry(id);
+      const name = slot.name || entry?.listing_fields?.Name || id;
+      themeRows.push({
+        name,
+        meta: themeName,
+        links: [
+          {
+            href: compendiumEntryPageUrl(id, pathname),
+            ariaLabel: `Open ${name} in compendium`
+          }
+        ]
+      });
+    }
     const classRows = classFeats.map((item) => {
       const meta = [item.entry?.listing_fields?.Tier, item.entry?.listing_fields?.SourceBook]
         .filter(Boolean)
@@ -742,6 +759,13 @@ export async function renderFeatStep(panel, ctx) {
         ariaLabel: 'Class feats',
         note: 'Granted by your class. These slots cannot be edited here. Choose a different class to change them.',
         groups: [{ rows: classRows }]
+      }),
+      renderGrantSectionHtml({
+        kind: 'theme-feats',
+        title: 'Theme',
+        ariaLabel: 'Theme feats',
+        note: 'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
+        groups: [{ rows: themeRows }]
       })
     ].join('');
   }

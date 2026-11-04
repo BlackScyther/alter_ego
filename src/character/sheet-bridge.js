@@ -47,7 +47,12 @@ export function characterToSheetPayload(character) {
     'racial-powers': character.notes.racialPowers ?? '',
     'class-features': formatClassFeaturesForSheet(character.notes),
     'class-powers': joinNoteBlocks(character.notes.classPowers, character.notes.powers),
-    feats: joinNoteBlocks(character.notes.raceFeats, character.notes.classFeats, character.notes.feats),
+    feats: joinNoteBlocks(
+      character.notes.raceFeats,
+      character.notes.classFeats,
+      character.notes.themeFeats,
+      character.notes.feats
+    ),
     rituals: character.notes.rituals ?? '',
     languages: character.notes.languages,
     'ap-effects': character.notes.apEffects,

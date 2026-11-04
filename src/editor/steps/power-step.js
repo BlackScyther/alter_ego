@@ -545,7 +545,7 @@ export async function renderPowerStep(panel, ctx) {
       const name = slot.name || entry?.listing_fields?.Name || id;
       themeRows.push({
         name,
-        meta: 'From your theme',
+        meta: character.identity?.theme || 'Theme',
         usage: normalizePowerType(entry?.listing_fields?.Type),
         links: [
           {

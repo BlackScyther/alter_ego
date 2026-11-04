@@ -13,7 +13,7 @@ import {
   getActiveSourceBooksFromCombo
 } from '../picker/picker-source-combo.js';
 import { formatThemePickerMeta, renderThemePreviewHtml } from '../../character/theme-parse.js';
-import { validateThemeStep } from '../../character/theme-selections.js';
+import { resolveThemePreviewLinks, validateThemeStep } from '../../character/theme-selections.js';
 import {
   THEME_SETTINGS,
   buildThemeEligibilityContext,
@@ -92,13 +92,18 @@ export async function renderThemeStep(panel, ctx) {
   /** @type {import('../theme-prerequisite.js').ThemeEligibilityContext} */
   let eligibilityCtx = {};
 
-  function refreshPreview(entry) {
+  let previewToken = 0;
+  async function refreshPreview(entry) {
+    const token = ++previewToken;
     if (!entry) {
       preview.innerHTML = '';
       return;
     }
+    const links = await resolveThemePreviewLinks(entry, compendium, location.pathname);
+    if (token !== previewToken) return;
     preview.innerHTML = renderThemePreviewHtml(entry, {
-      level: character.identity?.level
+      level: character.identity?.level,
+      links
     });
   }
 

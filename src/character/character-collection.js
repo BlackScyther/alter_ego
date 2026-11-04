@@ -11,6 +11,7 @@ import {
   ensureRitualSelectionsShape
 } from './ritual-selections.js';
 import { syncGrantSlotsFromIds } from './grant-slots.js';
+import { ensureThemeChoiceShape } from './theme-selections.js';
 
 /** @typedef {'power' | 'feat' | 'ritual'} CollectionCategory */
 
@@ -26,6 +27,8 @@ import { syncGrantSlotsFromIds } from './grant-slots.js';
  * @property {boolean} [retrainable]
  * @property {boolean} [empty]
  * @property {boolean} [universal]
+ * @property {string} [detail]
+ * @property {boolean} [chooser]
  */
 
 /**
@@ -200,6 +203,23 @@ export async function collectFeatItems(character, compendium) {
     });
   }
 
+  const themeName = character.identity?.theme || 'Theme';
+  for (const slot of character.selections?.grantSlots?.themeFeats ?? []) {
+    const id = String(slot.id).toLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'feat',
+      name: slot.name || entry?.listing_fields?.Name || id,
+      meta: formatFeatMeta(entry?.listing_fields),
+      detail: themeName,
+      source: themeName,
+      readonly: true
+    });
+  }
+
   const slots = getFeatSlotsForLevel(character.identity?.level ?? 1);
   const selections = character.selections?.featSelections ?? {};
   const retraining = !!character.builderFlags?.retraining;
@@ -227,14 +247,57 @@ export async function collectFeatItems(character, compendium) {
 /**
  * @param {object} character
  * @param {import('../data/compendium.js').CompendiumProvider} compendium
+ * @param {CollectionItem[]} items
+ * @param {'themeFormulaSlots' | 'themeRitualSlots'} slotKey
+ * @param {'themeFormulaSelections' | 'themeRitualSelections'} selectionKey
+ */
+async function appendThemeChoiceItems(character, compendium, items, slotKey, selectionKey) {
+  ensureThemeChoiceShape(character);
+  const themeName = character.identity?.theme || 'Theme';
+  const selections = character.selections[selectionKey] ?? {};
+  for (const slot of character.selections[slotKey] ?? []) {
+    const picked = selections[slot.id];
+    const ritualChoice = slot.kind === 'ritual';
+    if (!picked) {
+      pushUnique(items, {
+        id: slot.id,
+        category: 'ritual',
+        name: slot.label || (ritualChoice ? 'Ritual' : 'Formula'),
+        meta: ritualChoice ? 'Choose a ritual' : 'Choose a formula',
+        detail: themeName,
+        source: themeName,
+        slotId: slot.id,
+        empty: true,
+        chooser: true
+      });
+      continue;
+    }
+    const id = String(picked).toLowerCase();
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'ritual',
+      name: entry?.listing_fields?.Name ?? id,
+      meta: formatRitualMeta(entry?.listing_fields),
+      detail: themeName,
+      source: themeName,
+      slotId: slot.id,
+      chooser: true
+    });
+  }
+}
+
+/**
+ * @param {object} character
+ * @param {import('../data/compendium.js').CompendiumProvider} compendium
  */
 export async function collectRitualItems(character, compendium) {
   ensureRitualSelectionsShape(character);
-  if (!(await hasRitualCaster(character, compendium))) return [];
-
   /** @type {CollectionItem[]} */
   const items = [];
   const seen = new Set();
+
+  if (await hasRitualCaster(character, compendium)) {
 
   for (const rid of character.selections.grantedRitualIds ?? []) {
     const id = String(rid).toLowerCase();
@@ -280,6 +343,22 @@ export async function collectRitualItems(character, compendium) {
       slotId: slot.id
     });
   }
+  }
+
+  await appendThemeChoiceItems(
+    character,
+    compendium,
+    items,
+    'themeFormulaSlots',
+    'themeFormulaSelections'
+  );
+  await appendThemeChoiceItems(
+    character,
+    compendium,
+    items,
+    'themeRitualSlots',
+    'themeRitualSelections'
+  );
 
   return items;
 }

@@ -80,9 +80,16 @@ function renderItemCard(cardsEl, item, ctx) {
   const retrainBadge = item.retrainable
     ? '<span class="character-collection-retrain-badge">Retrain</span>'
     : '';
-  btn.innerHTML = `<span class="character-collection-card-label">${esc(item.name)}${retrainBadge}</span>`;
+  const detail = item.detail
+    ? `<span class="character-collection-card-detail">${esc(item.detail)}</span>`
+    : '';
+  btn.innerHTML = `<span class="character-collection-card-label">${esc(item.name)}${retrainBadge}</span>${detail}`;
 
   btn.addEventListener('click', async () => {
+    if (item.chooser && item.slotId) {
+      onActivateRitualSlot?.(item.slotId);
+      return;
+    }
     if (item.empty && item.category === 'ritual' && item.slotId) {
       onActivateRitualSlot?.(item.slotId);
       return;

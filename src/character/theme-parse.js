@@ -19,6 +19,20 @@ const POWER_H1_RE = /<h1\b([^>]*)>([\s\S]*?)<\/h1>/gi;
 
 const GAIN_POWER_RE = /you gain the ([^.]+?) power/gi;
 
+/** Theme grants skip if, when, whenever, unless, and while. Class features skip the first four. */
+const THEME_CONDITIONAL_RE = /\b(if|when|whenever|unless|while)\b/i;
+
+const ABILITY_WORD = {
+  strength: 'str',
+  constitution: 'con',
+  dexterity: 'dex',
+  intelligence: 'int',
+  wisdom: 'wis',
+  charisma: 'cha'
+};
+
+const COUNT_WORD = { one: 1, two: 2 };
+
 /**
  * @param {string} html
  */
@@ -316,6 +330,274 @@ export function formatThemeListingMeta(fields) {
   return [prereq && prereq !== '—' ? prereq : '', book].filter(Boolean).join(' · ');
 }
 
+/**
+ * @param {string} text
+ * @returns {Array<{ text: string, start: number }>}
+ */
+function splitSentences(text) {
+  /** @type {Array<{ text: string, start: number }>} */
+  const sentences = [];
+  const re = /[^.!?]+[.!?]+|[^.!?]+$/g;
+  const raw = String(text ?? '');
+  let match;
+  while ((match = re.exec(raw)) !== null) {
+    if (!match[0].trim()) continue;
+    sentences.push({ text: match[0], start: match.index });
+  }
+  return sentences;
+}
+
+/**
+ * @param {string} word
+ */
+function countWord(word) {
+  const key = String(word ?? '').toLowerCase();
+  if (COUNT_WORD[key]) return COUNT_WORD[key];
+  const n = Number(key);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Feats, formulas, saves, and ability bonuses in one feature paragraph.
+ * Conditional sentences stay prose. A "make a saving throw" effect is not a bonus.
+ * @param {string} text
+ * @param {number} featureLevel
+ */
+export function readThemeFeatureGrants(text, featureLevel) {
+  /** @type {Array<{ name: string, featureLevel: number }>} */
+  const feats = [];
+  /** @type {Array<{ featureLevel: number, maxLevel: number | null }>} */
+  const formulas = [];
+  /** @type {Array<{ insteadOfFeat: string, count: number, featureLevel: number }>} */
+  const ritualAlts = [];
+  /** @type {Array<{ amount: number, bonusType: string, note: string, featureLevel: number }>} */
+  const saves = [];
+  /** @type {Array<{ ability: string, amount: number, bonusType: string, featureLevel: number, note: string }>} */
+  const abilities = [];
+  /** @type {Array<{ start: number, end: number, kind: string, name: string }>} */
+  const marks = [];
+  let featInFeature = '';
+
+  for (const sentence of splitSentences(text)) {
+    const body = sentence.text;
+    const base = sentence.start;
+
+    const alt = body.match(
+      /if you already have (?:this feat|the ([^.]+?) feat),\s*you can instead add (two|one|\d+) rituals?\b/i
+    );
+    if (alt) {
+      const count = countWord(alt[2]);
+      const named = (alt[1] || featInFeature).replace(/\s+/g, ' ').trim();
+      if (count > 0 && named) {
+        ritualAlts.push({ insteadOfFeat: named, count, featureLevel });
+      }
+    }
+
+    if (THEME_CONDITIONAL_RE.test(body)) continue;
+
+    const featRe = /you gain the ([^.]+?) feat\b/gi;
+    let match;
+    while ((match = featRe.exec(body)) !== null) {
+      const name = match[1].replace(/\s+/g, ' ').trim();
+      if (!name) continue;
+      featInFeature = name;
+      feats.push({ name, featureLevel });
+      const rel = match[0].toLowerCase().lastIndexOf(name.toLowerCase());
+      marks.push({
+        start: base + match.index + rel,
+        end: base + match.index + rel + name.length,
+        kind: 'feat',
+        name
+      });
+    }
+
+    const powerRe = /you gain the ([^.]+?) power\b/gi;
+    while ((match = powerRe.exec(body)) !== null) {
+      const name = match[1].replace(/\s+/g, ' ').trim();
+      if (!name) continue;
+      const rel = match[0].toLowerCase().lastIndexOf(name.toLowerCase());
+      marks.push({
+        start: base + match.index + rel,
+        end: base + match.index + rel + name.length,
+        kind: 'power',
+        name
+      });
+    }
+
+    const particular = body.match(
+      /formula for a (?:particular\s+)?(\d+)(?:st|nd|rd|th)-level alchemical item/i
+    );
+    if (particular) {
+      formulas.push({ featureLevel, maxLevel: Number(particular[1]) || 1 });
+    } else if (/learn one (?:new )?alchemical formula\b/i.test(body)) {
+      formulas.push({ featureLevel, maxLevel: null });
+    }
+
+    const saveRe =
+      /\+\s*(\d+)\s+(?:(power|feat|item|untyped)\s+)?bonus to (death )?saving throws(?:\s+against\s+([^.;]+))?/gi;
+    while ((match = saveRe.exec(body)) !== null) {
+      const amount = Number(match[1]) || 0;
+      const rawType = String(match[2] ?? 'theme').toLowerCase();
+      const bonusType = rawType === 'untyped' ? 'other' : rawType;
+      const against = String(match[4] ?? '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const death = Boolean(match[3]);
+      const note = death
+        ? `+${amount} bonus to death saving throws`
+        : against
+          ? `+${amount} bonus to saving throws against ${against}`
+          : `+${amount} bonus to saving throws`;
+      saves.push({ amount, bonusType, note, featureLevel });
+      marks.push({
+        start: base + match.index,
+        end: base + match.index + match[0].length,
+        kind: 'save',
+        name: note
+      });
+    }
+
+    const abilityRe =
+      /\+\s*(\d+)\s+(?:(power|feat|item|untyped)\s+)?(?:bonus\s+to\s+)?(Strength|Constitution|Dexterity|Intelligence|Wisdom|Charisma)\b(?!\s+checks)/gi;
+    while ((match = abilityRe.exec(body)) !== null) {
+      const ability = ABILITY_WORD[match[3].toLowerCase()];
+      if (!ability) continue;
+      const amount = Number(match[1]) || 0;
+      const rawType = String(match[2] ?? 'theme').toLowerCase();
+      const bonusType = rawType === 'untyped' ? 'other' : rawType;
+      abilities.push({
+        ability,
+        amount,
+        bonusType,
+        featureLevel,
+        note: match[0].replace(/\s+/g, ' ').trim()
+      });
+      marks.push({
+        start: base + match.index,
+        end: base + match.index + match[0].length,
+        kind: 'ability',
+        name: ability
+      });
+    }
+
+    const skillRe = /\+\s*\d+\s+(?:(?:power|feat|item|untyped)\s+)?bonus to\s+[^.]*\bchecks\b/gi;
+    while ((match = skillRe.exec(body)) !== null) {
+      if (/\binitiative\b/i.test(match[0])) continue;
+      marks.push({
+        start: base + match.index,
+        end: base + match.index + match[0].length,
+        kind: 'skill',
+        name: ''
+      });
+    }
+
+    const initRe =
+      /\+\s*\d+\s+(?:(?:power|feat|item|untyped)\s+)?bonus to\s+initiative(?:\s+checks)?/gi;
+    while ((match = initRe.exec(body)) !== null) {
+      marks.push({
+        start: base + match.index,
+        end: base + match.index + match[0].length,
+        kind: 'initiative',
+        name: ''
+      });
+    }
+  }
+
+  return { feats, formulas, ritualAlts, saves, abilities, marks };
+}
+
+/**
+ * Grants from features the character has reached.
+ * Formula ids stay stable for a feature level (`theme-formula-1-1`).
+ * @param {ReturnType<typeof parseThemeEntry>} parsed
+ * @param {number} level
+ */
+export function collectThemeGrants(parsed, level) {
+  /** @type {Array<{ name: string, featureLevel: number }>} */
+  const feats = [];
+  /** @type {Array<{ id: string, featureLevel: number, maxLevel: number | null, kind: 'formula', label: string }>} */
+  const formulas = [];
+  /** @type {Array<{ insteadOfFeat: string, count: number, featureLevel: number }>} */
+  const ritualAlts = [];
+  /** @type {Array<{ amount: number, bonusType: string, note: string, featureLevel: number }>} */
+  const saves = [];
+  /** @type {Array<{ ability: string, amount: number, bonusType: string, featureLevel: number, note: string }>} */
+  const abilities = [];
+
+  for (const feature of activeThemeFeatures(parsed, level)) {
+    const found = readThemeFeatureGrants(feature.text, feature.level);
+    feats.push(...found.feats);
+    for (const alt of found.ritualAlts) {
+      ritualAlts.push({
+        ...alt,
+        insteadOfFeat: alt.insteadOfFeat || found.feats[0]?.name || ''
+      });
+    }
+    found.formulas.forEach((formula, index) => {
+      const maxLevel = formula.maxLevel;
+      formulas.push({
+        id: `theme-formula-${feature.level}-${index + 1}`,
+        featureLevel: feature.level,
+        maxLevel,
+        kind: 'formula',
+        label: maxLevel != null ? `Level ${maxLevel} formula` : 'Formula'
+      });
+    });
+    saves.push(...found.saves);
+    abilities.push(...found.abilities);
+  }
+
+  return { feats, formulas, ritualAlts, saves, abilities };
+}
+
+/**
+ * @param {{ start: number, end: number }[]} marks
+ */
+function keepMarks(marks) {
+  const sorted = [...marks]
+    .filter((mark) => mark.end > mark.start)
+    .sort((a, b) => a.start - b.start || b.end - a.end);
+  /** @type {typeof sorted} */
+  const kept = [];
+  for (const mark of sorted) {
+    if (kept.some((other) => mark.start < other.end && mark.end > other.start)) continue;
+    kept.push(mark);
+  }
+  return kept.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * @param {string} href
+ * @param {string} label
+ */
+function entryArrowLink(href, label) {
+  return `<a class="character-collection-open" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Open compendium entry in new window" aria-label="${esc(`Open ${label} in compendium`)}"><span aria-hidden="true">↗</span> ${esc(label)}</a>`;
+}
+
+/**
+ * @param {string} text
+ * @param {{ feats?: Record<string, string>, powers?: Record<string, string> }} [links]
+ */
+function renderFeatureText(text, links) {
+  const { marks } = readThemeFeatureGrants(text, 1);
+  const kept = keepMarks(marks);
+  let html = '';
+  let cursor = 0;
+  for (const mark of kept) {
+    html += esc(text.slice(cursor, mark.start));
+    const phrase = text.slice(mark.start, mark.end);
+    const table = mark.kind === 'feat' ? links?.feats : mark.kind === 'power' ? links?.powers : null;
+    const href = table?.[mark.name.toLowerCase()];
+    if (href) html += entryArrowLink(href, phrase);
+    else if (mark.kind === 'feat' || mark.kind === 'power' || mark.kind === 'skill' || mark.kind === 'save' || mark.kind === 'ability' || mark.kind === 'initiative') {
+      html += `<span class="theme-grant">${esc(phrase)}</span>`;
+    } else html += esc(phrase);
+    cursor = mark.end;
+  }
+  html += esc(text.slice(cursor));
+  return html;
+}
+
 const POWER_KIND_LABEL = { attack: 'Attack', utility: 'Utility', feature: 'Feature' };
 
 /**
@@ -372,12 +654,13 @@ function powerStatusLabel(power, grantLevel, characterLevel) {
 
 /**
  * @param {object | null | undefined} entry
- * @param {{ level?: number }} [opts]
+ * @param {{ level?: number, links?: { feats?: Record<string, string>, powers?: Record<string, string> } }} [opts]
  */
 export function renderThemePreviewHtml(entry, opts = {}) {
   if (!entry) return '';
   const parsed = parseThemeEntry(entry);
   const level = Number(opts.level) || 1;
+  const links = opts.links ?? {};
   const meta = [];
   meta.push(
     `<li><strong>Prerequisite:</strong> ${esc(parsed.prerequisite || 'None')}</li>`
@@ -392,7 +675,7 @@ export function renderThemePreviewHtml(entry, opts = {}) {
       const state = active ? 'Active' : `Locked until level ${feature.level}`;
       return `<details class="theme-feature-fold${active ? '' : ' theme-feature-fold--locked'}"${active ? ' open' : ''}>
         <summary>${esc(feature.title)} (${state})</summary>
-        <p class="theme-feature-text">${esc(feature.text)}</p>
+        <p class="theme-feature-text">${renderFeatureText(feature.text, links)}</p>
       </details>`;
     })
     .join('');
@@ -401,7 +684,11 @@ export function renderThemePreviewHtml(entry, opts = {}) {
     .map((power) => {
       const grantLevel = themePowerGrantLevel(parsed, power);
       const status = powerStatusLabel(power, grantLevel, level);
-      return `<li><span class="theme-power-name">${esc(power.name)}</span> <span class="theme-power-status">${esc(status)}</span></li>`;
+      const href = links.powers?.[power.name.toLowerCase()];
+      const nameHtml = href
+        ? entryArrowLink(href, power.name)
+        : `<span class="theme-power-name">${esc(power.name)}</span>`;
+      return `<li>${nameHtml} <span class="theme-power-status">${esc(status)}</span></li>`;
     })
     .join('');
 
