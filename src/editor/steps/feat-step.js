@@ -548,38 +548,6 @@ export async function renderFeatStep(panel, ctx) {
     const showSearch = baseFiltered.length > SEARCH_LIST_THRESHOLD;
     if (searchWrap) searchWrap.hidden = !showSearch;
 
-    // #region agent log
-    {
-      const names = baseFiltered.map((e) => e.listing_fields?.Name ?? e.id);
-      fetch('http://127.0.0.1:7902/ingest/445e09db-e0b6-47e2-85c8-0a8fa6af02b9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5549ea' },
-        body: JSON.stringify({
-          sessionId: '5549ea',
-          runId: requireClass ? 'class-filter-on' : 'class-filter-off',
-          hypothesisId: 'A',
-          location: 'feat-step.js:refreshPicker',
-          message: 'feat pool after class filter',
-          data: {
-            requireClass,
-            showAllFeats,
-            poolSize: basePool.length,
-            baseFilteredCount: baseFiltered.length,
-            showSearch,
-            firstNames: names.slice(0, 8),
-            lastNames: names.slice(-8),
-            hasLendStrengthInPool: basePool.some((e) =>
-              /lend strength/i.test(e.listing_fields?.Name ?? '')
-            ),
-            hasLendStrengthFiltered: names.some((n) => /lend strength/i.test(n)),
-            hasLeadingFireFiltered: names.some((n) => /leading fire/i.test(n))
-          },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-    }
-    // #endregion
-
     let typed = showSearch ? String(query ?? '') : '';
     if (!showSearch && input?.value) input.value = '';
 
