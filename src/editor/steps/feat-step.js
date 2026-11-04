@@ -386,14 +386,17 @@ export async function renderFeatStep(panel, ctx) {
   async function loadFeatPool(query = '') {
     const q = query.trim();
     const sourceBooks = getActiveSourceBooksFromCombo(PICKER_KEY);
-    const cacheKey = `${showAllFeats}|${enforcePrerequisites}|${level}|${q}|${(sourceBooks ?? []).join(',')}`;
+    // Class-name filter runs client-side, so the pool must cover the full
+    // alphabet — the eligible 500-cap ends mid-C and drops later Warlord feats.
+    const fetchFullPool = showAllFeats || requireClass;
+    const cacheKey = `${fetchFullPool}|${enforcePrerequisites}|${level}|${q}|${(sourceBooks ?? []).join(',')}`;
 
-    if (showAllFeats && !q) {
+    if (fetchFullPool && !q) {
       const cached = showAllCache.get(cacheKey);
       if (cached) return cached.entries;
     }
 
-    const limit = showAllFeats ? SHOW_ALL_LIMIT : ELIGIBLE_FETCH_LIMIT;
+    const limit = fetchFullPool ? SHOW_ALL_LIMIT : ELIGIBLE_FETCH_LIMIT;
     const entries = await compendium.listEntries('feat', {
       search: q.length >= COMPENDIUM_SEARCH_MIN ? q : '',
       limit,
@@ -401,7 +404,7 @@ export async function renderFeatStep(panel, ctx) {
       maxLevel: showAllFeats ? undefined : level
     });
 
-    if (showAllFeats && !q) {
+    if (fetchFullPool && !q) {
       showAllCache.set(cacheKey, { entries, at: Date.now() });
     }
 
@@ -544,6 +547,38 @@ export async function renderFeatStep(panel, ctx) {
     const baseFiltered = filterFeatEntries(basePool, ctxElig, slot, { ...filterBase, query: '' });
     const showSearch = baseFiltered.length > SEARCH_LIST_THRESHOLD;
     if (searchWrap) searchWrap.hidden = !showSearch;
+
+    // #region agent log
+    {
+      const names = baseFiltered.map((e) => e.listing_fields?.Name ?? e.id);
+      fetch('http://127.0.0.1:7902/ingest/445e09db-e0b6-47e2-85c8-0a8fa6af02b9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5549ea' },
+        body: JSON.stringify({
+          sessionId: '5549ea',
+          runId: requireClass ? 'class-filter-on' : 'class-filter-off',
+          hypothesisId: 'A',
+          location: 'feat-step.js:refreshPicker',
+          message: 'feat pool after class filter',
+          data: {
+            requireClass,
+            showAllFeats,
+            poolSize: basePool.length,
+            baseFilteredCount: baseFiltered.length,
+            showSearch,
+            firstNames: names.slice(0, 8),
+            lastNames: names.slice(-8),
+            hasLendStrengthInPool: basePool.some((e) =>
+              /lend strength/i.test(e.listing_fields?.Name ?? '')
+            ),
+            hasLendStrengthFiltered: names.some((n) => /lend strength/i.test(n)),
+            hasLeadingFireFiltered: names.some((n) => /leading fire/i.test(n))
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+    }
+    // #endregion
 
     let typed = showSearch ? String(query ?? '') : '';
     if (!showSearch && input?.value) input.value = '';
