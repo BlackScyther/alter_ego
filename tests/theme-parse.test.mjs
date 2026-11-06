@@ -304,11 +304,15 @@ test('a theme ability bonus is added to the mirror score', () => {
 test('theme preview links a feat and highlights a skill bonus', () => {
   const html = renderThemePreviewHtml(alchemist, {
     level: 1,
-    links: { feats: { alchemist: '/compendium/entry.html?id=feat652' }, powers: {} }
+    links: {
+      feats: { alchemist: '/compendium/entry.html?id=feat652' },
+      powers: { 'aqua regia': '/compendium/entry.html?id=power1' }
+    }
   });
   assert.match(html, /target="_blank"/);
-  assert.match(html, /↗/);
-  assert.match(html, /theme-grant|character-collection-open/);
+  assert.match(html, /class="theme-entry-link"[\s\S]*?theme-entry-link__label">Aqua Regia</);
+  assert.match(html, /theme-entry-link__label">Alchemist</);
+  assert.doesNotMatch(html, /character-collection-open/);
   const skills = renderThemePreviewHtml(dragoon, { level: 5 });
   assert.match(skills, /class="theme-grant"/);
   assert.match(skills, /Diplomacy checks and Intimidate checks/);

@@ -571,7 +571,7 @@ function keepMarks(marks) {
  * @param {string} label
  */
 function entryArrowLink(href, label) {
-  return `<a class="character-collection-open" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Open compendium entry in new window" aria-label="${esc(`Open ${label} in compendium`)}"><span aria-hidden="true">↗</span> ${esc(label)}</a>`;
+  return `<a class="theme-entry-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Open compendium entry in new window" aria-label="${esc(`Open ${label} in compendium`)}"><span class="theme-entry-link__arrow" aria-hidden="true">↗</span><span class="theme-entry-link__label">${esc(label)}</span></a>`;
 }
 
 /**

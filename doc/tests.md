@@ -177,7 +177,7 @@ Requires Rust for `tauri:dev` / `tauri:build`. See [README.md](../README.md).
 - [ ] Post-load: **Edit character** opens full builder at current level (feats onward)
 - [ ] Post-load: **Level up** disabled until sheet Total XP meets next-level threshold; tooltip on hover when disabled
 - [ ] Creation flow: Race → Background → Theme → Class → Attributes → Powers → Feats → Equipment
-- [ ] Theme step: source filter limits the list; a level 4 character shows the starting feature as active and level 5 and 10 as locked; the starting power appears under Theme on the Powers step
+- [ ] Theme step: source filter limits the list; a level 4 character shows the starting feature as active and level 5 and 10 as locked; a linked power name and its arrow stay on one line beside the level note (for example Aqua Regia); the starting power appears under Theme on the Powers step
 - [ ] Feats step: with the class-name checkbox on (e.g. Warlord), the name list includes later alphabet feats such as Lend Strength / Lend Might, not only A–C names
 - [ ] **Equipment step** — add item from compendium to inventory; equip to body slot; unequip (×); swap via occupied slot; gold (gp) field persists
 - [ ] Export downloads `.json`
