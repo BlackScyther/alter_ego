@@ -31,7 +31,11 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `verify-on-live.mdc` | Browser and compendium checks use the live app: commit, merge to `main`, push, then wait for a manual Alter Ego deploy. Do not switch to the Server Management workspace |
+| `git-branching.mdc` | Agent creates short-lived feature branches; no long-lived component branches; delete after merge to `main` |
+| `git-push-after-commit.mdc` | After a commit the user asked for, also push the current branch to `origin` |
+| `verify-on-live.mdc` | Browser and compendium checks use the live app: commit on the feature branch, merge to `main`, push, delete the feature branch, then wait for a manual Alter Ego deploy. Do not switch to the Server Management workspace |
+| `documentation.mdc` | Keep `doc/` and `PROMPT.md` in sync after completed work |
+| `response-language.mdc` / `language-english-default.mdc` | English-only chat and repo text for screen-reader accessibility |
 
 ## `rules/`
 

@@ -15,11 +15,13 @@ Node scripts and static checks that do not serve the app stay allowed
 
 ## When a change needs the live database or a browser pass
 
-1. Commit the relevant files. Leave out secrets and scratch files such as
-   `tmp-verify-*.mjs`.
+1. Work on a short-lived feature branch the agent created (see
+   `git-branching.mdc`). Commit the relevant files. Leave out secrets and
+   scratch files such as `tmp-verify-*.mjs`.
 2. Merge that branch into `main` and push `main`. This standing instruction is
    the explicit go-ahead for that verification deploy. If the merge is not
-   clean, stop and report it. Never force-push.
+   clean, stop and report it. Never force-push. After a clean merge, delete
+   the feature branch locally and on `origin`.
 3. Stop. Tell the user that `main` is pushed and that they deploy Alter Ego
    by hand from the Server Management project. Do not open
    `D:\Projects\ServerManagement`. Do not switch the Cursor workspace. A

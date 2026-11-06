@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-04 — Theme preview links size to the entry name so the arrow, the name, and the power level note stay on one line. Live checks stay on the deployed app.
+**Last agent sync:** 2026-11-06 — Agent owns short-lived Git feature branches (`git-branching.mdc`); Coolify still builds `main` only.

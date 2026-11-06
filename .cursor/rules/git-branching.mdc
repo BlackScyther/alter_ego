@@ -1,0 +1,50 @@
+---
+description: Agent creates short-lived feature branches; user does not manage Git branches by hand
+alwaysApply: true
+---
+
+# Git: short-lived feature branches
+
+The user does **not** create or name Git branches. The agent owns the branch
+lifecycle for every change that will be committed.
+
+Coolify builds **`main` only**. `main` stays the single long-lived branch.
+
+## When starting work that changes the repo
+
+1. Ensure a clean, up-to-date `main` (`git checkout main`, `git pull`).
+2. Create and switch to a **new short-lived branch** before the first commit of
+   the task. Do not ask the user to create it.
+3. Do all commits for that task on that branch (still only when the user asks
+   to commit, or when the live-verification path requires a commit).
+
+If already on a matching short-lived branch for the same task, keep using it.
+Do not start unrelated work on an existing feature branch.
+
+## Branch naming
+
+Name the branch after the **capability or fix**, not after an example monster,
+race, power, or UI string.
+
+- Prefer: `feat/theme-grants`, `fix/feat-picker-search`, `chore/normalize-warnings`
+- Optional area hint is fine: `theme/…`, `sheet/…`, `gm/…`, `db/…`
+- Avoid: long-lived names like `feature/class`, `feature/theme`, `feature/race`
+- Avoid: example-tied names like `feature/genasi-manifestation-detail`
+
+One branch = one coherent change. When the change is merged, the branch ends.
+
+## Finish / live verification
+
+Follow `verify-on-live.mdc` when a browser or DB check is needed:
+
+1. Commit on the feature branch.
+2. Merge into `main` and push `main`.
+3. Delete the feature branch locally and on `origin` after a clean merge.
+4. Stop for the user’s manual Coolify deploy.
+
+## Do not
+
+- Keep permanent component branches (Class, Theme, Race, Sheet, Database, GM).
+- Leave merged feature branches on the remote.
+- Force-push or rewrite `main`.
+- Put unrelated follow-ups on a finished feature branch — open a new one.
