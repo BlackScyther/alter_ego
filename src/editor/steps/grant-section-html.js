@@ -1,33 +1,11 @@
 /**
  * Read-only grant rows for the power and feat steps.
- * These slots are not buttons: the player changes them on Race, Class, or Equipment.
+ * These slots are not buttons: the player changes them on Race, Class,
+ * Background, Theme, or Equipment.
  */
 
-import { POWER_TYPE_ORDER } from '../../character/power-selections.js';
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 import { pickerCardClass } from '../picker/picker-card.js';
-
-/**
- * @param {Array<{ usage?: string | null }>} rows
- * @returns {Array<{ heading: string, rows: object[] }>}
- */
-export function groupsForUsage(rows) {
-  const buckets = new Map(POWER_TYPE_ORDER.map((type) => [type, []]));
-  /** @type {object[]} */
-  const other = [];
-  for (const row of rows) {
-    if (row.usage && buckets.has(row.usage)) buckets.get(row.usage).push(row);
-    else other.push(row);
-  }
-  /** @type {Array<{ heading: string, rows: object[] }>} */
-  const groups = [];
-  for (const type of POWER_TYPE_ORDER) {
-    const list = buckets.get(type);
-    if (list.length) groups.push({ heading: type, rows: list });
-  }
-  if (other.length) groups.push({ heading: 'Other', rows: other });
-  return groups;
-}
 
 /**
  * @param {{ href: string, ariaLabel: string, text?: string }} link
@@ -35,9 +13,9 @@ export function groupsForUsage(rows) {
 function renderGrantLink(link) {
   const visible = link.text
     ? `<span aria-hidden="true">↗</span> ${esc(link.text)}`
-    : '↗';
+    : '<span aria-hidden="true">↗</span>';
   return `<a
-    class="character-collection-open power-slot-open"
+    class="character-collection-open power-slot-open power-grant-open"
     href="${esc(link.href)}"
     target="_blank"
     rel="noopener noreferrer"
@@ -47,17 +25,21 @@ function renderGrantLink(link) {
 }
 
 /**
- * @param {{ name: string, meta: string, links: Array<{ href: string, ariaLabel: string, text?: string }> }} row
+ * Usage sits in the box with the name. The compendium link stays on the name line.
+ * @param {{ name: string, meta?: string, usage?: string | null, links?: Array<{ href: string, ariaLabel: string, text?: string }> }} row
  */
 function renderGrantRow(row) {
   const links = (row.links ?? []).map(renderGrantLink).join('');
-  const linksHtml = (row.links ?? []).length > 1 ? `<div class="power-grant-links">${links}</div>` : links;
-  return `<div class="power-slot-row-wrap power-grant-row">
-    <div class="${pickerCardClass(false)} power-grant-slot" role="group" aria-readonly="true">
-      <span class="block">${esc(row.name)}</span>
-      <span class="block text-sm font-normal text-slate-400">${esc(row.meta)}</span>
+  const meta = [row.usage, row.meta].filter(Boolean).join(' · ');
+  const metaHtml = meta
+    ? `<span class="power-grant-meta block text-sm font-normal text-slate-400">${esc(meta)}</span>`
+    : '';
+  return `<div class="${pickerCardClass(false)} power-grant-slot" role="group" aria-readonly="true">
+    <div class="power-grant-name-line">
+      <span class="power-grant-name">${esc(row.name)}</span>
+      ${links}
     </div>
-    ${linksHtml}
+    ${metaHtml}
   </div>`;
 }
 

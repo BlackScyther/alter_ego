@@ -132,6 +132,12 @@ body:not(.sheet-body) {
   border-top-color: var(--daily);
 }
 
+/* Same card as a power, about half as tall, so more feats fit on a page.
+   Long rule text still grows the card instead of being clipped. */
+.rule-card--feat {
+  min-height: 60mm;
+}
+
 .rule-card-head {
   margin-bottom: 0.5rem;
 }

@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-04 (B-040 theme preview links)
+**Last updated:** 2026-11-08 (B-041 grant link on the name line)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-041 | 2026-11-08 | Granted power and feat rows put the compendium arrow on the next line. The name box was full width inside a wrapping row, so the link dropped below the name. The arrow now sits on the name line inside the box, and At-Will, Encounter, Daily, or Utility is text in that box. Files: `src/editor/steps/grant-section-html.js`, `src/editor/editor.css`. |
 | B-040 | 2026-11-04 | Theme preview links reused the collection-open icon button (`width: 2rem`), so a power or feat name such as Aqua Regia wrapped inside the gold chip and split from the arrow. Theme links now use `theme-entry-link`, which grows with the name. The arrow and the name stay on one line, and the power's level note sits on that same line. Files: `src/character/theme-parse.js`, `src/editor/editor.css`. |
 | B-039 | 2026-11-04 | Feats step class-name checkbox (e.g. Warlord) listed only early alphabet names (A–C) and omitted later feats such as Lend Strength. Root cause: the eligible path fetched the first 500 feats by name, then filtered for the class client-side, so names after "Command the Darkness" never entered the pool; with few matches the search field also hid. Fixed: when the class checkbox is on, load the full feat pool (`SHOW_ALL_LIMIT`) before filtering. Files: `src/editor/steps/feat-step.js`. |
 | B-038 | 2026-10-23 | Chainmail plus a light shield showed AC Armor 8 and Enhancement 0. The light shield's "Shield Bonus: +1" was missed, so every unread shield became a heavy shield (+2 AC, +1 Reflex, −2 check), and that shield bonus was added into the Armor column. The compendium stat block is now read after tags are stripped. Chainmail stays armor +6, check −1, speed −1. A light shield is +1 AC only. A heavy shield is +2 AC, +1 Reflex, check −2. The Armor column is the armor bonus only; the shield goes to MISC 2; a magic +1 stays in Enhancement. A level 4 hero with +1 chainmail and a light shield is AC 20 (12 + 6 + 1 + 1). Defined items use the printed step for the equipped level (Belt of Vigor is +2 at level 12; the generic formula would say +3). A bonus that applies only against, while, when, or if does not fill a defense box. `armor_stats` in the database was not rewritten. The sheet uses the parser for armor and shields until a later normalize. Files: `src/character/equipment-stats.js`, `src/character/equipment-sheet-sync.js`, `src/editor/sheet-mirror-fields.js`, `metadata/equipment-stats-overrides.json`, `tests/fixtures/item-bodies.json`. |

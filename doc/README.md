@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-06 — Agent owns short-lived Git feature branches (`git-branching.mdc`); Coolify still builds `main` only.
+**Last agent sync:** 2026-11-08 — Powers and Feats steps list read-only Race, Class, Background, Theme, and Item grants. The compendium link stays on the name line, power usage is inside the box, and feat print cards are the shorter tiles.

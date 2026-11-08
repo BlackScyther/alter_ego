@@ -36,8 +36,9 @@ import {
 import { escapeHtml as esc } from '../../shared/escape-html.js';
 import { pickerCardClass } from '../picker/picker-card.js';
 import { compendiumEntryPageUrl } from '../../ui/compendium-entry-url.js';
-import { collectEquippedItemPowerGrants } from '../../character/item-power-grants.js';
-import { groupsForUsage, renderGrantSectionHtml } from './grant-section-html.js';
+import { collectBackgroundPowerGrants } from '../../character/background-grants.js';
+import { collectItemPowerGrants } from '../../character/item-power-grants.js';
+import { renderGrantSectionHtml } from './grant-section-html.js';
 
 const PICKER_KEY = 'powers';
 
@@ -514,30 +515,59 @@ export async function renderPowerStep(panel, ctx) {
     if (!host) return;
     const pathname = location.pathname;
 
-    const raceNames = new Map(
-      (character.selections?.grantSlots?.racePowers ?? []).map((slot) => [
-        String(slot.id).toLowerCase(),
-        slot.name
-      ])
-    );
-    const raceRows = [];
-    for (const raw of character.selections?.racePowerIds ?? []) {
-      const id = String(raw).toLowerCase();
-      const entry = await compendium.getEntry(id);
-      const name = raceNames.get(id) || entry?.listing_fields?.Name || id;
-      raceRows.push({
-        name,
-        meta: 'From your race',
-        usage: normalizePowerType(entry?.listing_fields?.Type),
-        links: [
-          {
-            href: compendiumEntryPageUrl(id, pathname),
-            ariaLabel: `Open ${name} in compendium`
-          }
-        ]
-      });
+    function namesFor(key) {
+      return new Map(
+        (character.selections?.grantSlots?.[key] ?? []).map((slot) => [
+          String(slot.id).toLowerCase(),
+          slot.name
+        ])
+      );
     }
 
+    async function rowsFromIds(ids, nameById, meta) {
+      const rows = [];
+      for (const raw of ids ?? []) {
+        const id = String(raw).toLowerCase();
+        const entry = await compendium.getEntry(id);
+        const name = nameById.get(id) || entry?.listing_fields?.Name || id;
+        rows.push({
+          name,
+          meta,
+          usage: normalizePowerType(entry?.listing_fields?.Type) || '',
+          links: [
+            {
+              href: compendiumEntryPageUrl(id, pathname),
+              ariaLabel: `Open ${name} in compendium`
+            }
+          ]
+        });
+      }
+      return rows;
+    }
+
+    function powerLink(id, name) {
+      return {
+        href: compendiumEntryPageUrl(id, pathname),
+        ariaLabel: `Open ${name} in compendium`
+      };
+    }
+
+    const raceRows = await rowsFromIds(
+      character.selections?.racePowerIds,
+      namesFor('racePowers'),
+      'From your race'
+    );
+    const classRows = await rowsFromIds(
+      character.selections?.classPowerIds,
+      namesFor('classPowers'),
+      'From your class'
+    );
+    const backgroundRows = (await collectBackgroundPowerGrants(character, compendium)).map((grant) => ({
+      name: grant.powerName,
+      meta: 'From your background',
+      usage: grant.usage || '',
+      links: [powerLink(grant.powerId, grant.powerName)]
+    }));
     const themeRows = [];
     for (const slot of character.selections?.grantSlots?.themePowers ?? []) {
       const id = String(slot.id).toLowerCase();
@@ -546,56 +576,62 @@ export async function renderPowerStep(panel, ctx) {
       themeRows.push({
         name,
         meta: character.identity?.theme || 'Theme',
-        usage: normalizePowerType(entry?.listing_fields?.Type),
-        links: [
-          {
-            href: compendiumEntryPageUrl(id, pathname),
-            ariaLabel: `Open ${name} in compendium`
-          }
-        ]
+        usage: normalizePowerType(entry?.listing_fields?.Type) || '',
+        links: [powerLink(id, name)]
       });
     }
-
-    const equipmentRows = (await collectEquippedItemPowerGrants(character, compendium)).map((grant) => ({
-      name: grant.itemName,
-      meta: `${grant.slotLabel} · ${grant.powerName}`,
-      usage: grant.usage,
-      links: [
-        {
-          href: compendiumEntryPageUrl(grant.itemId, pathname),
-          ariaLabel: `Open item ${grant.itemName} in compendium`,
-          text: 'Item'
-        },
-        {
-          href: compendiumEntryPageUrl(grant.powerId, pathname),
-          ariaLabel: `Open power ${grant.powerName} in compendium`,
-          text: 'Power'
-        }
-      ]
+    const itemRows = (await collectItemPowerGrants(character, compendium)).map((grant) => ({
+      name: grant.powerName,
+      meta: grant.itemName,
+      usage: grant.usage || '',
+      links: [powerLink(grant.powerId, grant.powerName)]
     }));
 
+    const section = (kind, title, ariaLabel, note, rows) =>
+      renderGrantSectionHtml({
+        kind,
+        title,
+        ariaLabel,
+        note,
+        groups: [{ rows }]
+      });
+
     host.innerHTML = [
-      renderGrantSectionHtml({
-        kind: 'race',
-        title: 'Race',
-        ariaLabel: 'Race powers',
-        note: 'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
-        groups: groupsForUsage(raceRows)
-      }),
-      renderGrantSectionHtml({
-        kind: 'theme',
-        title: 'Theme',
-        ariaLabel: 'Theme powers',
-        note: 'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
-        groups: groupsForUsage(themeRows)
-      }),
-      renderGrantSectionHtml({
-        kind: 'equipment',
-        title: 'Equipment',
-        ariaLabel: 'Equipment powers',
-        note: 'Granted by equipped items. These slots cannot be edited here. Equip or unequip the item on the Equipment step to change them.',
-        groups: groupsForUsage(equipmentRows)
-      })
+      section(
+        'race',
+        'Race',
+        'Race powers',
+        'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
+        raceRows
+      ),
+      section(
+        'class',
+        'Class',
+        'Class powers',
+        'Granted by your class. These slots cannot be edited here. Choose a different class to change them.',
+        classRows
+      ),
+      section(
+        'background',
+        'Background',
+        'Background powers',
+        'Granted by your background. These slots cannot be edited here. Choose a different background to change them.',
+        backgroundRows
+      ),
+      section(
+        'theme',
+        'Theme',
+        'Theme powers',
+        'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
+        themeRows
+      ),
+      section(
+        'items',
+        'Items',
+        'Item powers',
+        'Granted by items in your inventory, whether or not they are equipped. These slots cannot be edited here. Add or remove the item on the Equipment step to change them.',
+        itemRows
+      )
     ].join('');
   }
 

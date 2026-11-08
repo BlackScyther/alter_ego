@@ -2061,21 +2061,29 @@ button.comp-link.class-feature-link {
 .power-grant-slot {
   cursor: default;
   pointer-events: none;
+  width: 100%;
 }
 
-.power-grant-links {
+.power-grant-slot.picker-btn:hover {
+  background-color: rgb(30 41 59);
+}
+
+.power-grant-name-line {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
 }
 
-.power-grant-links .power-slot-open {
-  width: auto;
-  min-width: 4.75rem;
-  padding: 0 8px;
-  gap: 4px;
-  font-size: 0.85rem;
+.power-grant-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.power-grant-name-line .power-grant-open {
+  pointer-events: auto;
+  flex-shrink: 0;
 }
 
 .entry-preview--compact {

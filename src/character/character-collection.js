@@ -12,6 +12,10 @@ import {
 } from './ritual-selections.js';
 import { syncGrantSlotsFromIds } from './grant-slots.js';
 import { ensureThemeChoiceShape } from './theme-selections.js';
+import { normalizePowerType } from '../editor/power-filter.js';
+import { collectBackgroundFeatGrants } from './background-grants.js';
+import { collectItemPowerGrants } from './item-power-grants.js';
+import { collectItemFeatGrants } from './item-feat-grants.js';
 
 /** @typedef {'power' | 'feat' | 'ritual'} CollectionCategory */
 
@@ -29,6 +33,7 @@ import { ensureThemeChoiceShape } from './theme-selections.js';
  * @property {boolean} [universal]
  * @property {string} [detail]
  * @property {boolean} [chooser]
+ * @property {string} [usage]
  */
 
 /**
@@ -132,9 +137,42 @@ export async function collectPowerItems(character, compendium, opts = {}) {
         name: entry?.listing_fields?.Name ?? pid,
         meta: formatPowerMeta(entry?.listing_fields),
         source: 'Background',
+        usage: normalizePowerType(entry?.listing_fields?.Type) || '',
         readonly: true
       });
     }
+  }
+
+  for (const slot of character.selections?.grantSlots?.themePowers ?? []) {
+    const id = String(slot.id).toLowerCase();
+    if (seenPowerIds.has(id)) continue;
+    seenPowerIds.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'power',
+      name: slot.name || entry?.listing_fields?.Name || id,
+      meta: formatPowerMeta(entry?.listing_fields),
+      source: 'Theme',
+      readonly: true
+    });
+  }
+
+  for (const grant of await collectItemPowerGrants(character, compendium)) {
+    const id = String(grant.powerId).toLowerCase();
+    if (seenPowerIds.has(id)) continue;
+    seenPowerIds.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'power',
+      name: grant.powerName || entry?.listing_fields?.Name || id,
+      meta: formatPowerMeta(entry?.listing_fields),
+      detail: grant.itemName,
+      source: 'Item',
+      usage: grant.usage || '',
+      readonly: true
+    });
   }
 
   const slots = getPowerSlotsForLevel(character.identity?.level ?? 1);
@@ -203,6 +241,21 @@ export async function collectFeatItems(character, compendium) {
     });
   }
 
+  for (const feat of await collectBackgroundFeatGrants(character, compendium)) {
+    const id = String(feat.id).toLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'feat',
+      name: feat.name || entry?.listing_fields?.Name || id,
+      meta: formatFeatMeta(entry?.listing_fields),
+      source: 'Background',
+      readonly: true
+    });
+  }
+
   const themeName = character.identity?.theme || 'Theme';
   for (const slot of character.selections?.grantSlots?.themeFeats ?? []) {
     const id = String(slot.id).toLowerCase();
@@ -216,6 +269,22 @@ export async function collectFeatItems(character, compendium) {
       meta: formatFeatMeta(entry?.listing_fields),
       detail: themeName,
       source: themeName,
+      readonly: true
+    });
+  }
+
+  for (const grant of await collectItemFeatGrants(character, compendium)) {
+    const id = String(grant.featId).toLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const entry = await compendium.getEntry(id);
+    pushUnique(items, {
+      id,
+      category: 'feat',
+      name: grant.featName || entry?.listing_fields?.Name || id,
+      meta: formatFeatMeta(entry?.listing_fields),
+      detail: grant.itemName,
+      source: 'Item',
       readonly: true
     });
   }
@@ -384,11 +453,21 @@ export async function syncCollectionNotes(character, compendium) {
   const { powers, feats, rituals } = await collectAllCollectionItems(character, compendium);
   await syncGrantSlotsFromIds(character, compendium);
 
-  // Granted race and class powers live in grant slots. The powers note keeps
-  // chosen class slots plus other read-only sources such as background powers.
+  // Granted race, class, and theme powers live in their own notes. This note
+  // keeps chosen class slots plus background and item powers.
   const powerLines = powers
-    .filter((p) => !p.empty && p.source !== 'Racial' && p.source !== 'Class feature')
-    .map((p) => (p.slotId ? `${p.meta.split(' · ')[0]}: ${p.name}` : p.name));
+    .filter(
+      (p) =>
+        !p.empty &&
+        p.source !== 'Racial' &&
+        p.source !== 'Class feature' &&
+        p.source !== 'Theme'
+    )
+    .map((p) => {
+      if (p.slotId) return `${p.meta.split(' · ')[0]}: ${p.name}`;
+      if (p.usage) return `${p.usage}: ${p.name}`;
+      return p.name;
+    });
   character.notes.powers = [...new Set(powerLines)].join('\n');
 
   const featLines = feats

@@ -311,7 +311,7 @@ async function refreshPowerCards() {
     }
     const { compendium } = await import('./data/compendium.js');
     const { renderRuleCards } = await import('./print/rule-cards.js');
-    const count = await renderRuleCards(host, character, compendium, ['powers']);
+    const count = await renderRuleCards(host, character, compendium, ['powers', 'feats']);
     host.hidden = count === 0;
   } catch {
     host.hidden = true;

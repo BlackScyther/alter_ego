@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createCharacter } from '../src/character/model.js';
 import { collectClassGrantIds } from '../src/character/class-selections.js';
-import { collectPowerItems, syncCollectionNotes } from '../src/character/character-collection.js';
+import { collectFeatItems, collectPowerItems, syncCollectionNotes } from '../src/character/character-collection.js';
+import { extractGainedFeatNames } from '../src/character/feat-grant-scan.js';
 import { characterToSheetPayload } from '../src/character/sheet-bridge.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -77,4 +78,87 @@ test('syncCollectionNotes keeps granted powers in their own categories', async (
   const sheet = characterToSheetPayload(character);
   assert.ok(sheet['class-powers'].includes('Inspiring Word'));
   assert.ok(sheet['racial-powers'].includes('Swiftcurrent'));
+});
+
+test('a conditional sentence does not grant a feat by name', () => {
+  assert.deepEqual(
+    extractGainedFeatNames('If you already have the Linguist feat, you gain nothing.'),
+    []
+  );
+  assert.deepEqual(extractGainedFeatNames('<p>You gain the Linguist feat.</p>'), ['Linguist']);
+});
+
+test('collection includes theme powers, unequipped item powers, and background and item feats', async () => {
+  const entries = {
+    background1: {
+      id: 'background1',
+      category_slug: 'background',
+      listing_fields: { Name: 'Scholar', SourceBook: 'Player\'s Handbook' },
+      body_html: '<p>You gain the Linguist feat. You also gain power9.</p>'
+    },
+    feat12: {
+      id: 'feat12',
+      category_slug: 'feat',
+      listing_fields: { Name: 'Linguist', Tier: 'Heroic', SourceBook: 'Player\'s Handbook' }
+    },
+    power9: {
+      id: 'power9',
+      category_slug: 'power',
+      listing_fields: { Name: 'Scholar\'s Insight', Type: 'Encounter Utility' }
+    },
+    power77: {
+      id: 'power77',
+      category_slug: 'power',
+      listing_fields: { Name: 'Quick Line', Type: 'At-Will' }
+    },
+    item8: {
+      id: 'item8',
+      category_slug: 'item',
+      listing_fields: { Name: 'Bag of Tricks' },
+      body_html: '<p>You gain the Alertness feat. Power: power4.</p>'
+    },
+    feat3: {
+      id: 'feat3',
+      category_slug: 'feat',
+      listing_fields: { Name: 'Alertness', Tier: 'Heroic' }
+    },
+    power4: {
+      id: 'power4',
+      category_slug: 'power',
+      listing_fields: { Name: 'Brute Strike', Type: 'Daily' }
+    }
+  };
+  const compendium = {
+    async getEntry(id) {
+      return entries[String(id).toLowerCase()] ?? null;
+    },
+    async listEntries(category, opts) {
+      const needle = String(opts?.search ?? '').toLowerCase();
+      return Object.values(entries).filter(
+        (entry) =>
+          entry.category_slug === category &&
+          String(entry.listing_fields?.Name ?? '').toLowerCase() === needle
+      );
+    }
+  };
+  const character = createCharacter();
+  character.selections.backgroundId = 'background1';
+  character.selections.grantSlots.themePowers = [{ id: 'power77', name: 'Quick Line', category: 'theme-power' }];
+  character.selections.equipmentItems = [
+    { instanceId: 'bag', compendiumId: 'item8', categorySlug: 'item', slotId: null }
+  ];
+
+  const powers = await collectPowerItems(character, compendium);
+  assert.ok(powers.some((item) => item.id === 'power9' && item.source === 'Background'));
+  assert.ok(powers.some((item) => item.id === 'power77' && item.source === 'Theme'));
+  assert.ok(powers.some((item) => item.id === 'power4' && item.source === 'Item' && item.detail === 'Bag of Tricks'));
+
+  const feats = await collectFeatItems(character, compendium);
+  assert.ok(feats.some((item) => item.id === 'feat12' && item.name === 'Linguist' && item.source === 'Background'));
+  assert.ok(feats.some((item) => item.id === 'feat3' && item.name === 'Alertness' && item.source === 'Item'));
+
+  await syncCollectionNotes(character, compendium);
+  assert.ok(character.notes.powers.includes('Utility: Scholar\'s Insight'));
+  assert.ok(character.notes.powers.includes('Daily: Brute Strike'));
+  assert.equal(character.notes.powers.includes('Quick Line'), false);
 });

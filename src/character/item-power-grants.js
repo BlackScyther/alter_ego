@@ -1,5 +1,5 @@
 /**
- * Powers granted by equipped items. Inventory-only items are ignored.
+ * Powers granted by inventory items, equipped or not.
  * A grant exists when the item body links a power entry (`power123`).
  */
 
@@ -58,10 +58,8 @@ export function usageNearPowerMention(html, powerId) {
  * @param {object} character
  * @param {{ getEntry: (id: string) => Promise<object | null | undefined> }} compendium
  */
-export async function collectEquippedItemPowerGrants(character, compendium) {
-  const equipped = (character?.selections?.equipmentItems ?? []).filter(
-    (item) => item?.slotId && item?.compendiumId
-  );
+export async function collectItemPowerGrants(character, compendium) {
+  const owned = (character?.selections?.equipmentItems ?? []).filter((item) => item?.compendiumId);
   /** @type {Map<string, object | null>} */
   const cache = new Map();
 
@@ -77,7 +75,7 @@ export async function collectEquippedItemPowerGrants(character, compendium) {
   const grants = [];
   const seen = new Set();
 
-  for (const item of equipped) {
+  for (const item of owned) {
     const itemEntry = await entryFor(item.compendiumId);
     const itemId = String(item.compendiumId).toLowerCase();
     for (const powerId of extractPowerIdsFromItemHtml(itemEntry?.body_html ?? '')) {

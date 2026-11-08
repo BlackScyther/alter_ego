@@ -13,6 +13,8 @@ import {
   collectClassGrantIds,
   resolveRecommendedFeatSeeds
 } from '../../character/class-selections.js';
+import { collectBackgroundFeatGrants } from '../../character/background-grants.js';
+import { collectItemFeatGrants } from '../../character/item-feat-grants.js';
 import { writeGrantGroup } from '../../character/grant-slots.js';
 import { RITUAL_CASTER_FEAT_ID } from '../../character/ritual-selections.js';
 import {
@@ -748,28 +750,77 @@ export async function renderFeatStep(panel, ctx) {
         ]
       };
     });
+    const backgroundRows = [];
+    for (const feat of await collectBackgroundFeatGrants(character, compendium)) {
+      const entry = await compendium.getEntry(feat.id);
+      const meta = [entry?.listing_fields?.Tier, entry?.listing_fields?.SourceBook]
+        .filter(Boolean)
+        .join(' · ');
+      backgroundRows.push({
+        name: feat.name,
+        meta: meta || 'From your background',
+        links: [
+          {
+            href: compendiumEntryPageUrl(feat.id, pathname),
+            ariaLabel: `Open ${feat.name} in compendium`
+          }
+        ]
+      });
+    }
+    const itemRows = (await collectItemFeatGrants(character, compendium)).map((grant) => ({
+      name: grant.featName,
+      meta: grant.itemName,
+      links: [
+        {
+          href: compendiumEntryPageUrl(grant.featId, pathname),
+          ariaLabel: `Open ${grant.featName} in compendium`
+        }
+      ]
+    }));
+    const section = (kind, title, ariaLabel, note, rows) =>
+      renderGrantSectionHtml({
+        kind,
+        title,
+        ariaLabel,
+        note,
+        groups: [{ rows }]
+      });
     host.innerHTML = [
-      renderGrantSectionHtml({
-        kind: 'race-feats',
-        title: 'Race',
-        ariaLabel: 'Race feats',
-        note: 'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
-        groups: [{ rows: raceRows }]
-      }),
-      renderGrantSectionHtml({
-        kind: 'class-feats',
-        title: 'Class',
-        ariaLabel: 'Class feats',
-        note: 'Granted by your class. These slots cannot be edited here. Choose a different class to change them.',
-        groups: [{ rows: classRows }]
-      }),
-      renderGrantSectionHtml({
-        kind: 'theme-feats',
-        title: 'Theme',
-        ariaLabel: 'Theme feats',
-        note: 'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
-        groups: [{ rows: themeRows }]
-      })
+      section(
+        'race-feats',
+        'Race',
+        'Race feats',
+        'Granted by your race. These slots cannot be edited here. Choose a different race to change them.',
+        raceRows
+      ),
+      section(
+        'class-feats',
+        'Class',
+        'Class feats',
+        'Granted by your class. These slots cannot be edited here. Choose a different class to change them.',
+        classRows
+      ),
+      section(
+        'background-feats',
+        'Background',
+        'Background feats',
+        'Granted by your background. These slots cannot be edited here. Choose a different background to change them.',
+        backgroundRows
+      ),
+      section(
+        'theme-feats',
+        'Theme',
+        'Theme feats',
+        'Granted by your theme. These slots cannot be edited here. Choose a different theme to change them.',
+        themeRows
+      ),
+      section(
+        'item-feats',
+        'Items',
+        'Item feats',
+        'Granted by items in your inventory, whether or not they are equipped. These slots cannot be edited here. Add or remove the item on the Equipment step to change them.',
+        itemRows
+      )
     ].join('');
   }
 

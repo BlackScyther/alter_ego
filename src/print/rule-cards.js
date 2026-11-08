@@ -1,6 +1,7 @@
 /**
  * Shared rule-card renderer for the cards page and the character sheet.
- * The sheet asks for powers only. The cards page passes the chosen categories.
+ * The sheet asks for powers and feats. The cards page passes the chosen categories.
+ * Feat tiles use a shorter minimum height (`.rule-card--feat`).
  */
 
 import { collectAllCollectionItems } from '../character/character-collection.js';
