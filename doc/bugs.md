@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-08 (B-041 grant link on the name line)
+**Last updated:** 2026-11-08 (B-042 power card effect text)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-042 | 2026-11-08 | Some power and feat cards showed only the action line. Swiftcurrent printed “Encounter, Move Action, Personal” and left out the shift effect. The compendium stores Effect, Hit, Special, and Benefit lines in a flavor paragraph. The card condenser removed every flavor paragraph, and the short action line that remained stopped the blank-card fallback from restoring the original text. Mechanical lines that start with those labels are now kept. Flavor prose and the published-in footer are still removed. Files: `src/ui/condense-rule-text.js`. |
 | B-041 | 2026-11-08 | Granted power and feat rows put the compendium arrow on the next line. The name box was full width inside a wrapping row, so the link dropped below the name. The arrow now sits on the name line inside the box, and At-Will, Encounter, Daily, or Utility is text in that box. Files: `src/editor/steps/grant-section-html.js`, `src/editor/editor.css`. |
 | B-040 | 2026-11-04 | Theme preview links reused the collection-open icon button (`width: 2rem`), so a power or feat name such as Aqua Regia wrapped inside the gold chip and split from the arrow. Theme links now use `theme-entry-link`, which grows with the name. The arrow and the name stay on one line, and the power's level note sits on that same line. Files: `src/character/theme-parse.js`, `src/editor/editor.css`. |
 | B-039 | 2026-11-04 | Feats step class-name checkbox (e.g. Warlord) listed only early alphabet names (A–C) and omitted later feats such as Lend Strength. Root cause: the eligible path fetched the first 500 feats by name, then filtered for the class client-side, so names after "Command the Darkness" never entered the pool; with few matches the search field also hid. Fixed: when the class checkbox is on, load the full feat pool (`SHOW_ALL_LIMIT`) before filtering. Files: `src/editor/steps/feat-step.js`. |

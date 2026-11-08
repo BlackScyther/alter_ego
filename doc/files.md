@@ -356,7 +356,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `compendium-links.js` | Link compendium terms in plain text and HTML previews; text already inside a link is left alone |
 | `compendium-hover-card.js` | Floating hover card for `.comp-link` terms; class-feature links use a registered inline body when the feature is not its own compendium entry |
 | `compendium-entry-url.js` | Build the standalone compendium entry-viewer URL (`entry.html?id=`) |
-| `condense-rule-text.js` | `condenseRuleHtml(entry)` strips flavor/`publishedIn`/title-duplicate nodes, keeps the mechanical core (powerstat lines, feat benefit, ritual stat block) for printable rule cards |
+| `condense-rule-text.js` | `condenseRuleHtml(entry)` strips flavor prose, `publishedIn`, and a duplicate title. It keeps powerstat lines, ritual stats, and Effect/Hit/Benefit lines even when the compendium tagged those lines as flavor. |
 
 ## `src/print/`
 

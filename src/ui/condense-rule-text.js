@@ -15,6 +15,13 @@
 /** Classes whose elements are pure flavor / publishing decoration. */
 const FLAVOR_CLASSES = ['flavor', 'flavortext', 'flavortextshort', 'publishedIn', 'published'];
 
+/**
+ * Some compendium entries put the mechanical line (Effect, Hit, Benefit, …)
+ * in a flavor paragraph. Those lines are the rule text a card has to keep.
+ * Real flavor prose does not start with one of these labels and a colon.
+ */
+const MECHANICAL_LINE = /^(?:effect|hit|miss|attack|special|benefit|trigger|sustain|prerequisite|requirement|aftereffect|property)\s*:/i;
+
 /** Heading texts that introduce race/flavor prose blocks (defensive). */
 const FLAVOR_HEADINGS = ['physical qualities', 'playing a', 'roleplaying'];
 
@@ -35,10 +42,16 @@ export function condenseRuleHtml(entry) {
   const root = doc.getElementById('__root');
   if (!root) return raw;
 
+  const flavorNodes = [];
   for (const cls of FLAVOR_CLASSES) {
     for (const el of root.querySelectorAll(`.${cls}`)) {
-      el.remove();
+      flavorNodes.push(el);
     }
+  }
+  for (const el of flavorNodes) {
+    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (MECHANICAL_LINE.test(text)) continue;
+    el.remove();
   }
 
   // The tile renders the entry name in its own header, so drop the power/entry
@@ -64,7 +77,8 @@ export function condenseRuleHtml(entry) {
   }
 
   const condensed = root.innerHTML.trim();
+  const condensedText = condensed.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
   // If stripping removed everything meaningful, fall back to the original so a
   // tile is never blank (e.g. entries that store all text in a flavor block).
-  return condensed.replace(/<[^>]+>/g, '').trim() ? condensed : raw;
+  return condensedText ? condensed : raw;
 }
