@@ -25,6 +25,7 @@ Spec alignment: [PROJECT.md](PROJECT.md) and `metadata/*.json`.
 - **Live verification**: Browser and compendium checks use `https://alter-ego.apps.masche.at`. Do not start `npm start`, `npm run dev`, `dev:all`, `dev:src`, or Vite. See `.cursor/rules/verify-on-live.mdc`.
 - **Minimize scope**: Match existing style; avoid unrelated refactors.
 - **Git branches**: The agent creates short-lived feature branches; the user does not. One lasting branch is `main` (Coolify). Name branches after the capability (`feat/theme-grants`), never after an example (`genasi-…`) or a permanent area (`feature/class`). Merge to `main`, then delete the feature branch. See `.cursor/rules/git-branching.mdc`.
+- **Git status in replies**: End every reply that touched the repo with a plain **Git:** line (committed/pushed or not, with short hash when committed). Never leave commit/push implicit. See `.cursor/rules/git-status-in-reply.mdc`.
 - **No commits** unless the user explicitly asks, except the live-verification path: commit on the feature branch, merge into `main`, push `main`, delete the feature branch, then stop for a manual Alter Ego deploy. Do not switch workspaces.
 - **Auto version bump**: the tracked `.githooks/pre-commit` hook increments the `package.json` patch version and stages it on every commit (`git config core.hooksPath .githooks`). Skip once with `ALTER_EGO_SKIP_BUMP=1`.
 

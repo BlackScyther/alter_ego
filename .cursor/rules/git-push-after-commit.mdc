@@ -12,6 +12,8 @@ another machine, so commits must reach the remote, not just local history.
   on the current branch (e.g. `git push` once upstream is set, otherwise
   `git push -u origin <branch>`).
 - Treat a commit as incomplete until it is pushed; report the push result.
+- Always close the user-facing reply with the **Git:** status line from
+  `git-status-in-reply.mdc` (committed or not, pushed or not, short hash).
 - Still follow the git safety protocol: never force-push, never push to
   `main`/`master` without an explicit request, and only commit when asked.
 - Pushing a normal feature branch is fine without extra confirmation; pause and

@@ -1,0 +1,33 @@
+---
+description: End every reply with an explicit commit/push status so the user never has to guess
+alwaysApply: true
+---
+
+# Git: say commit/push status at the end
+
+The user cannot easily tell whether the agent already committed and pushed.
+Never leave that implicit or buried in the middle of a long reply.
+
+## Required closing line
+
+End **every** user-facing reply that involved repo work (code, docs, rules,
+tests, metadata) with a short, plain **Git:** line. Use one of:
+
+- `Git: not committed or pushed.` — changes exist only in the working tree
+  (or there were no git-relevant changes).
+- `Git: committed on \`branch\` (\`hash\`), not pushed.` — rare; avoid; push
+  after commit per `git-push-after-commit.mdc`.
+- `Git: committed and pushed to \`branch\` (\`hash\`).` — feature branch on
+  `origin`.
+- `Git: committed, merged to \`main\`, pushed (\`hash\`). Feature branch
+  deleted.` — Coolify-ready path.
+- `Git: no repo changes.` — investigation-only or chat-only turn.
+
+Include the short commit hash when a commit exists. If a Coolify deploy is
+still needed after a `main` push, say that in the same closing block.
+
+## Do not
+
+- Soften or hide the status (“should be on main”, “ready when you want”).
+- Skip the line because the reply is short or the user did not ask about Git.
+- Commit or push silently without that closing status.

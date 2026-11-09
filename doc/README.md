@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-08 — B-043 fixed: Class Powers lists class-feature grants only (e.g. Inspiring Word); suggested powers stay in slots via the Recommended button.
+**Last agent sync:** 2026-11-09 — Agent replies must end with an explicit **Git:** commit/push status (`git-status-in-reply.mdc`).
