@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-08 (B-042 power card effect text)
+**Last updated:** 2026-11-08 (B-043 class-feature grants only)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-043 | 2026-11-08 | Suggested Warlord powers such as Commander's Strike appeared under read-only **Class Powers**. Early build options stored suggested at-wills in `powerIds`, and `collectClassGrantIds` treated them as class-feature grants. Suggested picks belong only in power slots via **Recommended powers for this class**. The Class list is feature grants only (Warlord: Inspiring Word; Battlefront Shift when that feature is taken). Grants now read embedded ids only from the CLASS FEATURES section, ignore build-option `powerIds`, and re-sync on character load so stale ids are scrubbed. Same rule for class feats (Ritual Caster stays; suggested feats stay in feat slots). Files: `src/character/class-selections.js`, `src/editor/editor.js`. |
 | B-042 | 2026-11-08 | Some power and feat cards showed only the action line. Swiftcurrent printed “Encounter, Move Action, Personal” and left out the shift effect. The compendium stores Effect, Hit, Special, and Benefit lines in a flavor paragraph. The card condenser removed every flavor paragraph, and the short action line that remained stopped the blank-card fallback from restoring the original text. Mechanical lines that start with those labels are now kept. Flavor prose and the published-in footer are still removed. Files: `src/ui/condense-rule-text.js`. |
 | B-041 | 2026-11-08 | Granted power and feat rows put the compendium arrow on the next line. The name box was full width inside a wrapping row, so the link dropped below the name. The arrow now sits on the name line inside the box, and At-Will, Encounter, Daily, or Utility is text in that box. Files: `src/editor/steps/grant-section-html.js`, `src/editor/editor.css`. |
 | B-040 | 2026-11-04 | Theme preview links reused the collection-open icon button (`width: 2rem`), so a power or feat name such as Aqua Regia wrapped inside the gold chip and split from the arrow. Theme links now use `theme-entry-link`, which grows with the name. The arrow and the name stay on one line, and the power's level note sits on that same line. Files: `src/character/theme-parse.js`, `src/editor/editor.css`. |

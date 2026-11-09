@@ -37,6 +37,26 @@ test('collectClassGrantIds includes class-feature metadata for Warlord', () => {
   assert.equal(classPowerIds.includes('power10887'), false);
 });
 
+test('suggested build powers are not class-feature grants', () => {
+  const entry = {
+    id: 'class8',
+    listing_fields: { Name: 'Warlord (Marshal)' },
+    body_html: `<blockquote><b>Build Options: </b>Inspiring Warlord.</blockquote>
+<h3>INSPIRING WARLORD</h3>
+<b>Suggested At-Will Powers</b>: <i><a href="?view=power1061">commander's strike</a>, furious smash</i>
+<h3>CLASS FEATURES</h3>
+<b>INSPIRING WORD</b><br>You gain the inspiring word power (<a href="?view=power1590">power1590</a>).`
+  };
+  const character = createCharacter();
+  character.selections.classId = 'class8';
+  character.selections.classBuildChoices = { build: 'inspiring-warlord' };
+  // Stale id from the old build-option powerIds mistake must be replaced on sync.
+  character.selections.classPowerIds = ['power1061', 'power1590'];
+  const { classPowerIds } = collectClassGrantIds(character, entry);
+  assert.deepEqual(classPowerIds, ['power1590']);
+  assert.equal(classPowerIds.includes('power1061'), false);
+});
+
 test('Battlefront Leader grants Battlefront Shift', () => {
   const entry = {
     id: 'class8',

@@ -125,6 +125,7 @@ import {
   syncGrantedRitualIds
 } from '../character/ritual-selections.js';
 import {
+  collectClassGrantIds,
   getClassTrainedSkillCheckboxState,
   syncClassNotesAndGrants,
   toggleClassTrainedSkill,
@@ -794,7 +795,23 @@ async function refreshBonusesFromSelections() {
   syncBonusesFromSelections(character, entries, featEntries);
   applyGenasiManifestationAbilities(character, entries.race);
   syncRaceBonusChoicesToBonuses(character);
-  if (entries.class) await syncGrantedRitualIds(character, entries.class, compendium);
+  if (entries.class) {
+    await syncGrantedRitualIds(character, entries.class, compendium);
+    // Refresh class-feature grants on every load/bonus pass so stale suggested
+    // powers (old build option powerIds) leave the read-only Class Powers list.
+    const { classPowerIds, classFeatIds } = collectClassGrantIds(character, entries.class);
+    const powerEntries = [];
+    for (const pid of classPowerIds) {
+      const entry = await compendium.getEntry(pid);
+      if (entry) powerEntries.push(entry);
+    }
+    const featEntries = [];
+    for (const fid of classFeatIds) {
+      const entry = await compendium.getEntry(fid);
+      if (entry) featEntries.push(entry);
+    }
+    syncClassNotesAndGrants(character, entries.class, powerEntries, featEntries);
+  }
   cachedClassEntry = entries.class ?? null;
   try {
     await syncEquipmentToSheet(character, compendium, { classEntry: cachedClassEntry });

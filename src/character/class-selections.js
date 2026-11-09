@@ -11,6 +11,7 @@ import { mergeHybridClasses, hybridPairAllowed } from './hybrid-merge.js';
 import {
   parseClassEntry,
   buildClassNotesText,
+  extractClassFeaturesSection,
   extractPowerIdsFromClassHtml,
   extractFeatIdsFromClassHtml,
   parseBuildSuggestedSkills,
@@ -145,22 +146,24 @@ export function buildBuildChoiceSummary(character, classEntry) {
 }
 
 /**
+ * Class-feature grants only (read-only Class section on the Powers / Feats steps).
+ * Suggested at-wills, encounters, dailies, and feats stay in power/feat slots via
+ * the Recommended buttons — they must not appear here.
+ *
  * @param {object} character
  * @param {object | null | undefined} classEntry
  */
 export function collectClassGrantIds(character, classEntry) {
   const parsed = parseClassEntry(classEntry);
-  const decisions = getClassBuildDecisions(
-    classEntry?.id ?? character.selections?.classId,
-    classEntry?.listing_fields?.Name,
-    parsed
-  );
   const choices = character.selections?.classBuildChoices ?? {};
   const html = classEntry?.body_html ?? '';
-  const powerIds = new Set(extractPowerIdsFromClassHtml(html));
-  const featIds = new Set(extractFeatIdsFromClassHtml(html));
+  // Links inside build "Suggested …" blocks are starter picks, not grants.
+  // Only the CLASS FEATURES section may contribute embedded power/feat ids.
+  const featuresHtml = extractClassFeaturesSection(html);
+  const powerIds = new Set(extractPowerIdsFromClassHtml(featuresHtml));
+  const featIds = new Set(extractFeatIdsFromClassHtml(featuresHtml));
   // Classes such as Wizard grant Ritual Caster in prose ("Ritual Casting")
-  // without always linking the feat id.
+  // without always linking the feat id. That line may sit in traits or features.
   if (/ritual\s+caster|ritual\s+casting/i.test(html)) {
     featIds.add(RITUAL_CASTER_FEAT_ID);
   }
@@ -181,13 +184,6 @@ export function collectClassGrantIds(character, classEntry) {
   for (const feature of granted) {
     const ids = featurePowerIds.get(feature.name.toLowerCase()) ?? [];
     for (const pid of ids) powerIds.add(String(pid).toLowerCase());
-  }
-
-  for (const d of decisions) {
-    const picked = choices[d.id];
-    if (!picked) continue;
-    const opt = d.options?.find((o) => o.id === picked);
-    for (const pid of opt?.powerIds ?? []) powerIds.add(String(pid).toLowerCase());
   }
 
   return {

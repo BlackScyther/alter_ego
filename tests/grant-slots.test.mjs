@@ -64,7 +64,8 @@ test('class selection stores class powers and class feats as categorized slots',
   const entry = {
     id: 'class1',
     listing_fields: { Name: 'Fighter' },
-    body_html: '<p>You gain <a href="?view=power10">Cleave</a> and <a href="?view=feat3">Weapon Focus</a>.</p>'
+    body_html:
+      '<h3>CLASS FEATURES</h3><p>You gain <a href="?view=power10">Cleave</a> and <a href="?view=feat3">Weapon Focus</a>.</p>'
   };
   const character = createCharacter();
   character.selections.classId = 'class1';
