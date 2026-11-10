@@ -41,7 +41,7 @@ test('skill field maps lock every number except Misc', () => {
   assert.equal(map.get('skill-acrobatics-bonus').readonly, true);
   assert.equal(map.get('skill-acrobatics-mod-half').readonly, true);
   assert.equal(map.get('skill-acrobatics-pen').readonly, true);
-  assert.equal(map.get('skill-athletics-pen'), undefined);
+  assert.equal(map.get('skill-athletics-pen').readonly, true);
   assert.equal(map.get('skill-acrobatics-misc').readonly, undefined);
   assert.equal(map.get('skill-acrobatics-trained').readonly, undefined);
 
