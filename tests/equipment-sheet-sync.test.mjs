@@ -101,7 +101,7 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.defenses.ref.armor, 0);
     assert.equal(c.sheet.defenses.ref.misc2, 1);
     assert.equal(c.sheet.armorPenaltyGlobal, -2);
-    assert.equal(c.sheet.speed.armor, 0);
+    assert.equal(c.sheet.speed.armor, -1);
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
     assert.equal(c.sheet.extraFields['melee-atk-abil'], 3);
     assert.match(c.sheet.extraFields['basic1-weapon'], /Longsword/);
@@ -495,6 +495,7 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.defenses.ac.misc2, 1);
     assert.equal(c.sheet.defenses.ref.misc2, 0);
     assert.equal(c.sheet.armorPenaltyGlobal, -1);
+    assert.equal(c.sheet.speed.armor, -1);
     assert.equal(defenseTotal(4, { ...c.sheet.defenses.ac, abil: 0 }), 20);
   });
 

@@ -16,28 +16,6 @@ import {
   magicDisplayName,
   stackDefenseBonuses
 } from './equipment-stats.js';
-import { parseClassEntry } from './class-parse.js';
-
-/**
- * @param {string} traitsText
- * @param {string} armorCategory
- */
-function isProficientInArmor(traitsText, armorCategory) {
-  const text = String(traitsText ?? '').toLowerCase();
-  const cat = String(armorCategory ?? '').toLowerCase();
-  if (!text || !cat) return true;
-  if (cat.includes('shield')) {
-    return text.includes('shield');
-  }
-  if (cat.includes('scale')) return text.includes('scale');
-  if (cat.includes('chain')) return text.includes('chainmail') || text.includes('chain');
-  if (cat.includes('leather')) return text.includes('leather');
-  if (cat.includes('hide')) return text.includes('hide');
-  if (cat.includes('plate')) return text.includes('plate');
-  if (cat.includes('cloth')) return text.includes('cloth');
-  return true;
-}
-
 /**
  * @param {object} character
  */
@@ -119,15 +97,13 @@ function setExtra(character, key, value) {
 /**
  * @param {object} character
  * @param {import('../data/compendium.js').CompendiumProvider} compendium
- * @param {{ classEntry?: object | null }} [opts]
+ * @param {{ classEntry?: object | null }} [_opts] Kept so existing callers can still pass the class entry. Speed does not depend on it.
  */
-export async function syncEquipmentToSheet(character, compendium, opts = {}) {
+export async function syncEquipmentToSheet(character, compendium, _opts = {}) {
   ensureEquipmentSelectionsShape(character);
   clearEquipmentDerivedSheet(character);
 
   const equipped = getEquippedBySlot(character);
-  const classEntry = opts.classEntry ?? null;
-  const traitsText = classEntry ? parseClassEntry(classEntry).traitPairs.map((p) => p.value).join(' ') : '';
 
   let checkPenalty = 0;
   let speedPenalty = 0;
@@ -172,13 +148,9 @@ export async function syncEquipmentToSheet(character, compendium, opts = {}) {
     if (stats.kind === 'armor') {
       checkPenalty += Number(stats.checkPenalty) || 0;
       if (/chain|scale|plate/i.test(stats.armorCategory ?? '')) armorIsHeavy = true;
-      const proficient = isProficientInArmor(
-        classEntry?.body_html ?? traitsText,
-        stats.armorCategory ?? entry.listing_fields?.Type ?? ''
-      );
-      if (!proficient) {
-        speedPenalty += Number(stats.speedPenalty) || 0;
-      }
+      // Printed speed penalty applies while the armor is worn. Class
+      // proficiency does not remove it. Chainmail, scale, and plate are −1.
+      speedPenalty += Number(stats.speedPenalty) || 0;
     } else if (stats.kind === 'shield') {
       checkPenalty += Number(stats.checkPenalty) || 0;
     } else if (stats.kind === 'weapon' && (slot.id === 'mainHand' || slot.id === 'offHand')) {
