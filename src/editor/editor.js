@@ -28,7 +28,7 @@ import { getSessionCampaign, isPlayerSession, saveCharacterToCampaign } from '..
 import { downloadCharacterJson, readCharacterJsonFile } from '../character/io.js';
 import { compendium } from '../data/compendium.js';
 import { stashCharacterForSheet } from '../character/sheet-bridge.js';
-import { raceBonusEntryId, hydrateSubracesFromProvider } from '../character/race-subraces.js';
+import { raceBonusEntryId, hydrateSubracesFromProvider, resolveRacePair } from '../character/race-subraces.js';
 import { xpForLevel } from '../formulas.js';
 import { canLevelUp, levelUpTooltip, retrainingBuilderStart } from './post-load.js';
 import {
@@ -68,7 +68,11 @@ import { renderPowerStep } from './steps/power-step.js';
 import { renderEquipmentStep } from './steps/equipment-step.js';
 import { renderRaceStep } from './steps/race-step.js';
 import { renderClassStep } from './steps/class-step.js';
-import { ensureRaceSelectionsShape, applyGenasiManifestationAbilities } from '../character/race-selections.js';
+import {
+  ensureRaceSelectionsShape,
+  applyGenasiManifestationAbilities,
+  applyRaceTraitsToSheet
+} from '../character/race-selections.js';
 import { resetBackgroundBonusChoices } from '../character/background-selections.js';
 import { parseBackgroundEntry, buildBackgroundNotesText } from '../character/background-parse.js';
 import { parseThemeEntry, buildThemeNotesText } from '../character/theme-parse.js';
@@ -795,6 +799,14 @@ async function refreshBonusesFromSelections() {
   syncBonusesFromSelections(character, entries, featEntries);
   applyGenasiManifestationAbilities(character, entries.race);
   syncRaceBonusChoicesToBonuses(character);
+  if (character.selections.raceId && entries.race) {
+    const { variantId } = resolveRacePair(character.selections.raceId);
+    const variantEntry =
+      variantId && variantId !== entries.race.id ? await compendium.getEntry(variantId) : null;
+    // Rebuild languages, resistances, senses, and saves from the race text.
+    // A saved Genasi otherwise keeps every manifestation's resistance.
+    applyRaceTraitsToSheet(character, entries.race, variantEntry);
+  }
   if (entries.class) {
     await syncGrantedRitualIds(character, entries.class, compendium);
     // Refresh class-feature grants on every load/bonus pass so stale suggested

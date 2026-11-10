@@ -295,6 +295,24 @@ test('Firesoul writes the scaled resistance and clears Watersoul sheet values', 
   );
 });
 
+test('a saved list of every Genasi resistance is cleared for Watersoul', () => {
+  const character = genasiCharacter();
+  const stale =
+    'Resist 5 Fire, Resist 5 Lightning, Resist 5 Cold, Resist 5 Acid, Resist 5 Poison, Resist 5 Psychic';
+  character.sheet.extraFields = { resistances: stale };
+  character.sheet.derived = {
+    race: { languages: '', resistances: stale, senses: '', saveMods: '', speedBase: null }
+  };
+  character.selections.raceBuildChoices.manifestation = 'watersoul';
+  applyRaceTraitsToSheet(character, genasiSheetEntry, null);
+  assert.equal(character.sheet.extraFields.resistances, '');
+  assert.equal(character.sheet.extraFields['special-senses'], 'Water breathing');
+  assert.equal(
+    character.sheet.extraFields['save-mods'],
+    '+2 racial bonus to saving throws against ongoing damage'
+  );
+});
+
 test('a manual resistance stays when the manifestation resistance changes', () => {
   const character = genasiCharacter();
   character.selections.raceBuildChoices.manifestation = 'firesoul';

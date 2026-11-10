@@ -3,6 +3,7 @@
  */
 
 import { getFinalScores, getSkillBonusTotals } from './tutor.js';
+import { sheetInitiativeMisc } from './hp.js';
 import { buildPowerIndex, writeSheetField } from '../sheet/sheet-fields.js';
 
 const ABIL_MAP = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
@@ -40,7 +41,7 @@ export function characterToSheetPayload(character) {
     'temp-hp': sheet.hp.temp,
     'surges-day': sheet.hp.surgesPerDay,
     'surge-uses': sheet.hp.surgeUses,
-    'init-misc': sheet.initMisc,
+    'init-misc': sheetInitiativeMisc(character),
     milestones: sheet.milestones,
     'armor-penalty-global': sheet.armorPenaltyGlobal,
     'race-features': character.notes.raceFeatures,
