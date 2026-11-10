@@ -269,7 +269,11 @@ export function applySheetValueToCharacter(character, fieldId, rawValue) {
   }
 
   if (fieldId === 'init-misc') {
-    character.sheet.initMisc = Number(rawValue) || 0;
+    ensureDerivedBonuses(character);
+    const derived = Number(character.sheet.derivedBonuses?.initiative) || 0;
+    const shown = Number(rawValue) || 0;
+    // The box shows handwritten extra plus feature bonuses. Store only the extra.
+    character.sheet.initMisc = shown - derived;
     return character;
   }
   if (fieldId === 'milestones') {

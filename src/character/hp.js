@@ -85,6 +85,17 @@ export function initiativeHandMisc(character) {
 }
 
 /**
+ * Initiative Misc shown on the character sheet.
+ * Handwritten extra plus class, feat, background, and theme bonuses
+ * (Improved Initiative and Combat Leader both belong in that one box).
+ * @param {object} character
+ */
+export function sheetInitiativeMisc(character) {
+  const derived = Number(character?.sheet?.derivedBonuses?.initiative) || 0;
+  return initiativeHandMisc(character) + derived;
+}
+
+/**
  * @param {string | null | undefined} classId
  * @param {object | null | undefined} [classEntry]
  */

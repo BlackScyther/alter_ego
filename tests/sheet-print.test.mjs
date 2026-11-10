@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createCharacter } from '../src/character/model.js';
 import { buildPowerIndex, characterToSheetPayload } from '../src/character/sheet-bridge.js';
+import { sheetInitiativeMisc } from '../src/character/hp.js';
+import { applySheetValueToCharacter } from '../src/editor/sheet-mirror.js';
 
 test('power index groups powers by usage and keeps racial and class powers', () => {
   const groups = buildPowerIndex({
@@ -29,6 +31,26 @@ test('sheet payload carries the power index', () => {
   const names = payload['power-index'].flatMap((group) => group.items);
   assert.ok(names.includes('Commanders Strike'));
   assert.ok(names.includes('Swiftcurrent'));
+});
+
+test('sheet Misc includes feat and class initiative', () => {
+  const character = createCharacter();
+  character.sheet.derivedBonuses.initiative = 6;
+  character.sheet.derivedBonuses.initiativeClass = 2;
+  character.sheet.derivedBonuses.initiativeFeat = 4;
+  character.sheet.initMisc = 0;
+  assert.equal(sheetInitiativeMisc(character), 6);
+  assert.equal(characterToSheetPayload(character)['init-misc'], 6);
+});
+
+test('editing the Misc box keeps only the extra beyond feature bonuses', () => {
+  const character = createCharacter();
+  character.sheet.derivedBonuses.initiative = 6;
+  character.sheet.derivedBonuses.initiativeFeat = 4;
+  character.sheet.derivedBonuses.initiativeClass = 2;
+  applySheetValueToCharacter(character, 'init-misc', 7);
+  assert.equal(character.sheet.initMisc, 1);
+  assert.equal(sheetInitiativeMisc(character), 7);
 });
 
 test('printable sheet page has no editable fields', () => {
