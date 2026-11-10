@@ -99,7 +99,7 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.defenses.ac.armor, 7);
     assert.equal(c.sheet.defenses.ac.misc2, 2);
     assert.equal(c.sheet.defenses.ref.armor, 0);
-    assert.equal(c.sheet.defenses.ref.misc2, 1);
+    assert.equal(c.sheet.defenses.ref.misc2, 2);
     assert.equal(c.sheet.armorPenaltyGlobal, -2);
     assert.equal(c.sheet.speed.armor, -1);
     assert.equal(c.sheet.extraFields['melee-dice'], '1d8');
@@ -290,7 +290,7 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.defenses.ac.armor, 7);
     assert.equal(c.sheet.defenses.ac.misc2, 2);
     assert.equal(c.sheet.defenses.ref.armor, 0);
-    assert.equal(c.sheet.defenses.ref.misc2, 1);
+    assert.equal(c.sheet.defenses.ref.misc2, 2);
   });
 
   it('clears equipment bonuses after unequip', async () => {
@@ -421,12 +421,12 @@ describe('equipment-sheet-sync', () => {
     const lightStats = getEquipmentStats(light);
     assert.equal(lightStats?.kind, 'shield');
     assert.equal(lightStats?.acBonus, 1);
-    assert.equal(lightStats?.refBonus, 0);
+    assert.equal(lightStats?.refBonus, 1);
     assert.equal(lightStats?.checkPenalty, 0);
 
     const heavyStats = getEquipmentStats(heavy);
     assert.equal(heavyStats?.acBonus, 2);
-    assert.equal(heavyStats?.refBonus, 1);
+    assert.equal(heavyStats?.refBonus, 2);
     assert.equal(heavyStats?.checkPenalty, -2);
 
     assert.equal(getEquipmentStats(cloth)?.acBonus, 0);
@@ -493,7 +493,7 @@ describe('equipment-sheet-sync', () => {
     assert.equal(c.sheet.defenses.ac.armor, 6);
     assert.equal(c.sheet.defenses.ac.enh, 1);
     assert.equal(c.sheet.defenses.ac.misc2, 1);
-    assert.equal(c.sheet.defenses.ref.misc2, 0);
+    assert.equal(c.sheet.defenses.ref.misc2, 1);
     assert.equal(c.sheet.armorPenaltyGlobal, -1);
     assert.equal(c.sheet.speed.armor, -1);
     assert.equal(defenseTotal(4, { ...c.sheet.defenses.ac, abil: 0 }), 20);

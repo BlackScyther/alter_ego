@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-10 (B-048 chainmail speed penalty)
+**Last updated:** 2026-11-10 (B-049 defense ability and shield Reflex)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-049 | 2026-11-10 | The printable sheet left Fortitude and Reflex ability at 0, so Strength +5 and Intelligence +3 were missing from those totals. The editor already showed them. The sheet now uses the higher ability modifier, and heavy armor still leaves AC ability at 0. A light shield's +1 and a heavy shield's +2 also add to Reflex. Files: `src/character/sheet-bridge.js`, `src/character/equipment-stats.js`. |
 | B-048 | 2026-11-10 | Chainmail's speed penalty of −1 was skipped when the class was proficient with chainmail, so a warlord in chainmail kept speed 6. The printed speed penalty now always goes in Speed — Armor. Proficiency does not remove it. Files: `src/character/equipment-sheet-sync.js`. |
 | B-046 | 2026-11-10 | Initiative Misc on the character sheet showed only a handwritten number. Improved Initiative (+4) and Combat Leader (+2) were stored as feature bonuses, so El Tonnaz Marines showed Misc 0. The Misc box now shows that handwritten extra plus those feature bonuses. Typing in the box still stores only the extra, so the feat is not added twice. Files: `src/character/hp.js`, `src/character/sheet-bridge.js`, `src/editor/sheet-mirror.js`. |
 | B-047 | 2026-11-10 | A Watersoul Genasi listed Resist 5 fire, lightning, cold, acid, poison, and psychic. An older scan copied every manifestation resistance onto the sheet, and opening the character did not rebuild that line. Load now rewrites resistances, senses, and saves from the chosen manifestation. Watersoul keeps water breathing and the save bonus, and drops the other souls' resistances. Files: `src/editor/editor.js`, `src/character/race-selections.js`. |

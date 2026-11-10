@@ -53,6 +53,17 @@ test('editing the Misc box keeps only the extra beyond feature bonuses', () => {
   assert.equal(sheetInitiativeMisc(character), 7);
 });
 
+test('sheet defenses use the higher ability modifier', () => {
+  const character = createCharacter();
+  character.abilities.scores = { str: 20, con: 12, dex: 10, int: 17, wis: 10, cha: 8 };
+  character.sheet.armorIsHeavy = true;
+  const payload = characterToSheetPayload(character);
+  assert.equal(payload['fort-abil'], 5);
+  assert.equal(payload['ref-abil'], 3);
+  assert.equal(payload['will-abil'], 0);
+  assert.equal(payload['ac-abil'], 0);
+});
+
 test('printable sheet page has no editable fields', () => {
   const html = readFileSync(new URL('../src/sheet/index.html', import.meta.url), 'utf8');
   const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'));
