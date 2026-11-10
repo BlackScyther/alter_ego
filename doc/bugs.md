@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-10 (B-046 initiative Misc, B-047 Genasi resistances)
+**Last updated:** 2026-11-10 (B-048 chainmail speed penalty)
 
 ## Open
 
@@ -22,6 +22,7 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-048 | 2026-11-10 | Chainmail's speed penalty of −1 was skipped when the class was proficient with chainmail, so a warlord in chainmail kept speed 6. The printed speed penalty now always goes in Speed — Armor. Proficiency does not remove it. Files: `src/character/equipment-sheet-sync.js`. |
 | B-046 | 2026-11-10 | Initiative Misc on the character sheet showed only a handwritten number. Improved Initiative (+4) and Combat Leader (+2) were stored as feature bonuses, so El Tonnaz Marines showed Misc 0. The Misc box now shows that handwritten extra plus those feature bonuses. Typing in the box still stores only the extra, so the feat is not added twice. Files: `src/character/hp.js`, `src/character/sheet-bridge.js`, `src/editor/sheet-mirror.js`. |
 | B-047 | 2026-11-10 | A Watersoul Genasi listed Resist 5 fire, lightning, cold, acid, poison, and psychic. An older scan copied every manifestation resistance onto the sheet, and opening the character did not rebuild that line. Load now rewrites resistances, senses, and saves from the chosen manifestation. Watersoul keeps water breathing and the save bonus, and drops the other souls' resistances. Files: `src/editor/editor.js`, `src/character/race-selections.js`. |
 | B-045 | 2026-11-09 | Inline item powers were parsed only at display time, and only for `Power ✦ At-Will/Encounter/Daily/Utility` headings. Printed power cards on an item (Hand of Salzacas) and Consumable, Weekly, Monthly, and Healing Surge headings were skipped, so those powers could not be stored for power cards. The normalizer now writes `item_power` from the item body. The power search still reads `power` only. A Power heading with no usage is stored and warned (`item-power-no-usage`). No item prints a feat card, so feats stay on the existing feat-link path. Files: `src/character/item-power-grants.js`, `tools/normalize/schema.sql`, `tools/normalize/normalize.mjs`, `src/data/compendium.js`, `src/print/rule-cards.js`, `src/character/character-collection.js`. |

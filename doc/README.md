@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-10 — Character sheet Misc includes Improved Initiative and class initiative. Opening a character rebuilds Genasi resistances from the chosen manifestation.
+**Last agent sync:** 2026-11-10 — Chainmail, scale, and plate write their printed speed penalty into Speed — Armor even when the class is proficient.
