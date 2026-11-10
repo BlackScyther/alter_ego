@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseClassEntry, parseBuildSuggestedSkills, parseBuildSuggestedPowerNames, parseBuildSuggestedFeatNames } from '../../src/character/class-parse.js';
 import { getEquipmentStats } from '../../src/character/equipment-stats.js';
+import { itemPowerRowsFromEntry } from '../../src/character/item-power-grants.js';
 import { normalizePowerType } from '../../src/editor/power-filter.js';
 import { bonusesFromEntry } from '../../src/character/tutor.js';
 import {
@@ -719,6 +720,46 @@ function normalizeEquipment(db, byCategory, warnings) {
   return count;
 }
 
+function normalizeItemPowers(db, byCategory, warnings) {
+  const ins = db.prepare(
+    `INSERT INTO item_power
+       (id, item_id, sort_index, name, power_type, action, keyword, source_book, body_html)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  let count = 0;
+  const tx = db.transaction(() => {
+    for (const slug of ['weapon', 'armor', 'implement', 'item']) {
+      for (const entry of byCategory.get(slug) ?? []) {
+        const itemName = entry.listing_fields?.Name ?? entry.id;
+        for (const row of itemPowerRowsFromEntry(entry)) {
+          ins.run(
+            row.id,
+            row.itemId,
+            row.sortIndex,
+            row.name,
+            row.powerType,
+            row.action,
+            row.keyword,
+            row.sourceBook,
+            row.bodyHtml
+          );
+          count += 1;
+          if (!row.powerType) {
+            warnings.add(
+              'item',
+              entry.id,
+              'item-power-no-usage',
+              `Item "${itemName}" has a Power block with no usage ("${row.heading || row.name}").`
+            );
+          }
+        }
+      }
+    }
+  });
+  tx();
+  return count;
+}
+
 function normalizeBackgrounds(db, byCategory) {
   const backgrounds = byCategory.get('background') ?? [];
   const insBg = db.prepare(`INSERT OR REPLACE INTO background (id, name, type, campaign, source_book) VALUES (?, ?, ?, ?, ?)`);
@@ -1100,6 +1141,7 @@ function main() {
     power_ability_option: normalizePowerAbilityOptions(db, byCategory, warnings),
     power_damage_option: normalizePowerDamageOptions(db, byCategory, warnings),
     item: normalizeEquipment(db, byCategory, warnings),
+    item_power: normalizeItemPowers(db, byCategory, warnings),
     background: normalizeBackgrounds(db, byCategory),
     monster: normalizeMonsters(db, byCategory, warnings),
     feat: normalizeFeats(db, byCategory, warnings),

@@ -2,7 +2,7 @@
 
 Track open issues, workarounds, and deferred work. Move items to **Fixed** when resolved.
 
-**Last updated:** 2026-11-08 (B-043 class-feature grants only)
+**Last updated:** 2026-11-09 (B-045 item powers in the normalized database)
 
 ## Open
 
@@ -22,6 +22,8 @@ Track open issues, workarounds, and deferred work. Move items to **Fixed** when 
 
 | ID | Fixed | Summary |
 |----|-------|---------|
+| B-045 | 2026-11-09 | Inline item powers were parsed only at display time, and only for `Power ✦ At-Will/Encounter/Daily/Utility` headings. Printed power cards on an item (Hand of Salzacas) and Consumable, Weekly, Monthly, and Healing Surge headings were skipped, so those powers could not be stored for power cards. The normalizer now writes `item_power` from the item body. The power search still reads `power` only. A Power heading with no usage is stored and warned (`item-power-no-usage`). No item prints a feat card, so feats stay on the existing feat-link path. Files: `src/character/item-power-grants.js`, `tools/normalize/schema.sql`, `tools/normalize/normalize.mjs`, `src/data/compendium.js`, `src/print/rule-cards.js`, `src/character/character-collection.js`. |
+| B-044 | 2026-11-09 | Inventory items such as Hungry Spear (AV2) grant an Encounter power, but the Powers step **Items** list stayed empty. Item bodies print `Power ✦ Encounter …` inline and almost never link a `powerN` id (0 of ~3k weapon/item/armor rows in the local DB). Grants now also parse those mihead Power blocks (and bold `Power (Daily)` fallbacks). The row names the item power, shows usage, and links to the item entry. Files: `src/character/item-power-grants.js`, `src/editor/steps/power-step.js`, `src/character/character-collection.js`, `src/print/rule-cards.js`. |
 | B-043 | 2026-11-08 | Suggested Warlord powers such as Commander's Strike appeared under read-only **Class Powers**. Early build options stored suggested at-wills in `powerIds`, and `collectClassGrantIds` treated them as class-feature grants. Suggested picks belong only in power slots via **Recommended powers for this class**. The Class list is feature grants only (Warlord: Inspiring Word; Battlefront Shift when that feature is taken). Grants now read embedded ids only from the CLASS FEATURES section, ignore build-option `powerIds`, and re-sync on character load so stale ids are scrubbed. Same rule for class feats (Ritual Caster stays; suggested feats stay in feat slots). Files: `src/character/class-selections.js`, `src/editor/editor.js`. |
 | B-042 | 2026-11-08 | Some power and feat cards showed only the action line. Swiftcurrent printed “Encounter, Move Action, Personal” and left out the shift effect. The compendium stores Effect, Hit, Special, and Benefit lines in a flavor paragraph. The card condenser removed every flavor paragraph, and the short action line that remained stopped the blank-card fallback from restoring the original text. Mechanical lines that start with those labels are now kept. Flavor prose and the published-in footer are still removed. Files: `src/ui/condense-rule-text.js`. |
 | B-041 | 2026-11-08 | Granted power and feat rows put the compendium arrow on the next line. The name box was full width inside a wrapping row, so the link dropped below the name. The arrow now sits on the name line inside the box, and At-Will, Encounter, Daily, or Utility is text in that box. Files: `src/editor/steps/grant-section-html.js`, `src/editor/editor.css`. |

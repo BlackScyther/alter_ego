@@ -4,6 +4,10 @@
  */
 
 const POWER_GROUPS = [
+  { id: 'consumable', label: 'Consumable', test: /consumable/i },
+  { id: 'weekly', label: 'Weekly', test: /\bweekly\b/i },
+  { id: 'monthly', label: 'Monthly', test: /\bmonthly\b/i },
+  { id: 'healing-surge', label: 'Healing Surge', test: /healing surge/i },
   { id: 'utility', label: 'Utility', test: /utility/i },
   { id: 'daily', label: 'Daily', test: /daily/i },
   { id: 'encounter', label: 'Encounter', test: /\bencounter\b|\benc\b/i },

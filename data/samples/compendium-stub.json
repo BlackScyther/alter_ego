@@ -380,6 +380,18 @@
           "listing_fields": { "Name": "Sling", "Type": "Sling", "Level": "1", "Cost": "1 gp", "Rarity": "Common", "SourceBook": "PHB" },
           "body_html": "<p>Simple ranged weapon.</p>",
           "index_text": "Sling"
+        },
+        {
+          "id": "weapon1582",
+          "listing_fields": { "Name": "Hungry Spear", "Type": "Spear", "Level": "2", "Cost": "520 gp", "Rarity": "Uncommon", "SourceBook": "AV2" },
+          "body_html": "<h1 class=mihead>Hungry Spear</h1><h2 class=mihead>Power ✦ Encounter (Standard Action)</h2><p class=\"mistat indent\">Make a ranged basic attack with this spear.</p>",
+          "index_text": "Hungry Spear"
+        },
+        {
+          "id": "weapon-nousage",
+          "listing_fields": { "Name": "Untyped Relic", "Type": "Wondrous", "Level": "1", "Cost": "1 gp", "Rarity": "Common", "SourceBook": "AV2" },
+          "body_html": "<h2 class=mihead>Power (Aura)</h2><p class=mistat>You shed light.</p>",
+          "index_text": "Untyped Relic"
         }
       ]
     },

@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-09 — Agent replies must end with an explicit **Git:** commit/push status (`git-status-in-reply.mdc`).
+**Last agent sync:** 2026-11-09 — Item powers printed on an item (Hungry Spear, Hand of Salzacas, consumables) are stored in `item_power` and stay out of the power search.

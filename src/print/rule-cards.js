@@ -96,23 +96,26 @@ function personalizePowerBody(bodyEl, cardCtx) {
  */
 async function renderTile(item, fallbackKind, cardCtx, compendium) {
   if (item.empty) return null;
-  const entry = await compendium.getEntry(item.id);
+  const entry = item.previewHtml ? null : await compendium.getEntry(item.id);
   const fields = entry?.listing_fields ?? {};
   const name = fields.Name ?? item.name ?? item.id;
-  const body = condenseRuleHtml(entry);
+  const body = condenseRuleHtml(item.previewHtml ? { body_html: String(item.previewHtml) } : entry);
+  const meta = item.previewHtml
+    ? item.meta || fallbackKind
+    : metaLine(fields, fallbackKind);
 
   const tile = document.createElement('article');
   tile.className = `rule-card rule-card--${item.category}`;
-  const freq = frequencyClass(fields.Type);
+  const freq = frequencyClass(fields.Type || item.usage);
   if (freq) tile.classList.add(freq);
   tile.innerHTML = `
     <header class="rule-card-head">
       <h3 class="rule-card-name">${escapeHtml(name)}</h3>
-      <p class="rule-card-meta">${escapeHtml(metaLine(fields, fallbackKind))}</p>
+      <p class="rule-card-meta">${escapeHtml(meta)}</p>
     </header>
     <div class="rule-card-body entry-preview">${body || '<p class="rule-card-empty">No rule text available.</p>'}</div>`;
 
-  if (item.category === 'power' && cardCtx) {
+  if (item.category === 'power' && cardCtx && !item.previewHtml) {
     const bodyEl = tile.querySelector('.rule-card-body');
     if (bodyEl) personalizePowerBody(bodyEl, cardCtx);
   }

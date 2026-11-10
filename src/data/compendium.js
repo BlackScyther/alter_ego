@@ -914,6 +914,24 @@ export class CompendiumProvider {
   }
 
   /**
+   * Inline powers stored for one item. Null when the table is absent so the
+   * caller can fall back to parsing the item HTML. An empty array means the
+   * item has no inline power.
+   * @param {string} itemId
+   */
+  async listItemPowers(itemId) {
+    await this.ready();
+    if (!this._hasTable('item_power')) return null;
+    const id = String(itemId ?? '').trim().toLowerCase();
+    if (!id) return [];
+    return this._queryAll(
+      `SELECT id, item_id, sort_index, name, power_type, action, keyword, source_book, body_html
+       FROM item_power WHERE lower(item_id) = ? ORDER BY sort_index`,
+      [id]
+    );
+  }
+
+  /**
    * Alchemical items at or under a level. Matches type or category text that
    * contains "alchemical". Without the item table, filters a normal item list.
    * @param {{ maxLevel?: number | null, search?: string, limit?: number }} [opts]

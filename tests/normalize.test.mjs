@@ -35,7 +35,7 @@ test('normalizer creates the expected tables', () => {
     .prepare(`SELECT name FROM sqlite_master WHERE type='table'`)
     .all()
     .map((r) => r.name);
-  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'power_ability_option', 'power_damage_option', 'item', 'armor_stats', 'weapon_stats', 'background', 'monster', 'monster_combat_stats', 'feat', 'feat_skill_bonus', 'ritual', 'glossary', 'paragonpath', 'epicdestiny', 'theme', 'trap', 'normalize_warnings', 'norm_meta']) {
+  for (const t of ['source_books', 'race', 'race_subrace', 'class', 'class_proficiency', 'power', 'power_ability_option', 'power_damage_option', 'item', 'item_power', 'armor_stats', 'weapon_stats', 'background', 'monster', 'monster_combat_stats', 'feat', 'feat_skill_bonus', 'ritual', 'glossary', 'paragonpath', 'epicdestiny', 'theme', 'trap', 'normalize_warnings', 'norm_meta']) {
     assert.ok(names.includes(t), `missing table ${t}`);
   }
 });
@@ -125,4 +125,24 @@ test('ritual listing normalized', () => {
   const row = db.prepare(`SELECT name, level FROM ritual WHERE id = 'ritual1'`).get();
   assert.equal(row.name, 'Comprehend Language');
   assert.equal(row.level, 1);
+});
+
+test('inline item powers are stored apart from the power table', () => {
+  const row = db
+    .prepare(
+      `SELECT name, power_type, action, source_book, body_html FROM item_power WHERE id = ?`
+    )
+    .get('weapon1582#item-power-0');
+  assert.ok(row);
+  assert.equal(row.name, 'Hungry Spear');
+  assert.equal(row.power_type, 'Encounter');
+  assert.equal(row.action, 'Standard Action');
+  assert.equal(row.source_book, 'AV2');
+  assert.match(row.body_html, /ranged basic attack/i);
+  const asPower = db.prepare(`SELECT id FROM power WHERE id = ?`).get('weapon1582#item-power-0');
+  assert.equal(asPower, undefined);
+  const warn = db
+    .prepare(`SELECT kind FROM normalize_warnings WHERE entry_id = ? AND kind = ?`)
+    .get('weapon-nousage', 'item-power-no-usage');
+  assert.ok(warn);
 });

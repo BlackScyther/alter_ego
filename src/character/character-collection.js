@@ -34,6 +34,7 @@ import { collectItemFeatGrants } from './item-feat-grants.js';
  * @property {string} [detail]
  * @property {boolean} [chooser]
  * @property {string} [usage]
+ * @property {string} [previewHtml]
  */
 
 /**
@@ -162,15 +163,18 @@ export async function collectPowerItems(character, compendium, opts = {}) {
     const id = String(grant.powerId).toLowerCase();
     if (seenPowerIds.has(id)) continue;
     seenPowerIds.add(id);
-    const entry = await compendium.getEntry(id);
+    const entry = grant.inline ? null : await compendium.getEntry(id);
     pushUnique(items, {
       id,
       category: 'power',
       name: grant.powerName || entry?.listing_fields?.Name || id,
-      meta: formatPowerMeta(entry?.listing_fields),
+      meta: grant.inline
+        ? [grant.usage, grant.action, grant.itemName, grant.sourceBook].filter(Boolean).join(' · ') || 'Item'
+        : formatPowerMeta(entry?.listing_fields),
       detail: grant.itemName,
       source: 'Item',
       usage: grant.usage || '',
+      previewHtml: grant.bodyHtml || undefined,
       readonly: true
     });
   }

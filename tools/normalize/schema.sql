@@ -257,6 +257,23 @@ CREATE TABLE item_level (
 );
 CREATE INDEX idx_item_level_item ON item_level(item_id);
 
+-- Powers printed on an item (Hungry Spear, Hand of Salzacas, consumables).
+-- These are not rows in `power` and do not appear in the power search.
+-- They are granted only while the item is in inventory.
+DROP TABLE IF EXISTS item_power;
+CREATE TABLE item_power (
+  id TEXT PRIMARY KEY,             -- itemId#item-power-N
+  item_id TEXT NOT NULL,
+  sort_index INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  power_type TEXT,                 -- Encounter | Daily | Consumable | Consumable Utility | Weekly | ...
+  action TEXT,
+  keyword TEXT,
+  source_book TEXT,
+  body_html TEXT
+);
+CREATE INDEX idx_item_power_item ON item_power(item_id);
+
 DROP TABLE IF EXISTS armor_stats;
 CREATE TABLE armor_stats (
   item_id TEXT PRIMARY KEY,

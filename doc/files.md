@@ -235,7 +235,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | File | Role |
 |------|------|
 | `index.html` | Read-only A4 sheet. Identity, abilities, hit points, defenses, action points, movement, senses, basic attacks, feats, a wide skills table, features, a power index, and equipped items. Each defense shows 10 + ½ level once, then ability, armor, class, feat, enhancement, misc, and item misc. No inputs on the page. Toolbar has Scale and **Include power and feat cards** |
-| `sheet-fields.js` | Writes read-only cells and builds the power index (grouped At-Will / Encounter / Daily / Utility) and equipped-item lines. No compendium imports |
+| `sheet-fields.js` | Writes read-only cells and builds the power index (Consumable, Weekly, Monthly, Healing Surge, then At-Will / Encounter / Daily / Utility) and equipped-item lines. No compendium imports |
 | `levels.html` | Level reference page only (for `pdf:levels`) |
 | `../app.js` | Recalculates the sheet into the read-only cells. Print locks the scale at 100%. Include power and feat cards appends A4 power cards, then smaller feat cards, after page 1 |
 | `../formulas.js` | D&D 4e math: half level, defenses, skills, attacks, HP, XP table |
@@ -286,7 +286,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `equipment-selections.js` | Equipment inventory instances, body-slot equip/unequip/swap, legacy `equipmentIds` migration, gold field shape, `clearAllEquipment`; per-instance `level` and magic `enhancement` (`setEquipmentItemEnhancement`, +1/+2/+3); shields equip to off hand; `getEligibleSlotsForEntry` prefers the normalized `item.slot` (neck/head/arms/…) and falls back to name/type heuristics |
 | `feat-grant-scan.js` | Shared feat scan: `feat123` ids and "you gain the … feat" names, resolved to a compendium feat. A sentence with if, when, whenever, unless, or while is skipped |
 | `item-feat-grants.js` | Feats granted by every inventory item, equipped or not |
-| `item-power-grants.js` | Powers linked from inventory item bodies (`power123`), equipped or not. Usage comes from the power's Type, or the closest At-Will / Encounter / Daily / Utility word before the link |
+| `item-power-grants.js` | Powers from inventory items (equipped or not): linked `power123` ids, and inline powers. A `Power ✦ Encounter` heading such as Hungry Spear uses the item name. A printed card such as Hand of Salzacas (`h1 class=dailypower`) keeps that name, and the level span is dropped. Consumable, weekly, monthly, and healing-surge usages stay as written, including Consumable Utility. Reads `item_power` when that table exists and parses the item body when it does not. Inline rows link to the item entry and stay out of the power search |
 | `equipment-stats.js` | Parse compendium equipment entries. Armor and shield stat blocks are read after tags are stripped (`AC Bonus` / `Shield Bonus` / `Check` / `Speed`). A missing number stays 0. Light shield is +1 AC; heavy shield is +2 AC, +1 Reflex, check −2. Chainmail is +6 / check −1 / speed −1. The name table is the fallback when the block has no number. Prose such as "grants +7 AC at levels 6–10" is not the armor bonus. `magicTableDefenseBonuses` reads a magic-item table plus `Enhancement Bonus:` for the equipped level. `printedBonusesAtLevel` reads `Level 12: Gain a +2 item bonus` (and `or higher`) and does not use the generic +1-per-five-levels formula. Conditional phrases (against, while, when, if) stay off the defense columns. `getDefenseEnhancementInfo`/`enhancementFromLevel` still cover an Amulet of Protection that has no table. `parseDefenseBonuses`, `stackDefenseBonuses`, and the magic +1/+2/+3 helpers are unchanged |
 | `equipment-sheet-sync.js` | Push equipped gear into sheet defenses, speed, armor check, and mirror attack lines. Armor and shields use `getEquipmentStats` even when `armor_stats` has a row, until that table is rebuilt. The Armor column is the armor bonus only. A shield bonus goes to misc2. Enhancement stays in enh. Named bonuses of the same type do not add. The melee/ranged line `enh` shows the higher of the weapon's and the implement's bonus |
 | `starting-equipment.js` | Level-1 kit resolve/apply (`resolveStartingKit`, `applyStartingKit`, `getRecommendedStartingKitMeta`); auto-seed on create; force-apply for recommend button |
@@ -365,7 +365,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 |------|------|
 | `cards.html` | Printable rule-cards page shell (toolbar + grid; links `cards.css`; its own `@page` is A4) |
 | `cards.js` | Cards page entry. Reads the `editor.printCards` handoff and calls `renderRuleCards` |
-| `rule-cards.js` | Shared card renderer. One condensed tile per power, feat, or ritual. Power tiles are personalized via `power-card-values.js` (attack to-hit and damage modifier). Feat tiles use the same card at a shorter minimum height. The sheet print asks for powers and feats |
+| `rule-cards.js` | Shared card renderer. One condensed tile per power, feat, or ritual. An item power that has no compendium entry uses its stored body, condensed the same way. Power tiles that come from a compendium entry are personalized via `power-card-values.js` (attack to-hit and damage modifier). Feat tiles use the same card at a shorter minimum height. The sheet print asks for powers and feats |
 | `cards.css` | Card grid and frequency accents (at-will / encounter / daily). Two columns. Power cards are at most four per page (`min-height` about 124 mm). Feat cards (`.rule-card--feat`) use about 60 mm so more fit. Long cards grow instead of clipping. Calculated numbers are black. Page size is A4 on the cards page and on the sheet |
 
 ## `src/encounter/`
@@ -411,7 +411,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew`; normalized-first read methods (`usesNormalized`, `getRaceSubraceMap`, `getNormalizedClass`, `listNormalizedPowers`, `getNormalizedItemStats`, `getNormalizedRaceTraits`, `getPowerAbilityOptions`, `getPowerDamageOptions`, `getSourceBookDates`, `listAlchemicalItems`) with parse fallback; power filtering uses the normalized `power` table when present |
+| `compendium.js` | `CompendiumProvider`: stub/SQLite + merged homebrew via `/api/homebrew`; normalized-first read methods (`usesNormalized`, `getRaceSubraceMap`, `getNormalizedClass`, `listNormalizedPowers`, `listItemPowers`, `getNormalizedItemStats`, `getNormalizedRaceTraits`, `getPowerAbilityOptions`, `getPowerDamageOptions`, `getSourceBookDates`, `listAlchemicalItems`) with parse fallback; power filtering uses the normalized `power` table when present. `listItemPowers` returns null when `item_power` is absent |
 
 ## `src/party/`
 
@@ -432,8 +432,8 @@ One-line role for each tracked file. Update this table when the tree changes.
 
 | File | Role |
 |------|------|
-| `normalize.mjs` | Compendium ETL: reads denormalized `entries`, writes normalized tables into the same SQLite file; reuses existing parsers (race, class, power, item, background, monster, feat, ritual, path, reference); emits `normalize_warnings`. Schema version 2. Flags `--src`/`--out`/`--from-stub`/`--report`/`--if-exists`. Scripts: `npm run normalize`, `npm run normalize:stub` |
-| `schema.sql` | Normalized table DDL (`source_books`, `race*`, `class*`, `power`, `item`/`item_level`/`armor_stats`/`weapon_stats`, `background*`, `norm_meta`, `normalize_warnings`) |
+| `normalize.mjs` | Compendium ETL: reads denormalized `entries`, writes normalized tables into the same SQLite file; reuses existing parsers (race, class, power, item, item inline powers, background, monster, feat, ritual, path, reference); emits `normalize_warnings`. Schema version 2. Flags `--src`/`--out`/`--from-stub`/`--report`/`--if-exists`. Scripts: `npm run normalize`, `npm run normalize:stub` |
+| `schema.sql` | Normalized table DDL (`source_books`, `race*`, `class*`, `power`, `item`/`item_level`/`item_power`/`armor_stats`/`weapon_stats`, `background*`, `norm_meta`, `normalize_warnings`) |
 
 ## URLs (dev server `npm start`)
 

@@ -6,7 +6,7 @@ import { buildPowerIndex, characterToSheetPayload } from '../src/character/sheet
 
 test('power index groups powers by usage and keeps racial and class powers', () => {
   const groups = buildPowerIndex({
-    powers: 'At-Will: Bull Rush Attack\nLevel 3 encounter: Vengeance is Mine\nDaily Utility: Inspiring Word\nEnc. Attack: Lead the Attack',
+    powers: 'At-Will: Bull Rush Attack\nLevel 3 encounter: Vengeance is Mine\nDaily Utility: Inspiring Word\nEnc. Attack: Lead the Attack\nConsumable Utility: Sonata Wine',
     racialPowers: 'Swiftcurrent',
     classPowers: 'Inspiring Word'
   });
@@ -14,6 +14,7 @@ test('power index groups powers by usage and keeps racial and class powers', () 
   assert.deepEqual(byId['at-will'], ['Bull Rush Attack']);
   assert.deepEqual(byId.encounter, ['Vengeance is Mine', 'Lead the Attack']);
   assert.deepEqual(byId.utility, ['Inspiring Word']);
+  assert.deepEqual(byId.consumable, ['Sonata Wine']);
   assert.deepEqual(byId.other, ['Swiftcurrent']);
   assert.equal(byId.daily, undefined);
 });

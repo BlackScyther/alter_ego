@@ -584,7 +584,12 @@ export async function renderPowerStep(panel, ctx) {
       name: grant.powerName,
       meta: grant.itemName,
       usage: grant.usage || '',
-      links: [powerLink(grant.powerId, grant.powerName)]
+      links: [
+        powerLink(
+          grant.linkId || grant.itemId || grant.powerId,
+          grant.inline ? grant.itemName : grant.powerName
+        )
+      ]
     }));
 
     const section = (kind, title, ariaLabel, note, rows) =>
