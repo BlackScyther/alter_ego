@@ -45,10 +45,10 @@ const ARMOR_BASE_TABLE = [
   { match: /cloth/i, category: 'cloth', acBonus: 0, checkPenalty: 0, speedPenalty: 0 }
 ];
 
-/** @type {{ light: { acBonus: number, refBonus: number, checkPenalty: number }, heavy: { acBonus: number, refBonus: number, checkPenalty: number } }} */
+/** A shield bonus applies to AC and to Reflex. Light is +1, heavy is +2. */
 const SHIELD_FALLBACK = {
-  light: { acBonus: 1, refBonus: 0, checkPenalty: 0 },
-  heavy: { acBonus: 2, refBonus: 1, checkPenalty: -2 }
+  light: { acBonus: 1, refBonus: 1, checkPenalty: 0 },
+  heavy: { acBonus: 2, refBonus: 2, checkPenalty: -2 }
 };
 
 /**

@@ -4,6 +4,7 @@
 
 import { getFinalScores, getSkillBonusTotals } from './tutor.js';
 import { sheetInitiativeMisc } from './hp.js';
+import { defenseAbilityMod } from '../formulas.js';
 import { buildPowerIndex, writeSheetField } from '../sheet/sheet-fields.js';
 
 const ABIL_MAP = ['str', 'con', 'dex', 'int', 'wis', 'cha'];
@@ -58,6 +59,7 @@ export function characterToSheetPayload(character) {
     languages: character.notes.languages,
     'ap-effects': character.notes.apEffects,
     ...flattenDefenses(sheet.defenses),
+    ...defenseAbilityFields(character, scores),
     ...flattenSpeed(sheet.speed),
     ...flattenSkillBonuses(getSkillBonusTotals(character)),
     'power-index': buildPowerIndex(character.notes),
@@ -130,10 +132,26 @@ function flattenSkillBonuses(totals) {
 
 function flattenDefenses(defenses) {
   const out = {};
-  for (const [def, parts] of Object.entries(defenses)) {
+  for (const [def, parts] of Object.entries(defenses ?? {})) {
     for (const [key, val] of Object.entries(parts)) {
       out[`${def}-${key}`] = val;
     }
+  }
+  return out;
+}
+
+/**
+ * Ability box for each defense. Stored sheet values stay 0; the sheet shows
+ * the higher modifier. Heavy armor replaces the Dexterity or Intelligence
+ * bonus to AC.
+ * @param {object} character
+ * @param {Record<string, number>} scores
+ */
+function defenseAbilityFields(character, scores) {
+  const heavy = Boolean(character.sheet?.armorIsHeavy);
+  const out = {};
+  for (const def of ['ac', 'fort', 'ref', 'will']) {
+    out[`${def}-abil`] = def === 'ac' && heavy ? 0 : defenseAbilityMod(scores, def);
   }
   return out;
 }
