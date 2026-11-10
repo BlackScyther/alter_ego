@@ -48,7 +48,7 @@ Runs tests across `tests/*.test.mjs`. Spawns a temporary campaign API (isolated 
 | `tests/theme-prerequisite.test.mjs` | Theme eligibility (race, fey origin, class, alignment, Diplomacy, spellbook), setting groups, warning that keeps the selection |
 | `tests/background-effects.test.mjs` | HP substitute, initiative misc, effect validation and sheet sync |
 | `tests/class-effects.test.mjs` | Class-feature static initiative (Tactical Warlord Combat Leader +2; action-point sentence ignored; Canny Leader replaces it), Improved Initiative +4 stacking to 6 without double-counting Misc, additive class+background composition |
-| `tests/skills-table.test.mjs` | Skills table markup and field maps: every number cell except Misc is read-only; Trained stays a checkbox |
+| `tests/skills-table.test.mjs` | Skills table markup and field maps: every number cell except Misc is read-only; Trained stays a checkbox. Athletics has an armor-penalty cell |
 | `tests/sheet-print.test.mjs` | Printable sheet power index grouping (Consumable Utility stays under Consumable; Daily Utility stays under Utility), payload, Initiative Misc includes feat and class bonuses, defense ability uses the higher modifier (heavy armor leaves AC at 0), and no editable fields on the sheet page |
 | `tests/class-parse.test.mjs` | Class HTML traits, builds, and CLASS FEATURES grants (Tactical keeps Combat Leader and lists Tactical Presence; Insightful replaces Combat Leader; a trailing period is stripped from the last build name; feature names are hover links) |
 | `tests/background-prerequisite.test.mjs` | Background race prerequisite filter modes |

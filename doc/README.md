@@ -43,4 +43,4 @@ Also update the root **[PROMPT.md](../PROMPT.md)** when project goals, workflows
 
 Set **Last agent sync** below when you finish a doc pass.
 
-**Last agent sync:** 2026-11-10 — Printable defenses use the higher ability modifier. A shield bonus adds to Reflex as well as AC.
+**Last agent sync:** 2026-11-10 — Athletics takes the armor check penalty, the same as Acrobatics, Endurance, Stealth, and Thievery.

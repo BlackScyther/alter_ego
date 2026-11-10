@@ -238,7 +238,7 @@ One-line role for each tracked file. Update this table when the tree changes.
 | `sheet-fields.js` | Writes read-only cells and builds the power index (Consumable, Weekly, Monthly, Healing Surge, then At-Will / Encounter / Daily / Utility) and equipped-item lines. No compendium imports |
 | `levels.html` | Level reference page only (for `pdf:levels`) |
 | `../app.js` | Recalculates the sheet into the read-only cells. Print locks the scale at 100%. Include power and feat cards appends A4 power cards, then smaller feat cards, after page 1 |
-| `../formulas.js` | D&D 4e math: half level, defenses, skills, attacks, HP, XP table |
+| `../formulas.js` | D&D 4e math: half level, defenses, skills, attacks, HP, XP table. Armor check applies to Acrobatics, Athletics, Endurance, Stealth, and Thievery |
 | `../sheet.css` | A4 layout (210 mm × 297 mm). Values are black and at least 8pt; labels are at least 7pt. Numbers are centered |
 
 ## `src/resources/` — shared player reference (character-independent)

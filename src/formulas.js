@@ -116,7 +116,8 @@ export function actionPointsFromMilestones(milestones) {
 export const SKILLS = [
   { id: 'acrobatics', name: 'Acrobatics', ability: 'dex', armorPenalty: true },
   { id: 'arcana', name: 'Arcana', ability: 'int', armorPenalty: false },
-  { id: 'athletics', name: 'Athletics', ability: 'str', armorPenalty: false },
+  // Armor check applies to Acrobatics, Athletics, Endurance, Stealth, and Thievery.
+  { id: 'athletics', name: 'Athletics', ability: 'str', armorPenalty: true },
   { id: 'bluff', name: 'Bluff', ability: 'cha', armorPenalty: false },
   { id: 'diplomacy', name: 'Diplomacy', ability: 'cha', armorPenalty: false },
   { id: 'dungeoneering', name: 'Dungeoneering', ability: 'wis', armorPenalty: false },
